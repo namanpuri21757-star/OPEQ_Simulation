@@ -34,6 +34,13 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/shared/**', 'src/server/**'],
+      // The engine and the unit converters decide every number a student sees,
+      // so they carry a line threshold. The rest of the app is covered by the
+      // integration, simulation and end-to-end suites instead.
+      thresholds: {
+        'src/shared/engine/**': { lines: 95 },
+        'src/shared/units.ts': { lines: 95 },
+      },
     },
   },
 });

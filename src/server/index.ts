@@ -4,6 +4,11 @@ import { createServer as createHttpServer, type Server as HttpServer } from 'nod
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import express, { type Express } from 'express';
 import { Server as IoServer } from 'socket.io';
+import { attachSockets, type SocketLayer } from './socket.js';
+import { SessionStore, systemClock, type Clock } from './store/index.js';
+
+/** The 1-second tick that closes overdue years (SPEC section 9). */
+const TICK_MS = 1000;
 
 export interface CreateServerOptions {
   /** 0 asks the operating system for any free port, which is what tests want. */
@@ -11,12 +16,22 @@ export interface CreateServerOptions {
   host?: string;
   /** Folder holding the built client. Missing in dev; the Vite server serves it then. */
   clientDir?: string;
+  /** Where sessions are saved. Tests pass a temporary folder. */
+  dataDir?: string;
+  /** Injected so a test can decide what time it is. */
+  clock?: Clock;
+  /** 0 turns the automatic tick off, so a test can call store.tick() itself. */
+  tickMs?: number;
+  /** Where warnings go. Tests collect them instead of printing. */
+  logger?: (message: string) => void;
 }
 
 export interface RunningServer {
   app: Express;
   http: HttpServer;
   io: IoServer;
+  store: SessionStore;
+  sockets: SocketLayer;
   port: number;
   host: string;
   url: string;
@@ -44,6 +59,7 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
   const host = options.host ?? '0.0.0.0';
   const clientDir = options.clientDir ?? DEFAULT_CLIENT_DIR;
   const version = await readVersion();
+  const dataDir = options.dataDir ?? process.env['DATA_DIR'] ?? './data';
 
   const app = express();
   app.disable('x-powered-by');
@@ -75,6 +91,25 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
   // Both transports, because some school networks block plain WebSocket.
   const io = new IoServer(http, { transports: ['websocket', 'polling'] });
 
+  const store = new SessionStore({
+    dataDir,
+    clock: options.clock ?? systemClock,
+    ...(options.logger ? { logger: options.logger } : {}),
+  });
+  // Anything already saved comes back before the first client can connect.
+  await store.loadAll();
+  const sockets = attachSockets(io, store);
+
+  const tickMs = options.tickMs ?? TICK_MS;
+  const ticker =
+    tickMs > 0
+      ? setInterval(() => {
+          void store.tick();
+        }, tickMs)
+      : null;
+  // The tick must never hold the process open on its own.
+  ticker?.unref?.();
+
   const port = await new Promise<number>((resolve, reject) => {
     http.once('error', reject);
     http.listen(options.port ?? 0, host, () => {
@@ -85,6 +120,10 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
   });
 
   const close = async (): Promise<void> => {
+    if (ticker) clearInterval(ticker);
+    sockets.close();
+    await store.close();
+
     // Socket.IO closes the HTTP server it is attached to, so closing the HTTP
     // server afterwards may report "not running". That is not a failure.
     await new Promise<void>((resolve) => {
@@ -105,6 +144,8 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
     app,
     http,
     io,
+    store,
+    sockets,
     port,
     host,
     url: `http://localhost:${String(port)}`,

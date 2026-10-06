@@ -1,6 +1,6 @@
 import { fail, runSteps } from './run.mjs';
 
-// The gate every phase has to pass. Later phases add simulate, loadtest and e2e.
+// The gate every phase has to pass. Later phases add loadtest and e2e.
 //
 // Coverage stands in for the plain test run: it runs the same suites and then
 // enforces the line thresholds on the engine and the unit converters. The
@@ -12,6 +12,7 @@ try {
     ['Lint', 'npm', ['run', 'lint']],
     ['Tests and coverage', 'npm', ['run', 'coverage']],
     ['Generated materials are fresh', 'npm', ['run', 'benchmarks', '--', '--check']],
+    ['Simulated game', 'npm', ['run', 'simulate']],
     ['Build', 'npm', ['run', 'build']],
   ]);
   console.log('\nVerify passed.');

@@ -21,6 +21,8 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "benchmarks": "tsx scripts/benchmarks.ts",
+    "simulate": "tsx scripts/simulate.ts",
+    "docs": "tsx scripts/state-machine.ts",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {

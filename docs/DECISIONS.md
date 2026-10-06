@@ -2,6 +2,86 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-06 - Everything a command cannot work out for itself travels in the event
+
+Decision: each saved event carries an `issued` object with the values the server generated when the command arrived: the session id, the seed, the keys, fresh join codes, a terminal token, ids for messages and news, and how long a terminal had been offline. The reducer reads those instead of calling `crypto` or a clock.
+Reason: SPEC section 9 requires that replaying `events.jsonl` gives the identical state. A reducer that generated its own ids would produce different ones on every replay, and `claimTeam` would decide differently because nobody is connected during a replay. Putting the facts in the event makes `applyEvent(state, event)` a pure function, which is also what makes a candidate state safe to throw away when the append to disk fails.
+
+## 2026-10-06 - A rejected command may still change state, and is then saved
+
+Decision: `applyEvent` can return `{ ok: false, code, message, state }`. The store persists and broadcasts that state and then sends the failure ack.
+Reason: asking to take over a terminal that is still connected has to answer NEEDS_APPROVAL to the asking terminal and at the same time record the request for the instructor. Those are one command, so they have to be one event; splitting them would let a crash lose the request while the terminal thinks it is waiting.
+
+## 2026-10-06 - Who is connected is never saved to disk
+
+Decision: connected state and last-seen times live in the socket layer, not in `SessionState`. The instructor view gets them passed in.
+Reason: after a restart nobody is connected, so a saved value would always be wrong and would have to be cleared on load anyway. Keeping it out of the state also keeps `events.jsonl` to real classroom events rather than a stream of network noise, and keeps replay exact.
+
+## 2026-10-06 - createSession is a socket command sent after a "setup" hello
+
+Decision: a brand new instructor screen says `hello { role: 'setup' }` with no session and may then send exactly one command, `createSession`. There is no HTTP endpoint for it.
+Reason: SPEC section 9 says Socket.IO carries all live traffic. One path for every command means one place that validates, checks permissions and enforces commandId idempotency, instead of a second half-path over HTTP that would have to repeat all three.
+
+## 2026-10-06 - endGame drops any year that is still open
+
+Decision: `endGame` works from any phase. A year that was open is cleared and never scored.
+Reason: SPEC 8.4 lists "end game" as a control the instructor can reach at any time, usually because the lesson has run out of time. Settling a half-finished year would score decisions that groups had not finished making, and refusing the command would leave a teacher stuck with a bell ringing.
+
+## 2026-10-06 - resetSession keeps the teams, their codes and their claims
+
+Decision: a reset clears decisions, outcomes, messages, huddles, predictions, reflections, news and the schedule progress, and goes back to LOBBY. Teams keep their join codes, their member names and their claimed terminals.
+Reason: the reason to reset is to play again with the same class. Reissuing codes would mean reprinting cards and reclaiming nine terminals mid-lesson. Deleting a session is the command for starting over completely.
+
+## 2026-10-06 - fireEvent schedules the event for the next year by rewriting the settings
+
+Decision: `fireEvent` sets `newProducer.enabled` and `year`, or `demandEvent.enabled` and `year`, to the year after the current one, and is refused if that event has already taken effect.
+Reason: the engine already reads both events out of the settings by year, so moving the year is the whole change; a second mechanism would be a second place for the two to disagree. "Between years only" then falls out of the phase table, and the next `openYear` applies and announces it exactly as a scheduled event would.
+
+## 2026-10-06 - announceFinalYear only when the next year really is the last
+
+Decision: the command is refused unless the current year plus one equals the number of years, and also when `finalYearWarning` is off.
+Reason: SPEC section 4 makes the warning a specific moment with a specific effect on behaviour (LG6). An announcement made two years early would be untrue, and the debrief question about what happened after the warning would have nothing to point at.
+
+## 2026-10-06 - The leaderboard names worlds by number and countries by letter, never by id
+
+Decision: leaderboard rows carry `worldNumber`, `letter`, `countryName` and `label` only.
+Reason: teams see the leaderboard once results are released, and SPEC section 7 says a team never sees another world's data. A world id or a team id is exactly the kind of handle a curious student could use to ask the server for something else, and the numbers on screen read better anyway.
+
+## 2026-10-06 - The word filter matches on word boundaries read from the original text
+
+Decision: a blocked word must start and end on a boundary in the text as typed, not in the letters-only copy used for matching. Punctuation inside a word is ignored.
+Reason: stripping the punctuation first loses every boundary, so "class" would be masked at its "ass". Reading the boundaries off the original keeps innocent words intact and still catches a word spelled out with dots between its letters. The price is that a word split across a space is caught too, which is the right way round for a classroom.
+
+## 2026-10-06 - A name that is masked end to end becomes the numbered default
+
+Decision: `cleanMemberName` falls back to "Member 2" when nothing but asterisks and punctuation is left.
+Reason: SPEC section 5 already gives numbered defaults. A row of asterisks on the dashboard and the projector would single the group out, which is the opposite of what the filter is for.
+
+## 2026-10-06 - The burst limit is 120 commands per socket per 10 seconds
+
+Decision: a socket that sends more than that gets RATE_LIMITED. The chat limit of one message per three seconds per team is separate and lives in the state.
+Reason: SPEC section 6 fixes the chat limit; the burst limit only exists to stop one stuck screen flooding the server, so it has to sit well above anything a group could do by hand. A team changing its mind twenty times in a minute, plus huddles and predictions, is nowhere near 120.
+
+## 2026-10-06 - Views are sent at most ten times a second, with the first one immediate
+
+Decision: each socket gets a view straight away if it has had a quiet 100 ms, and otherwise one trailing view 100 ms later.
+Reason: SPEC section 9 caps the rate. Sending the first one immediately keeps a single click feeling instant, while nine terminals submitting at once still collapse into one message each rather than nine.
+
+## 2026-10-06 - The instructor view carries every year's huddles and predictions
+
+Decision: each team row has `huddles` and `predictions` keyed by year, plus `huddleRecorded` and `predictionRecorded` for the current year.
+Reason: the live grid only needs to know whether this year's are in, but SPEC 8.4's debrief compares huddle suggestions and predictions with what each country actually did, year by year. Keeping only the current year would make that screen impossible.
+
+## 2026-10-06 - The last 5000 command results are remembered for idempotency
+
+Decision: `SessionState.results` maps commandId to the ack it produced, oldest dropped past 5000.
+Reason: a repeat has to give the same answer, and the memory has to survive a restart, so it belongs in the state and the snapshot. A whole game is well under 5000 commands, so in practice nothing is ever dropped; the cap only stops a very long-running session growing without limit.
+
+## 2026-10-06 - docs/STATE-MACHINE.md is generated, and a unit test keeps it honest
+
+Decision: `npm run docs` writes it from the transition table, and `tests/unit/state-machine.test.ts` fails if the file and the code disagree.
+Reason: the brief asks for the table in the code and in the documentation. Two hand-written copies drift the first time a transition changes; generating one from the other makes drift impossible to commit.
+
 ## 2026-10-06 - The number in a preset name is the class length in minutes, not a capacity
 
 Decision: `standard-75`, `short-50` and `long-90` all keep capacity 75. The number is roughly how many minutes of class time the preset fills.

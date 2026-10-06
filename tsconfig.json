@@ -1,0 +1,4 @@
+{
+  "//": "Editor default. It spans every source and test file so editors see one project. The real checks run per target: tsconfig.server.json, tsconfig.client.json, tsconfig.tests.json (see npm run typecheck).",
+  "extends": "./tsconfig.tests.json"
+}

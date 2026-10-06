@@ -1,0 +1,12 @@
+node_modules
+dist
+data
+coverage
+test-results
+playwright-report
+package-lock.json
+
+# These two are reproduced word for word from the brief. Reformatting them
+# (blank lines after headings, reflowed lists) would change the text.
+docs/SPEC.md
+CLAUDE.md

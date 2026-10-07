@@ -49,6 +49,7 @@ export function timing(over: Partial<TimingView> = {}): TimingView {
     remainingMs: 120_000,
     paused: false,
     seconds: 150,
+    resumedAfterRestart: false,
     ...over,
   };
 }

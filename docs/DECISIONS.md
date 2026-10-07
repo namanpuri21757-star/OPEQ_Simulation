@@ -2,6 +2,72 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-07 - A settings patch carries only the fields that were sent
+
+Decision: `settingsPatchShape` strips the top-level `.default()` off every field before making it optional, and `settingsInputSchema` uses it. Groups such as `timers` keep their inner defaults, because a form sends a group whole.
+
+Reason: `settingsShape.partial()` still produces a default for an absent key, so `createSession { preset: 'test-fast', settings: { worlds: 3 } }` arrived carrying every standard-75 value and overwrote the preset. Choosing a preset and changing one thing silently gave the wrong lesson length, schedule and timers, with nothing on screen to show it. The patch now means what it says.
+
+## 2026-10-07 - The terminal that has just claimed is sent its view immediately
+
+Decision: `afterClaim` calls `sendView` for that socket and then broadcasts to the session.
+
+Reason: the broadcast inside `store.handle` happens before the socket layer knows which team this socket is, so the claiming terminal was sent the almost-empty lobby view and then waited for the next thing to happen. A group that skipped typing its names sends nothing after the claim, so it sat on "Getting your country ready" until the teacher pressed something. The second broadcast is wanted anyway: the connected column has just changed.
+
+## 2026-10-07 - A join link that names a code always offers that code
+
+Decision: `/join/CODE` on a computer that already has a country shows two buttons - go back to our screen, or use this computer for CODE instead - rather than redirecting. A bare `/join` still redirects.
+
+Reason: the redirect made two real things impossible: a teacher moving a computer to a different table, and one browser standing in for three team computers in a solo trial run, since every tab of one browser shares the same saved terminal. Forgetting the old country before claiming keeps it a fresh claim rather than the terminal asking to take itself over.
+
+## 2026-10-07 - A pause that came from a restart is marked in the timer
+
+Decision: `TimerState.restarted` is set only when loading a session whose phase was still running, and `timingView` reports it as `resumedAfterRestart`. Every command that touches the timer builds a fresh `TimerState`, so the flag clears itself.
+
+Reason: SPEC section 9 asks the dashboard to say "Resumed after restart - press Resume". The state after a restart is otherwise identical to a teacher's own pause, and telling the room "your teacher paused it" when nobody did would send the teacher looking for a problem that is not there.
+
+## 2026-10-07 - A network check is OK under 300 ms on a known transport
+
+Decision: `NETWORK_CHECK_PINGS` is 20 and `NETWORK_CHECK_OK_MS` is 300. The dashboard counts a report as OK when the median round trip is at or under 300 ms and the transport is websocket or polling.
+
+Reason: SPEC 8.6 asks for a round-trip measurement and an "OK or a plain explanation" but fixes neither number. 300 ms is the figure SPEC section 9 already sets for acks, so a computer that misses it is the one the performance budget is about. Twenty pings give a median that one slow packet cannot move. A slow computer is reported as slow, never as failed: it still plays.
+
+## 2026-10-07 - The preview is drawn with variance off and a fixed seed
+
+Decision: `settingsPreview` resolves its three rows with `variancePct: 0` and a constant seed.
+
+Reason: the preview exists so a teacher can see whether the settings still hold a dilemma. A number that moved every time the panel redrew would make that impossible to read, and production variance is a surprise inside a year rather than something a teacher plans around. The targets are what the panel is about.
+
+## 2026-10-07 - The instructor computer saves its session id and key, never the projector key
+
+Decision: `localStorage` under `crude-accord.instructor` holds `{ sessionId, instructorKey }`. The projector key is read from the instructor's view instead.
+
+Reason: the instructor key is in the instructor's own link already and this is the one computer it is allowed to be on. The projector key is not needed to reopen the dashboard, and keeping one copy of it, in the view, means there is nothing to fall out of step.
+
+## 2026-10-07 - The dashboard passes expectedPhase and expectedYear explicitly
+
+Decision: every guarded control calls `guardsFor(view)`, and the suggested-action button uses the guards the server put in `suggested`.
+
+Reason: the connection would fill the same two in from the view, so this changes nothing at runtime, but it makes "this control sends the right guards" something a test can check. It also matters for the big button: the server decided that command, that payload and those guards together, so a click made while the game moved on is refused rather than applied to the next year.
+
+## 2026-10-07 - The QR code is drawn as an SVG path from the qrcode grid
+
+Decision: `QrCode` calls `create()` from the `qrcode` package and renders the modules as one `<path>`, rather than injecting the library's finished SVG string.
+
+Reason: the finished SVG would have to go in as raw HTML. Asking only for the black-and-white grid keeps the markup ours, so the code gets a real `role="img"` and label, scales from CSS instead of a baked-in pixel size, and prints black on white on a team card. It is synchronous, so there is no empty square while a promise settles.
+
+## 2026-10-07 - Advanced settings are described as data, and the schedule has its own editor
+
+Decision: `SETTINGS_GROUPS` describes every advanced field as a row with a path, a label, a kind and a hint; `AdvancedSettings` turns one row into one labelled control. The chat-window and summit list gets a small editor of its own, and `timers.perYear` is left to the saved-settings file.
+
+Reason: five groups of hand-written markup drift apart, and each field needs the same three things done right (a real label, the hint, the message tied to it with aria-describedby). A list needs buttons, so the schedule cannot be a row in that table. SPEC 8.4 names the settings a teacher changes and `timers.perYear` is not among them; loading a file still sets it.
+
+## 2026-10-07 - A number box keeps the text as typed, and the preview waits
+
+Decision: the setup form holds the raw text for each numeric field and only moves the draft when that text reads as a number. While any box does not, the preview is replaced by a line saying it will come back.
+
+Reason: "0." has to be typeable on the way to "0.3", and turning it into 0 while someone is typing would be worse than useless. Showing a preview built from the last good value, next to a box the teacher knows is wrong, would be a quietly wrong answer; saying nothing is honest.
+
 ## 2026-10-06 - A terminal finds its session over HTTP, with GET /api/sessions
 
 Decision: a read-only endpoint lists the sessions open on this computer - `sessionId`, `createdAt`, `phase` and `anyFree` - and a terminal joins the newest one. No keys, no team ids, no join codes.

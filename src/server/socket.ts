@@ -415,7 +415,17 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
     return ack;
   }
 
-  /** Binds this socket to the team it just claimed, or remembers the request. */
+  /**
+   * Binds this socket to the team it just claimed, or remembers the request.
+   *
+   * The broadcast inside store.handle has already gone out by the time this
+   * runs, and at that moment this socket was still an unclaimed terminal, so it
+   * was sent the almost-empty lobby view. Everyone else then gets a view from
+   * the next thing that happens; this socket would wait for it showing "getting
+   * your country ready", which for a group that skipped typing its names could
+   * be until the teacher pressed something. So it is sent its own view here, and
+   * everyone else gets one too because the connected column has just changed.
+   */
   function afterClaim(client: Client, sessionId: string, ack: Ack): void {
     const state = store.get(sessionId);
     if (!state) return;
@@ -427,6 +437,8 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
       client.token = result.token;
       client.waitingFor = null;
       seenMap(sessionId).set(result.teamId, store.clock.now());
+      sendView(client);
+      broadcast(sessionId);
       return;
     }
 

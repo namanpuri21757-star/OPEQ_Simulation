@@ -12,6 +12,7 @@ import {
   economicUnits,
   parseSettings,
   secondsForYear,
+  settingsPatchShape,
   settingsSchema,
   validateSettings,
   type SettingsInput,
@@ -334,5 +335,54 @@ describe('parseSettings', () => {
 
   it('exposes the schema itself, for commands that embed settings later', () => {
     expect(settingsSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('settingsPatchShape', () => {
+  /**
+   * A patch has to stay a patch. `.partial()` alone leaves the defaults in
+   * place, which quietly turned "test-fast, but with 3 worlds" into standard-75
+   * with 3 worlds, because every absent key arrived carrying its default and
+   * overwrote the preset.
+   */
+  it('keeps out every key the form did not send', () => {
+    const parsed = settingsPatchShape.parse({ worlds: 3 });
+    expect(parsed).toEqual({ worlds: 3 });
+  });
+
+  it('accepts nothing at all', () => {
+    expect(settingsPatchShape.parse({})).toEqual({});
+  });
+
+  it('still fills a partly sent group from its own defaults', () => {
+    // SPEC 8.4's form sends a whole group, so the rest of the group is meant to
+    // come from the defaults - only the top level is undefaulted.
+    const parsed = settingsPatchShape.parse({ timers: { practiceSeconds: 90 } });
+    expect(parsed).toEqual({
+      timers: {
+        practiceSeconds: 90,
+        earlyYearSeconds: 150,
+        laterYearSeconds: 120,
+        earlyYearsThrough: 3,
+        perYear: [],
+      },
+    });
+  });
+
+  it('still refuses a field that is there but wrong', () => {
+    const result = settingsPatchShape.safeParse({ b: 0.123 });
+    expect(result.success).toBe(false);
+  });
+
+  it('still refuses a key that is not a setting', () => {
+    expect(settingsPatchShape.safeParse({ nonsense: 1 }).success).toBe(false);
+  });
+
+  it('leaves a preset alone when merged over it', () => {
+    const patch = settingsPatchShape.parse({ worlds: 3 });
+    const merged = parseSettings({ ...PRESETS['test-fast'], ...patch });
+    expect(merged.worlds).toBe(3);
+    expect(merged.timers.practiceSeconds).toBe(5);
+    expect(merged.schedule).toEqual(PRESETS['test-fast'].schedule);
   });
 });

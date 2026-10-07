@@ -39,6 +39,27 @@ describe('claiming a team', () => {
     expect(result?.label).toContain('Ardonia');
   });
 
+  it('sends the terminal its own screen straight away, with no second command', async () => {
+    // A group that skips typing its names sends nothing after the claim, so if
+    // the view does not arrive here it waits on "getting your country ready"
+    // until the teacher happens to press something.
+    const game = await openGame(harness, { claimAll: false });
+    const first = game.session.teams[0];
+
+    const terminal = await harness.client('t1', {
+      role: 'team',
+      sessionId: game.session.sessionId,
+    });
+    await terminal.send('claimTeam', { joinCode: first?.joinCode ?? '' });
+
+    const view = await terminal.waitForView(
+      (v) => v['kind'] === 'team',
+      'the terminal to be given its own country',
+    );
+    expect(view['label']).toContain('Ardonia');
+    expect(view['teamId']).toBe(first?.teamId);
+  });
+
   it('says so kindly when the code is wrong', async () => {
     const game = await openGame(harness, { claimAll: false });
     const terminal = await harness.client('t1', {

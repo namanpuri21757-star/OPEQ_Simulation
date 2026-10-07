@@ -90,3 +90,56 @@ export function clearTerminal(store: KeyValueStore): void {
     // As above.
   }
 }
+
+// ---------------------------------------------------------------------------
+// The instructor's own computer.
+// ---------------------------------------------------------------------------
+
+/**
+ * What the instructor computer remembers so /instructor resumes the saved game
+ * instead of starting a new one (SPEC 8.4).
+ *
+ * The instructor key is in here because it is in the instructor's own link
+ * already, and this is the one computer it is allowed to be on. The projector
+ * key is deliberately not: it arrives in the instructor's view, so there is one
+ * place it comes from and nothing has to keep two copies in step.
+ */
+const INSTRUCTOR_KEY = 'crude-accord.instructor';
+
+export interface SavedInstructor {
+  sessionId: string;
+  instructorKey: string;
+}
+
+function isSavedInstructor(value: unknown): value is SavedInstructor {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record['sessionId'] === 'string' && typeof record['instructorKey'] === 'string';
+}
+
+export function readInstructor(store: KeyValueStore): SavedInstructor | null {
+  try {
+    const raw = store.getItem(INSTRUCTOR_KEY);
+    if (raw === null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isSavedInstructor(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeInstructor(store: KeyValueStore, saved: SavedInstructor): void {
+  try {
+    store.setItem(INSTRUCTOR_KEY, JSON.stringify(saved));
+  } catch {
+    // The dashboard still works; this computer just has to use the link again.
+  }
+}
+
+export function clearInstructor(store: KeyValueStore): void {
+  try {
+    store.removeItem(INSTRUCTOR_KEY);
+  } catch {
+    // As above.
+  }
+}

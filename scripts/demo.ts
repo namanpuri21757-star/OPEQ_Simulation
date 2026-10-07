@@ -1,13 +1,13 @@
 /**
- * npm run demo - the team screens, for real, with a robot teacher you drive from
- * the keyboard.
+ * npm run demo - a whole lesson on one computer, run from the real screens.
  *
- * The instructor screens arrive in a later phase, so until then this script is
- * the teacher: it starts a one-world session, prints a join link for each of the
- * three countries, and turns four keys into the controls a teacher would have.
+ * Until the instructor screens existed this script had to be the teacher, with
+ * four keys standing in for the dashboard. It does not any more: it starts a
+ * server, makes a session, and prints the five links that let one person play
+ * every part. The instructor window drives the game exactly as a teacher would.
  *
- * Enter presses the same single suggested button the real dashboard will show
- * (nextSuggestedAction), so a demo run follows the same schedule a lesson will.
+ * Nothing here is test-only. The links are the same links a classroom uses; the
+ * only difference is that all the windows happen to be on one machine.
  */
 
 import { spawn } from 'node:child_process';
@@ -18,14 +18,13 @@ import { fileURLToPath } from 'node:url';
 import { createServer, type RunningServer } from '../src/server/index.js';
 import { COUNTRY_NAMES } from '../src/shared/constants.js';
 import type { CreateSessionResult } from '../src/shared/protocol.js';
-import { InstructorBot } from '../tests/bots/instructorBot.js';
 import { GameClient } from '../tests/support/client.js';
 
 const CLIENT_DIR = fileURLToPath(new URL('../dist/client', import.meta.url));
 const DATA_DIR = fileURLToPath(new URL('../data/demo', import.meta.url));
 
 function buildClient(): Promise<void> {
-  console.log('Building the team screens first. This happens once.\n');
+  console.log('Building the screens first. This happens once.\n');
   return new Promise((resolve, reject) => {
     const child = spawn('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
     child.on('error', reject);
@@ -86,6 +85,8 @@ async function main(): Promise<void> {
   const server = await listen(Number(process.env['PORT'] ?? 3000));
   const port = server.port;
 
+  // One world keeps a solo run to three team windows. The instructor screen can
+  // change every other setting before the briefing starts.
   const setup = new GameClient(server.url, 'demo-setup');
   await setup.hello({ role: 'setup' });
   const ack = await setup.send('createSession', {
@@ -96,67 +97,46 @@ async function main(): Promise<void> {
   if (!ack.ok) throw new Error(`The demo session could not be created: ${ack.message}`);
   const session = ack.result as CreateSessionResult;
 
-  const teacher = new InstructorBot(server.url, session.sessionId, session.instructorKey, 'demo');
-  await teacher.join();
-
   const urls = addresses(port);
   const base = urls[0] ?? `http://localhost:${String(port)}`;
-  console.log('\nCrude Accord demo - one world, three team computers.\n');
-  console.log('Open one link in each of three separate browser windows:\n');
+
+  console.log('\nCrude Accord demo - one world, played from the real screens.\n');
+  console.log('Open these in separate browser windows:\n');
+  console.log('  Instructor (keep this one to yourself)');
+  console.log(`    ${base}/instructor?s=${session.sessionId}&k=${session.instructorKey}\n`);
+  console.log('  Projector (put it on the second screen, or just another window)');
+  console.log(`    ${base}/projector/${session.sessionId}?k=${session.projectorKey}\n`);
+  console.log('  Team computers (one window each)');
   for (const team of session.teams) {
     const name = COUNTRY_NAMES[team.letter];
-    console.log(`  ${name} (${team.letter})  ${base}/join/${team.joinCode}`);
+    console.log(`    ${name} (${team.letter})  ${base}/join/${team.joinCode}`);
   }
+  console.log('\n  Network check (any computer in the room)');
+  console.log(`    ${base}/check`);
+
   if (urls.length > 1) {
     console.log(`\nOn a tablet on the same Wi-Fi, use ${urls[1] ?? ''} instead of localhost.`);
   }
-  console.log(`\nSaved in ${DATA_DIR}`);
-  console.log('\nKeys:  Enter = next step    p = pause    r = resume    q = quit\n');
 
-  let lastLine = '';
-  const announce = (): void => {
-    const suggested = teacher.suggested;
-    const line = `${teacher.phase}${teacher.year > 0 ? ` (Year ${String(teacher.year)})` : ''} - next: ${suggested?.label ?? 'nothing'}`;
-    if (line === lastLine) return;
-    lastLine = line;
-    console.log(`  ${line}`);
-  };
-  teacher.client.socket.on('view', announce);
-  announce();
+  console.log('\nIn the instructor window, press the one big button to move the game on.');
+  console.log(`Saved in ${DATA_DIR}`);
+  console.log('\nPress Ctrl+C to stop. Everything played so far stays saved.\n');
 
-  const stop = (): void => {
-    teacher.close();
-    void server.close().then(() => process.exit(0));
-  };
-
-  const onKey = (key: string): void => {
-    // \u0003 is Ctrl+C, which raw mode delivers as a key rather than a signal.
-    if (key === 'q' || key === '\u0003') {
-      console.log('\nStopping. Everything played so far is saved.');
-      stop();
-      return;
-    }
-    if (key === 'p') {
-      void teacher.send('pause');
-      return;
-    }
-    if (key === 'r') {
-      void teacher.send('resume');
-      return;
-    }
-    if (key === '\r' || key === '\n') {
-      void teacher.step().then((result) => {
-        if (result && !result.ok) console.log(`  Not now: ${result.message}`);
+  let stopping = false;
+  const stop = (signal: string): void => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`\nGot ${signal}. Stopping, so nothing is half saved.`);
+    server
+      .close()
+      .then(() => process.exit(0))
+      .catch((err: unknown) => {
+        console.error(err);
+        process.exit(1);
       });
-    }
   };
-
-  process.stdin.setEncoding('utf8');
-  process.stdin.setRawMode?.(true);
-  process.stdin.resume();
-  process.stdin.on('data', (chunk: string) => {
-    for (const key of chunk) onKey(key);
-  });
+  process.on('SIGINT', () => stop('SIGINT'));
+  process.on('SIGTERM', () => stop('SIGTERM'));
 }
 
 main().catch((err: unknown) => {

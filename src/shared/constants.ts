@@ -23,3 +23,12 @@ export const DEFAULT_WORLDS = 3;
  */
 export const JOIN_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 export const JOIN_CODE_LENGTH = 6;
+
+/**
+ * The network check (SPEC 8.6). Twenty pings is enough for a median that does
+ * not swing on one slow packet, and 300 ms is the round trip SPEC section 9
+ * asks 95% of acks to beat, so a computer slower than that is worth a word
+ * before the lesson rather than during it.
+ */
+export const NETWORK_CHECK_PINGS = 20;
+export const NETWORK_CHECK_OK_MS = 300;

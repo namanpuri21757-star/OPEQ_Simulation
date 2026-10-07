@@ -12,7 +12,7 @@
 
 import { z } from 'zod';
 import { type CountryLetter, JOIN_CODE_LENGTH } from './constants.js';
-import { settingsShape, PRESET_NAMES } from './settings.js';
+import { settingsPatchShape, PRESET_NAMES } from './settings.js';
 import { PHASES, PROJECTOR_SCREENS, BRIEFING_SLIDES } from './state.js';
 import type { Actor, Phase } from './state.js';
 
@@ -51,7 +51,7 @@ const memberName = z
     message: `A name has to be 1 to ${String(MAX_MEMBER_NAME_CHARS)} characters.`,
   });
 
-export const settingsInputSchema = settingsShape.partial();
+export const settingsInputSchema = settingsPatchShape;
 
 // ---------------------------------------------------------------------------
 // Commands.

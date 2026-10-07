@@ -1,0 +1,158 @@
+/*
+ * The printable team cards (SPEC 8.4).
+ *
+ * Four cards to a page, each a quarter of a sheet of A4 with a cut line round
+ * it. The on-screen version is the same grid, so what a teacher sees before
+ * printing is what comes out of the printer.
+ *
+ * Colours are forced to black on white in print: a card is read off a table in a
+ * classroom, and the country is told apart by its shape and its letter anyway.
+ */
+
+.cards-page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-3);
+}
+
+.cards-toolbar {
+  margin-bottom: var(--space-3);
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--panel);
+  /* A quarter of a sheet, so four fit a page with room for the cut. */
+  min-height: 6.4in;
+  break-inside: avoid;
+}
+
+.card-who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.card-country {
+  font-size: var(--text-h1);
+  font-weight: 700;
+  margin: 0;
+}
+
+.card-world {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-lead);
+}
+
+.card-code {
+  margin: var(--space-2) 0;
+}
+
+.card-code-label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.card-code-value {
+  display: block;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.card-join {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.card-link-label {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.card-link {
+  margin: 0;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+.card-hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.qr-card {
+  width: 2.2in;
+  height: 2.2in;
+  flex: none;
+}
+
+@media print {
+  /* The toolbar is a screen thing; the printer gets the cards only. */
+  .cards-toolbar {
+    display: none;
+  }
+
+  .cards-page {
+    padding: 0;
+    max-width: none;
+  }
+
+  .cards {
+    gap: 0;
+  }
+
+  .card {
+    border-color: #999999;
+    background: #ffffff;
+    color: #000000;
+    padding: 0.3in;
+    min-height: 5.1in;
+  }
+
+  .card-world,
+  .card-link-label,
+  .card-hint {
+    color: #333333;
+  }
+
+  /* Shapes and letters still tell the countries apart without colour. */
+  .badge-shape {
+    stroke: #000000;
+    fill: #ffffff;
+  }
+
+  .badge-letter {
+    fill: #000000;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0.4in;
+  }
+}

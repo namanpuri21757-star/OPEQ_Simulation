@@ -8,6 +8,7 @@ import {
   clearTerminal,
   memoryStore,
   readTerminal,
+  writeTerminal,
   type ConnectionBundle,
 } from '../net';
 import { ConnectionValueProvider } from '../net/ConnectionProvider';
@@ -242,5 +243,60 @@ describe('Join', () => {
   it('remembers nothing in the browser until a code is accepted', () => {
     show();
     expect(readTerminal(window.localStorage)).toBeNull();
+  });
+});
+
+/**
+ * A /join/CODE link that names a country this computer is not.
+ *
+ * It happens in two ways: a teacher moves a computer to a different table, and
+ * a solo run where one browser stands in for three team computers. Sending it
+ * straight back to its old screen would make both impossible.
+ */
+describe('a join link for a different country', () => {
+  it('offers both ways out rather than choosing for the student', () => {
+    writeTerminal(window.localStorage, {
+      sessionId: 'session-demo',
+      teamId: 'world-2-B',
+      token: 'a-token-long-enough-to-store',
+      label: 'World 2 - Borvia (B)',
+    });
+    show([], { needsClaim: false, teamId: 'world-2-B' }, '/join/CRMFQP');
+
+    expect(
+      screen.getByRole('heading', { name: 'This computer is already World 2 - Borvia (B)' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go back to our screen' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Use this computer for CRMFQP instead' }),
+    ).toBeInTheDocument();
+  });
+
+  it('goes back to its own screen when that is what was wanted', async () => {
+    const user = userEvent.setup();
+    show([], { needsClaim: false, teamId: 'world-2-B' }, '/join/CRMFQP');
+
+    await user.click(screen.getByRole('button', { name: 'Go back to our screen' }));
+    expect(screen.getByText('the team screen')).toBeInTheDocument();
+  });
+
+  it('forgets the old country and claims the new one', async () => {
+    const user = userEvent.setup();
+    const { send } = show(
+      [ackOk('cmd-1', 2, CLAIM)],
+      { needsClaim: false, teamId: 'world-2-B' },
+      '/join/CRMFQP',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Use this computer for CRMFQP instead' }));
+    // The code is already filled in from the link, so there is one button left.
+    await user.click(screen.getByRole('button', { name: 'This is our code' }));
+
+    expect(send).toHaveBeenCalledWith('claimTeam', { joinCode: 'CRMFQP' });
+  });
+
+  it('still sends a bare /join straight back to the team screen', () => {
+    show([], { needsClaim: false, teamId: 'world-2-B' }, '/join');
+    expect(screen.getByText('the team screen')).toBeInTheDocument();
   });
 });

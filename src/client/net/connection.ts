@@ -75,8 +75,9 @@ export interface ConnectionSnapshot {
 }
 
 export interface ConnectionOptions {
+  /** Empty for the "setup" role, which exists before any session does. */
   sessionId: string;
-  role: 'team' | 'instructor' | 'projector' | 'check';
+  role: 'setup' | 'team' | 'instructor' | 'projector' | 'check';
   /** The instructor key or the projector key. Teams use a token instead. */
   key?: string;
   /** Left out in a browser, where the socket goes back to where the page came from. */
@@ -153,6 +154,20 @@ export class Connection {
     return this.options.sessionId;
   }
 
+  /**
+   * How socket.io is actually carrying this connection (SPEC 8.6).
+   *
+   * Some school networks block plain WebSocket, in which case socket.io falls
+   * back to polling and everything still works, just a little slower. The check
+   * page reports which one it got, because "polling on nine laptops" is
+   * something a teacher would want to know before a lesson rather than during
+   * one.
+   */
+  transport(): 'websocket' | 'polling' | 'unknown' {
+    const name = this.socket?.io.engine?.transport?.name;
+    return name === 'websocket' || name === 'polling' ? name : 'unknown';
+  }
+
   // --- connecting ----------------------------------------------------------
 
   start(): void {
@@ -214,6 +229,7 @@ export class Connection {
 
   private hello(): Hello {
     const { role, sessionId, key } = this.options;
+    if (role === 'setup') return { role };
     if (role === 'instructor') return { role, sessionId, instructorKey: key ?? '' };
     if (role === 'projector') return { role, sessionId, projectorKey: key ?? '' };
     if (role === 'check') return { role, sessionId };

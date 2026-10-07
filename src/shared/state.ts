@@ -208,6 +208,13 @@ export interface TimerState {
   remainingMs: number | null;
   /** How long the phase was given, for the dashboard. */
   seconds: number | null;
+  /**
+   * Set only when the pause came from loading a session whose phase was still
+   * running (SPEC section 9), so the dashboard can say "Resumed after restart -
+   * press Resume" rather than implying the teacher paused it. Every command that
+   * touches the timer builds a fresh TimerState, so it clears itself.
+   */
+  restarted?: true;
 }
 
 /** A stored ack, so a repeated commandId never applies twice. */

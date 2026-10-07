@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { APP_NAME, JOIN_CODE_LENGTH } from '@shared/constants';
 import { MAX_MEMBERS, MAX_MEMBER_NAME_CHARS, type ClaimTeamResult } from '@shared/protocol';
-import { statusMessage, useView } from '../net';
+import { browserStore, readTerminal, statusMessage, useView } from '../net';
 import { Badge, Banner, Button } from '../ui';
 
 /**
@@ -30,6 +30,10 @@ export default function Join() {
   const [names, setNames] = useState<string[]>(['', '', '', '']);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // What this computer was last time, so a link that names a different country
+  // can say which one it would be replacing.
+  const saved = useMemo(() => readTerminal(browserStore()), []);
+  const [swapping, setSwapping] = useState(false);
 
   // Two things arrive on their own rather than as an ack: an approved takeover
   // ("claimed") and a refused one ("gone"). Both are worked out while rendering
@@ -40,9 +44,48 @@ export default function Join() {
     step !== 'waiting' ? step : claim !== null ? 'confirm' : gone !== null ? 'code' : 'waiting';
   const shownProblem = problem ?? (shownStep === 'code' && gone !== null ? gone.message : null);
 
-  // This computer already has a country: nothing to join.
-  if (shownStep === 'code' && !needsClaim && teamId !== null && claim === null) {
-    return <Navigate to="/team" replace />;
+  // This computer already has a country.
+  if (shownStep === 'code' && !needsClaim && teamId !== null && claim === null && !swapping) {
+    // A bare /join is a student who went back a step: send them to their screen.
+    // A /join/CODE link is someone being pointed at a particular country, so it
+    // has to be possible to say yes to it - a teacher moving a computer to a
+    // different table, or one computer standing in for three in a trial run.
+    if (params.code === undefined) return <Navigate to="/team" replace />;
+
+    return (
+      <main className="page page-join">
+        <h1>{APP_NAME}</h1>
+        <section className="panel" aria-labelledby="already-heading">
+          <h2 id="already-heading">
+            {saved === null
+              ? 'This computer is already in the game'
+              : `This computer is already ${saved.label}`}
+          </h2>
+          <p>{`The link you opened is for the code ${code}. What would you like to do?`}</p>
+          <div className="row">
+            <Button
+              tone="primary"
+              size="large"
+              onClick={() => {
+                void navigate('/team');
+              }}
+            >
+              Go back to our screen
+            </Button>
+            <Button
+              onClick={() => {
+                // Forget this computer's country first, so the claim below is a
+                // fresh one rather than this terminal asking to take itself over.
+                connection.forget();
+                setSwapping(true);
+              }}
+            >
+              {`Use this computer for ${code} instead`}
+            </Button>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   const claimTeam = async () => {

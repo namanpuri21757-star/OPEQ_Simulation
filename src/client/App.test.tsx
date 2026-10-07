@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { clearTerminal, writeTerminal } from './net';
+import { clearInstructor, clearTerminal, writeTerminal } from './net';
 import Landing from './pages/Landing';
 
 function renderAt(path: string) {
@@ -15,6 +15,7 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   clearTerminal(window.localStorage);
+  clearInstructor(window.localStorage);
   // Nothing in these tests should reach a server; the join screens are covered
   // on their own, with a connection they can see.
   vi.stubGlobal(
@@ -26,6 +27,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   clearTerminal(window.localStorage);
+  clearInstructor(window.localStorage);
 });
 
 describe('the landing page', () => {
@@ -63,20 +65,36 @@ describe('the landing page', () => {
 });
 
 describe('routes', () => {
-  it.each([
-    ['/instructor', 'Instructor Dashboard'],
-    ['/check', 'Network check'],
-    ['/nowhere', 'Page not found'],
-  ])('renders %s', (path, heading) => {
-    renderAt(path);
-    expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument();
+  it('offers the instructor a new game when this computer has none', () => {
+    renderAt('/instructor');
+    expect(screen.getByRole('heading', { level: 2, name: 'Start a new game' })).toBeInTheDocument();
   });
 
-  it('passes the session id through to the projector route', () => {
+  it('sends the cards page back to the dashboard when there is no session yet', () => {
+    renderAt('/instructor/cards');
+    expect(screen.getByText(/Open your dashboard first/)).toBeInTheDocument();
+  });
+
+  it('opens the network check', async () => {
+    renderAt('/check');
+    expect(screen.getByRole('heading', { level: 2, name: 'Network check' })).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'No game is open on this computer yet. Ask your teacher to start one.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('asks the projector for its own link when the key is missing', () => {
     renderAt('/projector/abc123');
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Projector for session abc123' }),
+      screen.getByText('This screen needs the projector link from the instructor’s dashboard.'),
     ).toBeInTheDocument();
+  });
+
+  it('has a page for an address that does not exist', () => {
+    renderAt('/nowhere');
+    expect(screen.getByRole('heading', { level: 2, name: 'Page not found' })).toBeInTheDocument();
   });
 
   it('says plainly when no game is open yet', async () => {

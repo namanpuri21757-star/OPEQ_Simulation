@@ -1,0 +1,180 @@
+/*
+ * The projector (SPEC 8.5): very large type, read from the back of the room.
+ *
+ * Sizes are in viewport units so one stylesheet works on a classroom projector,
+ * a big television and a laptop's second screen. Nothing here is interactive, so
+ * there is nothing to reach with a mouse.
+ */
+
+.projector {
+  min-height: 100vh;
+  padding: 3vh 4vw;
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.projector-title {
+  font-size: clamp(2.5rem, 6vw, 6rem);
+  margin: 0;
+}
+
+.projector-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+  border-bottom: 4px solid var(--line);
+  padding-bottom: 1vh;
+}
+
+.projector-phase {
+  font-size: clamp(1.75rem, 4vw, 4rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.projector-year {
+  font-size: clamp(2.5rem, 7vw, 7rem);
+  font-weight: 700;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The countdown component's own type scale is sized for a laptop, so the
+   projector scales it up from here rather than the component knowing about
+   two very different screens. */
+.projector-clock .countdown-time {
+  font-size: clamp(3rem, 9vw, 9rem);
+  line-height: 1;
+}
+
+.projector-h2 {
+  font-size: clamp(1.5rem, 3vw, 3rem);
+  margin: 0 0 1vh;
+}
+
+.projector-lead {
+  font-size: clamp(1.5rem, 3.2vw, 3.25rem);
+  margin: 0;
+}
+
+.projector-join {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 3vw;
+}
+
+@media (max-width: 60rem) {
+  .projector-join {
+    grid-template-columns: 1fr;
+  }
+}
+
+.projector-url {
+  font-size: clamp(2rem, 5vw, 5rem);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+  grid-column: 1;
+}
+
+.projector-note {
+  font-size: clamp(1.25rem, 2.4vw, 2.5rem);
+  margin: 0;
+  grid-column: 1;
+}
+
+.qr-projector {
+  width: clamp(10rem, 22vw, 20rem);
+  height: clamp(10rem, 22vw, 20rem);
+  grid-row: 1 / span 3;
+  grid-column: 2;
+}
+
+@media (max-width: 60rem) {
+  .qr-projector {
+    grid-row: auto;
+    grid-column: 1;
+  }
+}
+
+.projector-tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3vw;
+}
+
+/* The heading names the whole section, so it sits above the worlds rather than
+   becoming a fourth column beside them. */
+.projector-tables > .projector-h2 {
+  flex-basis: 100%;
+}
+
+.projector-world h3 {
+  font-size: clamp(1.25rem, 2.4vw, 2.25rem);
+  margin: 0 0 0.5vh;
+}
+
+.projector-world ul,
+.projector-news ul,
+.price-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: clamp(1.25rem, 2.2vw, 2.25rem);
+}
+
+.projector-world li,
+.price-list li {
+  display: flex;
+  gap: 1.5vw;
+  justify-content: space-between;
+}
+
+.table-state {
+  color: var(--ink-soft);
+}
+
+.price-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4vw;
+}
+
+.price-world {
+  display: block;
+  font-size: clamp(1rem, 1.8vw, 1.75rem);
+  color: var(--ink-soft);
+}
+
+.price-value {
+  display: block;
+  font-size: clamp(2.5rem, 7vw, 7rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.projector-prices .price-list li {
+  display: block;
+}
+
+.projector-announcement {
+  border: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 2vh 2vw;
+  font-size: clamp(1.5rem, 3vw, 3rem);
+}
+
+.projector-announcement p {
+  margin: 0;
+}
+
+.projector-news {
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  color: var(--ink-soft);
+}

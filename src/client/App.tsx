@@ -1,15 +1,19 @@
 import type { ReactNode } from 'react';
-import { Route, Routes, useParams } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { APP_NAME, APP_TAGLINE } from '@shared/constants';
 import { ConnectionProvider } from './net';
+import CheckPage from './check/CheckPage';
+import CardsPage from './instructor/CardsPage';
+import InstructorPage from './instructor/InstructorPage';
 import Join from './pages/Join';
 import Landing from './pages/Landing';
+import ProjectorPage from './projector/ProjectorPage';
 import TeamTerminal from './team/TeamTerminal';
 
 /**
- * Every route in SPEC section 8 exists so a link or a reload always lands
- * somewhere sensible. The instructor, projector and check screens arrive in
- * later phases and are placeholders for now.
+ * Every route in SPEC section 8, so a link or a reload always lands somewhere
+ * sensible. The debrief screens hang off /instructor and arrive with the
+ * debrief itself.
  */
 function Placeholder({ title }: { title: string }) {
   return (
@@ -22,11 +26,6 @@ function Placeholder({ title }: { title: string }) {
       </section>
     </main>
   );
-}
-
-function ProjectorPlaceholder() {
-  const { id } = useParams<{ id: string }>();
-  return <Placeholder title={`Projector for session ${id ?? 'unknown'}`} />;
 }
 
 /** The screens that talk to the server as a team terminal share one connection. */
@@ -62,9 +61,10 @@ export default function App() {
           </Terminal>
         }
       />
-      <Route path="/instructor" element={<Placeholder title="Instructor Dashboard" />} />
-      <Route path="/projector/:id" element={<ProjectorPlaceholder />} />
-      <Route path="/check" element={<Placeholder title="Network check" />} />
+      <Route path="/instructor" element={<InstructorPage />} />
+      <Route path="/instructor/cards" element={<CardsPage />} />
+      <Route path="/projector/:id" element={<ProjectorPage />} />
+      <Route path="/check" element={<CheckPage />} />
       <Route path="*" element={<Placeholder title="Page not found" />} />
     </Routes>
   );

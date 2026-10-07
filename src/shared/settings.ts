@@ -142,6 +142,37 @@ export const settingsShape = z.strictObject({
 export type Settings = z.output<typeof settingsShape>;
 export type SettingsInput = z.input<typeof settingsShape>;
 
+/**
+ * The shape with its top-level defaults taken off, for a patch.
+ *
+ * `.partial()` on its own is not enough. A field wrapped in `.default()` still
+ * produces that default when the key is absent, even inside `.optional()`, so a
+ * patch of `{ worlds: 3 }` would arrive carrying every standard-75 value and
+ * would quietly overwrite whichever preset the instructor had chosen. Taking the
+ * default off means an absent key really is absent.
+ *
+ * Only the top level is undefaulted. A group such as `timers` is merged whole
+ * (see settingsFrom), so once a form sends that group its inner defaults are
+ * exactly what should fill in the rest of it.
+ */
+function withoutDefault(field: z.ZodTypeAny): z.ZodTypeAny {
+  const def = (field as unknown as { def: { type: string; innerType?: z.ZodTypeAny } }).def;
+  if (def.type !== 'default' && def.type !== 'prefault') return field;
+  return def.innerType ?? field;
+}
+
+export const settingsPatchShape = z.strictObject(
+  Object.fromEntries(
+    Object.entries(settingsShape.shape).map(([key, field]) => [
+      key,
+      withoutDefault(field as z.ZodTypeAny).optional(),
+    ]),
+  ),
+);
+
+/** A patch an instructor's form sends: only the fields they actually changed. */
+export type SettingsPatch = Partial<SettingsInput>;
+
 /** The full schema: shape plus the rules that compare fields with each other. */
 export const settingsSchema = settingsShape.superRefine((s, ctx) => {
   const add = (path: Array<string | number>, message: string) =>

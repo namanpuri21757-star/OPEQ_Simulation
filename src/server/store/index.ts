@@ -170,6 +170,7 @@ export class SessionStore {
         paused: true,
         remainingMs: Math.max(0, state.timer.deadline - state.updatedAt),
         seconds: state.timer.seconds,
+        restarted: true,
       };
     }
 

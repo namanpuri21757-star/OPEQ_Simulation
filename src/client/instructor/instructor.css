@@ -1,0 +1,526 @@
+/*
+ * The instructor screens. Wider than a team terminal, because a teacher is
+ * looking at nine countries at once, and still readable at 1024x768.
+ *
+ * Everything here uses the spacing and type scale from styles.css, so the
+ * dashboard and the terminals look like one piece of software.
+ */
+
+.page-instructor {
+  max-width: 88rem;
+}
+
+.page-instructor-start {
+  max-width: 44rem;
+}
+
+.instructor-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.instructor-header h1 {
+  margin-bottom: var(--space-1);
+}
+
+.instructor-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.instructor-header-actions .button {
+  text-decoration: none;
+}
+
+/* --- the phase bar ------------------------------------------------------- */
+
+.phase-bar {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 2fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--panel);
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 56rem) {
+  .phase-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.phase-name {
+  font-size: var(--text-lead);
+  font-weight: 600;
+  margin: 0;
+}
+
+.phase-year {
+  font-size: var(--text-h1);
+  font-weight: 700;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.phase-paused {
+  color: var(--focus);
+  font-weight: 600;
+  margin: var(--space-1) 0 0;
+}
+
+.phase-next {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.phase-next .button {
+  width: 100%;
+}
+
+/* The secondary controls sit under both columns, smaller and grouped, so the
+   one suggested action is never competing with eight others. */
+.phase-controls {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.shortcuts {
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  margin: 0 0 var(--space-3);
+}
+
+kbd {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--paper);
+}
+
+/* --- alerts -------------------------------------------------------------- */
+
+.alerts {
+  margin-bottom: var(--space-3);
+}
+
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.alert {
+  padding: var(--space-2) var(--space-3);
+  border-left: 8px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.alert-alert {
+  border-left-color: var(--bad);
+  font-weight: 600;
+}
+
+.alert-warning {
+  border-left-color: var(--focus);
+}
+
+.alert-info {
+  border-left-color: var(--accent);
+}
+
+/* --- the grid ------------------------------------------------------------ */
+
+.grid-panel {
+  margin-bottom: var(--space-3);
+}
+
+.grid-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.grid-table th,
+.grid-table td {
+  border: 1px solid var(--line);
+  padding: var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.grid-table thead th {
+  background: var(--paper);
+}
+
+.grid-table tbody th {
+  background: var(--paper);
+  white-space: nowrap;
+}
+
+.grid-country {
+  display: block;
+  font-weight: 600;
+}
+
+.grid-cell {
+  min-width: 13rem;
+}
+
+.grid-status {
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+.grid-status-offline,
+.grid-status-unclaimed {
+  color: var(--ink-soft);
+}
+
+.grid-status-connected {
+  color: var(--good);
+}
+
+.grid-decision {
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-decision-in {
+  color: var(--good);
+}
+
+.grid-time {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-marks {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  font-size: var(--text-small);
+}
+
+.grid-marks li {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.grid-mark-muted {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.grid-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+/* The cell buttons name their country for a screen reader, so the visible
+   label is shortened to the verb and the rest is read from the row header. */
+.grid-actions .button,
+.chat-mutes .button,
+.team-row-actions .button {
+  font-size: var(--text-small);
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-2);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- the lobby ----------------------------------------------------------- */
+
+.lobby-panel {
+  margin-bottom: var(--space-3);
+}
+
+.join-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.join-invite-lead {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.join-url {
+  font-size: var(--text-h1);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.qr {
+  display: block;
+}
+
+.qr-paper {
+  fill: #ffffff;
+}
+
+.qr-ink {
+  fill: #000000;
+}
+
+.qr-large {
+  width: 12rem;
+  height: 12rem;
+}
+
+.lobby-world h3 {
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.team-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.team-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) 6rem 9rem minmax(8rem, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 64rem) {
+  .team-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.team-row-code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: var(--text-lead);
+  letter-spacing: 0.1em;
+}
+
+.team-row-connected .team-row-status {
+  color: var(--good);
+}
+
+.team-row-offline .team-row-status {
+  color: var(--bad);
+}
+
+.team-row-unclaimed .team-row-status {
+  color: var(--ink-soft);
+}
+
+.team-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+/* --- the setup form ------------------------------------------------------ */
+
+.setup {
+  margin-bottom: var(--space-3);
+}
+
+.presets {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.preset {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.preset .hint {
+  display: block;
+  margin: 0;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.field-number {
+  width: 7rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-text {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.field-unit {
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+.field-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.field-check > label {
+  font-weight: 400;
+  margin: 0;
+}
+
+.field-check .hint {
+  flex-basis: 100%;
+}
+
+.field .problem,
+.field .hint {
+  display: block;
+}
+
+.advanced,
+.danger {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--panel);
+}
+
+.advanced > summary,
+.danger > summary,
+.own-link > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.settings-group {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.schedule {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+
+.schedule-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.schedule-row .field {
+  margin-bottom: 0;
+}
+
+.preview-points {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+}
+
+.preview-points dt {
+  font-weight: 600;
+}
+
+.preview-points dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- chat feeds ---------------------------------------------------------- */
+
+.chat-panel {
+  margin-bottom: var(--space-3);
+}
+
+.chat-feeds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-3);
+}
+
+.chat-feed {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.chat-mutes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.chat-feed .message-list {
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.totals {
+  font-variant-numeric: tabular-nums;
+}
+
+.own-link-url {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+/* --- the check page ------------------------------------------------------ */
+
+.page-check {
+  max-width: 44rem;
+}
+
+.check-result {
+  margin-top: var(--space-3);
+}

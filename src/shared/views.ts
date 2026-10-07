@@ -49,6 +49,11 @@ export interface TimingView {
   remainingMs: number | null;
   paused: boolean;
   seconds: number | null;
+  /**
+   * True when this pause came from a restart rather than from the teacher
+   * (SPEC section 9). The dashboard turns it into one alert.
+   */
+  resumedAfterRestart: boolean;
 }
 
 /** The economics a student is allowed to know, for the What-if calculator. */
@@ -176,6 +181,7 @@ export function timingView(state: SessionState, now: number): TimingView {
     remainingMs: left,
     paused,
     seconds,
+    resumedAfterRestart: state.timer.restarted === true,
   };
 }
 

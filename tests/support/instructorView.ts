@@ -139,6 +139,7 @@ export function instructorView(over: InstructorViewOptions = {}): InstructorView
     finalYearAnnounced: false,
     resultsRevealedToTeams: false,
     projectorScreen: 'auto',
+    projectorWorldNumber: null,
     suggested: suggested(),
     worlds: numbers.map((worldNumber) => instructorWorld(worldNumber)),
     teams: numbers.flatMap((worldNumber) =>
@@ -155,6 +156,7 @@ export function instructorView(over: InstructorViewOptions = {}): InstructorView
     activitiesDone: [],
     screens: { instructor: 1, projector: 1 },
     leaderboard: emptyLeaderboard(numbers),
+    debrief: null,
     benchmarks: benchmarks(settings, Math.max(1, year)),
     ...rest,
   };
@@ -201,9 +203,11 @@ export function projectorView(
       })),
     ),
     screen: 'auto',
+    worldNumber: null,
     showsPrices: true,
     resultsRevealed: false,
     leaderboard: null,
+    debrief: null,
     ...rest,
   };
 }

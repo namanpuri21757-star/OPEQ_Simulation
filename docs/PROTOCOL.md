@@ -71,7 +71,7 @@ dollars.
 | `approveTakeover` / `denyTakeover` | instructor         |         | Answers a waiting terminal.                                      |
 | `endGame`                          | instructor         |         | Ends the game. Any open year is dropped.                         |
 | `revealResultsToTeams`             | instructor         |         | Opens other worlds and the leaderboard to teams. ENDED only.     |
-| `setProjectorScreen`               | instructor         |         | Mirrors a debrief screen.                                        |
+| `setProjectorScreen`               | instructor         |         | Mirrors a debrief screen; `worldNumber` for World Detail.        |
 | `resetSession`                     | instructor         |         | Needs `confirm: "RESET"`.                                        |
 | `deleteSession`                    | instructor         |         | Needs `confirm: "DELETE"`.                                       |
 | `claimTeam`                        | team               |         | Takes a country with its join code.                              |
@@ -131,10 +131,13 @@ four shapes, chosen by the socket's role:
   and reflection, and the leaderboard only once the instructor releases it.
 - **projector** (`kind: "projector"`) - phase, year, timing, announcements, news,
   the table cards, and a price per world after a reveal when
-  `projectorShowsPrices` is on. Never chat, never team-private data, never a key.
+  `projectorShowsPrices` is on. Once the game has ended, and only while the
+  instructor has sent one of the five debrief screens, it also carries the
+  debrief. Never chat, never team-private data, never a key.
 - **instructor** (`kind: "instructor"`) - everything, including the keys, every
   world's records, every team's private writing, the chat feed per world, who is
-  connected, and the one suggested next action.
+  connected, the one suggested next action, and - once the game has ended - the
+  whole debrief.
 - **lobby** (`kind: "lobby"`) - what a terminal sees before it has claimed a
   country, and what the /check page gets. Almost nothing.
 
@@ -156,3 +159,28 @@ The one-second tick closes an overdue year or activity by sending `closeYear` or
 `endBetween` with the actor `system`. Those are validated, saved and broadcast
 exactly like a click, so the event log is a complete record of the lesson whether
 a human or the clock moved it on.
+
+## 7. HTTP
+
+Socket.IO carries everything that changes the game. Three plain HTTP routes sit
+beside it, all read-only.
+
+| Route                                        | Who may call it     | What it returns                                                      |
+| -------------------------------------------- | ------------------- | -------------------------------------------------------------------- |
+| `GET /api/health`                            | anyone              | `{ ok, name, version }`                                              |
+| `GET /api/sessions`                          | anyone              | the sessions open here: id, when, phase, whether any country is free |
+| `GET /api/sessions/:id/export/:name?k=<key>` | the instructor only | one export file                                                      |
+
+The export route needs the instructor key and answers 403 to anything else, the
+projector key included. `:name` is one of `decisions`, `outcomes`, `messages`,
+`predictions`, `huddles`, `reflections` (CSV) or `session` (JSON); anything else
+is a 404 that lists the real names.
+
+The files are built by the pure functions in `src/shared/exports.ts`. CSV rows
+end with CRLF, the body starts with a UTF-8 byte-order mark so a spreadsheet
+reads accented names properly, and a cell that would otherwise look like a
+formula is prefixed with a quote. Nothing in any file carries a key or a
+terminal token.
+
+A download is a link rather than a command because a browser will only save a
+file to disk from one, and because the files are far larger than a view.

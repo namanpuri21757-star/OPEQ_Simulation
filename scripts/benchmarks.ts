@@ -9,7 +9,8 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { PRESET_NAMES, type PresetName } from '../src/shared/settings.js';
+import { PRESET_NAMES, PRESETS, type PresetName } from '../src/shared/settings.js';
+import { markdownFor, materialsFor } from '../src/shared/materials/index.js';
 import { answerKeyDocument, answerKeyFor } from './materials/answer-key.js';
 import { economicsDocument } from './materials/economics.js';
 import { engineCheckCsv } from './materials/engine-check.js';
@@ -20,6 +21,12 @@ const files: Array<{ path: string; build: () => string }> = [
   { path: 'docs/materials/answer-key.md', build: answerKeyDocument },
   { path: 'docs/ECONOMICS.md', build: economicsDocument },
   { path: 'docs/materials/engine-check.csv', build: engineCheckCsv },
+  // The classroom materials, built from the standard settings. The screen at
+  // /instructor/materials renders the same documents from the live settings.
+  ...materialsFor(PRESETS['standard-75']).map((doc) => ({
+    path: `docs/materials/${doc.slug}.md`,
+    build: () => markdownFor(doc),
+  })),
 ];
 
 function presetFromArgs(args: string[]): PresetName {

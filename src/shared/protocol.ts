@@ -11,7 +11,7 @@
  */
 
 import { z } from 'zod';
-import { type CountryLetter, JOIN_CODE_LENGTH } from './constants.js';
+import { type CountryLetter, JOIN_CODE_LENGTH, MAX_WORLDS, MIN_WORLDS } from './constants.js';
 import { settingsPatchShape, PRESET_NAMES } from './settings.js';
 import { PHASES, PROJECTOR_SCREENS, BRIEFING_SLIDES } from './state.js';
 import type { Actor, Phase } from './state.js';
@@ -141,7 +141,14 @@ export const commandSchema = z.discriminatedUnion('type', [
   // --- finishing ------------------------------------------------------------
   command('endGame', empty),
   command('revealResultsToTeams', empty),
-  command('setProjectorScreen', z.strictObject({ screen: z.enum(PROJECTOR_SCREENS) })),
+  command(
+    'setProjectorScreen',
+    z.strictObject({
+      screen: z.enum(PROJECTOR_SCREENS),
+      /** Which world a mirrored World Detail screen is about. */
+      worldNumber: z.number().int().min(MIN_WORLDS).max(MAX_WORLDS).nullish(),
+    }),
+  ),
   command('resetSession', z.strictObject({ confirm: z.literal('RESET') })),
   command('deleteSession', z.strictObject({ confirm: z.literal('DELETE') })),
 

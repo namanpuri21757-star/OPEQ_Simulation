@@ -214,6 +214,7 @@ function clearPlay(state: SessionState): void {
   state.briefingSlide = 0;
   state.year = 0;
   state.projectorScreen = 'auto';
+  state.projectorWorldNumber = null;
   clearTimer(state);
 }
 
@@ -271,6 +272,7 @@ export function createInitialState(event: SessionEvent): ApplyResult {
     finalYearAnnounced: false,
     resultsRevealedToTeams: false,
     projectorScreen: 'auto',
+    projectorWorldNumber: null,
     worlds: [],
     teams: {},
     messages: [],
@@ -611,6 +613,10 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
 
     case 'setProjectorScreen': {
       state.projectorScreen = command.payload.screen;
+      // The world only means anything on World Detail, so any other screen
+      // clears it rather than leaving a stale number behind.
+      state.projectorWorldNumber =
+        command.payload.screen === 'worldDetail' ? (command.payload.worldNumber ?? 1) : null;
       return { ok: true, state };
     }
 

@@ -60,7 +60,13 @@ beforeEach(async () => {
     store,
   });
   conn.start();
-  await until('the connection to come online', () => conn.getSnapshot().status === 'online');
+  // Online and holding its first view: the status arrives with the hello ack
+  // and the view in the message after it, so waiting for the status alone
+  // leaves the first assertion racing the first broadcast.
+  await until(
+    'the connection to come online with a view',
+    () => conn.getSnapshot().status === 'online' && conn.getSnapshot().view !== null,
+  );
 });
 
 afterEach(async () => {

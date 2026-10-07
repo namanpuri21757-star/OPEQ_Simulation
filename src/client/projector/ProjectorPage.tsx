@@ -4,6 +4,7 @@ import { formatPrice } from '@shared/units';
 import type { ProjectorView } from '@shared/views';
 import { RoleConnection, useView } from '../net';
 import { Countdown, QrCode } from '../ui';
+import { DebriefScreenView, debriefTitleOf, isDebriefScreenName } from '../debrief';
 import { joinLink } from '../instructor/links';
 
 /**
@@ -83,6 +84,21 @@ export interface ProjectorScreenProps {
 }
 
 export function ProjectorScreen({ view, serverNow }: ProjectorScreenProps) {
+  // The debrief: exactly the screen the instructor sent, in large type
+  // (SPEC 8.5). The data only reaches this key once the game has ended, so
+  // there is nothing here to leak during play.
+  if (view.debrief !== null && isDebriefScreenName(view.screen)) {
+    return (
+      <main className="projector">
+        <DebriefScreenView
+          screen={view.screen}
+          debrief={view.debrief}
+          worldNumber={view.worldNumber}
+        />
+      </main>
+    );
+  }
+
   const timed = view.timing.deadline !== null || view.timing.remainingMs !== null;
   const latest = view.announcements[view.announcements.length - 1] ?? null;
   const atReveal = view.phase === 'PRACTICE_REVEAL' || view.phase === 'YEAR_REVEAL';
@@ -154,10 +170,9 @@ export function ProjectorScreen({ view, serverNow }: ProjectorScreenProps) {
         </section>
       )}
 
-      {/* The debrief screens the instructor can mirror here arrive with the
-          debrief itself; until then the screen says plainly that it is waiting
-          rather than going blank mid-lesson. */}
-      {view.screen !== 'auto' && view.screen !== 'lobby' && view.screen !== 'play' && (
+      {/* A debrief screen was sent before the game ended, so there is nothing
+          to show yet: say so rather than going blank mid-lesson. */}
+      {debriefTitleOf(view.screen) !== undefined && (
         <p className="projector-lead">Your teacher is about to show something here.</p>
       )}
     </main>

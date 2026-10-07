@@ -10,7 +10,9 @@
  *   1. exactly one outcome per country per year,
  *   2. each country's cumulative profit equals the sum of its years,
  *   3. every stored price matches a fresh calculation from the engine,
- *   4. no team ever received anything belonging to another world.
+ *   4. no team ever received anything belonging to another world,
+ *   5. the debrief matches a fresh calculation, and matches the debrief built
+ *      by replaying events.jsonl from the beginning.
  *
  * Any failure exits non-zero, so npm run verify catches it.
  */
@@ -19,6 +21,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from '../src/server/index.js';
+import { applyEvent, createInitialState } from '../src/server/session/apply.js';
+import { readEvents, sessionDir } from '../src/server/store/files.js';
+import { debriefFor } from '../src/shared/debrief.js';
+import { cooperativeMax } from '../src/shared/engine/engine.js';
 import { COUNTRY_LETTERS, COUNTRY_NAMES } from '../src/shared/constants.js';
 import { effectiveA, priceCents } from '../src/shared/engine/engine.js';
 import { economicUnits, PRESET_NAMES, type PresetName } from '../src/shared/settings.js';
@@ -122,6 +128,7 @@ async function main(): Promise<void> {
     checkOutcomes(state);
     checkCoverage(state, instructor);
     checkPrivacy(state, bots);
+    await checkDebrief(state, dataDir);
   } finally {
     for (const bot of bots) bot.close();
     instructor?.close();
@@ -337,6 +344,88 @@ function checkCoverage(state: SessionState, instructor: InstructorBot): void {
     'Some team never wrote a reflection.',
   );
   check(instructor.steps.length > 0, 'The instructor bot never pressed anything.');
+}
+
+/**
+ * The debrief, twice over.
+ *
+ * First against arithmetic done here, so a wrong total cannot hide behind the
+ * same function that produced it. Then against the debrief built by replaying
+ * events.jsonl from the first event, which is what a teacher would see after
+ * the server was restarted: SPEC section 9 promises the replay is identical, so
+ * the two debriefs have to be identical too.
+ */
+async function checkDebrief(state: SessionState, dataDir: string): Promise<void> {
+  const debrief = debriefFor(state);
+
+  for (const world of state.worlds) {
+    const shown = debrief.worlds.find((item) => item.worldNumber === world.worldNumber);
+    if (!shown) {
+      problems.push(`The debrief has no World ${String(world.worldNumber)}.`);
+      continue;
+    }
+
+    let joint = 0;
+    let best = 0;
+    for (const record of world.years) {
+      joint += COUNTRY_LETTERS.reduce(
+        (sum, letter) => sum + record.outcome.countries[letter].profitK,
+        0,
+      );
+      best += cooperativeMax(state.settings, record.year).jointMaxK;
+    }
+    check(
+      shown.totalProfitK === joint,
+      `World ${String(world.worldNumber)}: the debrief says ${formatProfitK(shown.totalProfitK)} but the years add up to ${formatProfitK(joint)}.`,
+    );
+    check(
+      shown.cooperativeMaxK === best,
+      `World ${String(world.worldNumber)}: the debrief's benchmark is ${formatProfitK(shown.cooperativeMaxK)} but the engine says ${formatProfitK(best)}.`,
+    );
+    const percent = best === 0 ? 0 : Math.round((joint * 100) / best);
+    check(
+      Math.abs(shown.percentOfMax - percent) <= 1,
+      `World ${String(world.worldNumber)}: the debrief says ${String(shown.percentOfMax)}% of the cooperative maximum, not ${String(percent)}%.`,
+    );
+
+    for (const letter of COUNTRY_LETTERS) {
+      const own = world.years.reduce(
+        (sum, record) => sum + record.outcome.countries[letter].profitK,
+        0,
+      );
+      const row = shown.countries.find((country) => country.letter === letter);
+      check(
+        row?.cumulativeProfitK === own,
+        `World ${String(world.worldNumber)} ${COUNTRY_NAMES[letter]}: the debrief says ${formatProfitK(row?.cumulativeProfitK ?? 0)}, the years add up to ${formatProfitK(own)}.`,
+      );
+    }
+  }
+
+  const replayed = await replayFromLog(state.sessionId, dataDir);
+  if (replayed === null) {
+    problems.push('The event log could not be replayed.');
+    return;
+  }
+  check(
+    JSON.stringify(debriefFor(replayed)) === JSON.stringify(debrief),
+    'The debrief built by replaying events.jsonl is not the one the dashboard shows.',
+  );
+}
+
+/** Rebuilds a session from its event log alone, the way a restart would. */
+async function replayFromLog(sessionId: string, dataDir: string): Promise<SessionState | null> {
+  const { events } = await readEvents(sessionDir(dataDir, sessionId), () => undefined);
+  let state: SessionState | null = null;
+  for (const event of events) {
+    if (state === null) {
+      const created = createInitialState(event);
+      if (created.ok) state = created.state;
+      continue;
+    }
+    const result = applyEvent(state, event);
+    if (result.state) state = result.state;
+  }
+  return state;
 }
 
 /**

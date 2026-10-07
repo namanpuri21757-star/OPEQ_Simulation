@@ -39,6 +39,9 @@
   --country-a: #0b5d7a;
   --country-b: #7a3b0b;
   --country-c: #4a2c7a;
+  /* Two more lines, for a debrief chart with six worlds on it. */
+  --series-e: #1c6b3a;
+  --series-f: #8a2b4a;
 
   color-scheme: light dark;
 }
@@ -58,6 +61,8 @@
     --country-a: #7fd1ef;
     --country-b: #f0b27a;
     --country-c: #c3aef5;
+    --series-e: #86dfab;
+    --series-f: #f49ab6;
   }
 }
 

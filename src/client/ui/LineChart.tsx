@@ -15,18 +15,31 @@ export interface ChartPoint {
   y: number;
 }
 
+export type ChartMarker = 'circle' | 'square' | 'triangle' | 'diamond' | 'plus' | 'bar';
+
 export interface ChartSeries {
   name: string;
   points: readonly ChartPoint[];
   /** Series on the right axis have their own scale, for a second unit. */
   axis?: 'left' | 'right';
-  marker?: 'circle' | 'square' | 'triangle';
+  marker?: ChartMarker;
   dash?: string;
+}
+
+/**
+ * A moment labelled on the x axis: the year a chat window ran, the year the new
+ * producer arrived. Drawn as a dashed line, and also listed under the chart so
+ * it reaches a screen reader and survives printing in black and white.
+ */
+export interface ChartMark {
+  x: number;
+  label: string;
 }
 
 export interface LineChartProps {
   title: string;
   series: readonly ChartSeries[];
+  marks?: readonly ChartMark[];
   xLabel: string;
   leftLabel: string;
   rightLabel?: string;
@@ -45,16 +58,35 @@ function niceTop(max: number): number {
   return Math.ceil(max / magnitude) * magnitude;
 }
 
+/**
+ * The marker shapes, so six series can be told apart with no colour at all
+ * (SPEC section 9: never colour alone).
+ */
+const MARKER_GLYPHS: Record<ChartMarker, string> = {
+  circle: '●',
+  square: '■',
+  triangle: '▲',
+  diamond: '◆',
+  plus: '➕',
+  bar: '━',
+};
+
 function marker(kind: ChartSeries['marker'], x: number, y: number) {
   if (kind === 'square') return <rect x={x - 3} y={y - 3} width={6} height={6} />;
   if (kind === 'triangle')
     return <polygon points={`${x},${y - 4} ${x + 4},${y + 3} ${x - 4},${y + 3}`} />;
+  if (kind === 'diamond')
+    return <polygon points={`${x},${y - 4.4} ${x + 4.4},${y} ${x},${y + 4.4} ${x - 4.4},${y}`} />;
+  if (kind === 'plus')
+    return <path d={`M${x - 4},${y} h8 M${x},${y - 4} v8`} fill="none" strokeWidth={2} />;
+  if (kind === 'bar') return <rect x={x - 4} y={y - 1.4} width={8} height={2.8} />;
   return <circle cx={x} cy={y} r={3.2} />;
 }
 
 export function LineChart({
   title,
   series,
+  marks = [],
   xLabel,
   leftLabel,
   rightLabel,
@@ -100,6 +132,18 @@ export function LineChart({
         role="img"
         aria-label={`${title}. The same numbers are in the table below.`}
       >
+        {/* The labelled moments go in first, so no line is hidden behind one. */}
+        {marks.map((mark) => (
+          <g key={`${String(mark.x)}-${mark.label}`} className="chart-mark">
+            <line
+              x1={atX(mark.x)}
+              y1={PAD.top}
+              x2={atX(mark.x)}
+              y2={PAD.top + plotHeight}
+              strokeDasharray="4 3"
+            />
+          </g>
+        ))}
         {/* The frame and the two end labels of each axis: enough to read the shape. */}
         <line
           className="chart-axis"
@@ -181,7 +225,7 @@ export function LineChart({
         {series.map((s, index) => (
           <li key={s.name} className={`chart-series-${String(index + 1)}`}>
             <span className="chart-swatch" aria-hidden="true">
-              {s.marker === 'square' ? '■' : s.marker === 'triangle' ? '▲' : '●'}
+              {MARKER_GLYPHS[s.marker ?? 'circle']}
             </span>
             {s.name}
             {s.axis === 'right' && rightLabel !== undefined ? ` (${rightLabel})` : ''}
@@ -189,6 +233,13 @@ export function LineChart({
           </li>
         ))}
       </ul>
+      {marks.length > 0 && (
+        <ul className="chart-marks">
+          {marks.map((mark) => (
+            <li key={`${String(mark.x)}-${mark.label}`}>{`${formatX(mark.x)}: ${mark.label}`}</li>
+          ))}
+        </ul>
+      )}
       <details className="chart-data">
         <summary>Show the numbers</summary>
         <DataTable caption={title} columns={columns} rows={rows} hideCaption />

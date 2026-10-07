@@ -1,0 +1,186 @@
+/* The debrief screens, shared by the instructor dashboard and the projector. */
+
+.debrief-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.debrief-screen h3 {
+  margin: var(--space-3) 0 0;
+}
+
+.debrief-lead {
+  font-size: var(--text-lead);
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.debrief-formula {
+  font-family: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.debrief-note {
+  color: var(--ink-soft);
+}
+
+.debrief-landings,
+.debrief-questions {
+  padding-left: 1.4rem;
+  margin: 0;
+}
+
+.debrief-questions > li {
+  margin-bottom: var(--space-3);
+}
+
+.question-text {
+  margin: 0 0 var(--space-1);
+  max-width: 70ch;
+}
+
+.question-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.question-goal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 var(--space-1);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+/* --- the message timeline ------------------------------------------------- */
+
+.debrief-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.debrief-timeline > li {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(7rem, auto) 1fr auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  background: var(--panel);
+}
+
+.debrief-timeline .timeline-who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
+}
+
+.debrief-timeline .timeline-when {
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+/* A promise is marked with a word as well as a colour (SPEC section 9). */
+.debrief-timeline .timeline-kept {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.debrief-timeline .timeline-broken {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.debrief-timeline .timeline-pledge {
+  border-left: 6px solid var(--accent);
+}
+
+@media (max-width: 60rem) {
+  .debrief-timeline > li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- the dashboard's debrief panel ---------------------------------------- */
+
+.debrief-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.debrief-showing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.debrief-world-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.exports-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* --- the same screens on the projector ------------------------------------ */
+
+.projector .debrief-screen {
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.projector .debrief-screen h2 {
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+  line-height: 1.15;
+}
+
+.projector .debrief-screen h3 {
+  font-size: clamp(1.4rem, 2.4vw, 2.1rem);
+}
+
+.projector .debrief-screen,
+.projector .debrief-screen p,
+.projector .debrief-screen li,
+.projector .debrief-screen td,
+.projector .debrief-screen th {
+  font-size: clamp(1.1rem, 1.5vw, 1.6rem);
+}
+
+.projector .chart-art {
+  max-width: none;
+  width: 100%;
+}
+
+/* The numbers behind a chart are already on screen in a table on the
+   projector, so the fold-away copy would only be a second one. */
+.projector .chart-data {
+  display: none;
+}
+
+.projector .debrief-questions > li {
+  margin-bottom: var(--space-2);
+}

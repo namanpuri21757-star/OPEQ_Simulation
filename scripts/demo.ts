@@ -16,8 +16,14 @@ import { networkInterfaces } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, type RunningServer } from '../src/server/index.js';
-import { COUNTRY_NAMES } from '../src/shared/constants.js';
+import { COUNTRY_NAMES, MAX_WORLDS } from '../src/shared/constants.js';
 import type { CreateSessionResult } from '../src/shared/protocol.js';
+import {
+  PRESETS,
+  PRESET_NAMES,
+  type PresetName,
+  type SettingsInput,
+} from '../src/shared/settings.js';
 import { GameClient } from '../tests/support/client.js';
 
 const CLIENT_DIR = fileURLToPath(new URL('../dist/client', import.meta.url));
@@ -79,7 +85,74 @@ function addresses(port: number): string[] {
   return out;
 }
 
+/**
+ * What a demo run was asked for.
+ *
+ * The defaults are a full standard lesson in one world. A short run is what
+ * the debrief is usually wanted for: `npm run demo -- --preset=test-fast
+ * --years=3` reaches the end in about two minutes, because the whole point of
+ * test-fast is five-second years.
+ */
+export interface DemoOptions {
+  preset: PresetName;
+  worlds: number;
+  /** Shortens the game, and trims the schedule and the new producer to fit. */
+  years: number | null;
+}
+
+function flag(argv: string[], name: string): string | undefined {
+  return argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+}
+
+function parseOptions(argv: string[]): DemoOptions {
+  const preset = (flag(argv, 'preset') ?? 'standard-75') as PresetName;
+  if (!PRESET_NAMES.includes(preset)) {
+    throw new Error(`--preset has to be one of ${PRESET_NAMES.join(', ')}.`);
+  }
+
+  const worlds = Number(flag(argv, 'worlds') ?? 1);
+  if (!Number.isInteger(worlds) || worlds < 1 || worlds > MAX_WORLDS) {
+    throw new Error(`--worlds has to be a whole number from 1 to ${String(MAX_WORLDS)}.`);
+  }
+
+  const rawYears = flag(argv, 'years');
+  if (rawYears === undefined) return { preset, worlds, years: null };
+  const years = Number(rawYears);
+  if (!Number.isInteger(years) || years < 1 || years > 40) {
+    throw new Error('--years has to be a whole number from 1 to 40.');
+  }
+  return { preset, worlds, years };
+}
+
+/**
+ * The settings patch for those options.
+ *
+ * A shorter game needs more than a smaller `years`: an activity after Year 10,
+ * a new producer in Year 9 and the longer timer for Years 1 to 3 are all
+ * refused by the settings rules once the game is three years long, so each one
+ * is trimmed to fit rather than left to fail.
+ */
+function settingsFor(options: DemoOptions): SettingsInput {
+  const base: SettingsInput = { worlds: options.worlds };
+  const years = options.years;
+  if (years === null) return base;
+
+  const preset = PRESETS[options.preset];
+  const np = preset.newProducer;
+  return {
+    ...base,
+    years,
+    timers: {
+      ...preset.timers,
+      earlyYearsThrough: Math.min(preset.timers.earlyYearsThrough, years),
+    },
+    schedule: preset.schedule.filter((item) => item.afterYear < years),
+    newProducer: { ...np, enabled: np.enabled && np.year <= years },
+  };
+}
+
 async function main(): Promise<void> {
+  const options = parseOptions(process.argv.slice(2));
   if (!existsSync(join(CLIENT_DIR, 'index.html'))) await buildClient();
 
   const server = await listen(Number(process.env['PORT'] ?? 3000));
@@ -90,8 +163,8 @@ async function main(): Promise<void> {
   const setup = new GameClient(server.url, 'demo-setup');
   await setup.hello({ role: 'setup' });
   const ack = await setup.send('createSession', {
-    preset: 'standard-75',
-    settings: { worlds: 1 },
+    preset: options.preset,
+    settings: settingsFor(options),
   });
   setup.close();
   if (!ack.ok) throw new Error(`The demo session could not be created: ${ack.message}`);

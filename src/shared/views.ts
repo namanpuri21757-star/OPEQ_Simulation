@@ -11,6 +11,7 @@
  */
 
 import { COUNTRY_LETTERS, COUNTRY_NAMES, type CountryLetter } from './constants.js';
+import { debriefFor, type DebriefData } from './debrief.js';
 import {
   competitiveOutcome,
   cooperativeMax,
@@ -18,7 +19,7 @@ import {
   type PriceSnapshot,
   snapshotOf,
 } from './engine/engine.js';
-import { teamLabel, yearLabel } from './labels.js';
+import { teamIdFor, teamLabel, yearLabel } from './labels.js';
 import { rolesForYear, type RoleAssignment } from './roles.js';
 import {
   economicUnits,
@@ -26,6 +27,7 @@ import {
   type DisclosureMode,
   type Settings,
 } from './settings.js';
+import { isDebriefScreen } from './state.js';
 import type {
   BetweenState,
   DecisionRecord,
@@ -410,10 +412,7 @@ export function leaderboardView(state: SessionState): LeaderboardView {
   return { countries, worlds };
 }
 
-/** The one place team ids are spelled, so every file agrees. */
-export function teamIdFor(worldId: string, letter: CountryLetter): string {
-  return `${worldId}-${letter}`;
-}
+export { teamIdFor } from './labels.js';
 
 // ---------------------------------------------------------------------------
 // viewForTeam.
@@ -573,9 +572,18 @@ export interface ProjectorView {
   /** The "Find your table" card in the lobby. */
   tables: ProjectorTableRow[];
   screen: ProjectorScreen;
+  /** Which world a mirrored World Detail screen is about. */
+  worldNumber: number | null;
   showsPrices: boolean;
   resultsRevealed: boolean;
   leaderboard: LeaderboardView | null;
+  /**
+   * The debrief, but only once the game has ended and the teacher has sent a
+   * debrief screen here. Until then the projector carries none of it, so a world
+   * can never see another world's numbers while there is still a year to play
+   * (SPEC section 7, CLAUDE.md rule 8).
+   */
+  debrief: DebriefData | null;
 }
 
 export function viewForProjector(state: SessionState, now: number): ProjectorView {
@@ -617,9 +625,12 @@ export function viewForProjector(state: SessionState, now: number): ProjectorVie
       }),
     ),
     screen: state.projectorScreen,
+    worldNumber: state.projectorWorldNumber ?? null,
     showsPrices,
     resultsRevealed: state.resultsRevealedToTeams,
     leaderboard: state.resultsRevealedToTeams ? leaderboardView(state) : null,
+    debrief:
+      state.phase === 'ENDED' && isDebriefScreen(state.projectorScreen) ? debriefFor(state) : null,
   };
 }
 
@@ -701,6 +712,7 @@ export interface InstructorView {
   finalYearAnnounced: boolean;
   resultsRevealedToTeams: boolean;
   projectorScreen: ProjectorScreen;
+  projectorWorldNumber: number | null;
   suggested: SuggestedAction;
   worlds: InstructorWorldView[];
   teams: InstructorTeamView[];
@@ -714,6 +726,12 @@ export interface InstructorView {
   activitiesDone: string[];
   screens: { instructor: number; projector: number };
   leaderboard: LeaderboardView;
+  /**
+   * The debrief, once the game has ended. It is left out while the game is
+   * running because it is a few hundred rows, views go out up to ten times a
+   * second, and there is nothing to debrief until the last year is scored.
+   */
+  debrief: DebriefData | null;
   benchmarks: {
     competitiveEachTenths: number;
     competitivePriceCents: number;
@@ -813,6 +831,7 @@ export function viewForInstructor(
     finalYearAnnounced: state.finalYearAnnounced,
     resultsRevealedToTeams: state.resultsRevealedToTeams,
     projectorScreen: state.projectorScreen,
+    projectorWorldNumber: state.projectorWorldNumber ?? null,
     suggested: extras.suggested,
     worlds: state.worlds.map((world) => ({
       worldId: world.worldId,
@@ -847,6 +866,7 @@ export function viewForInstructor(
     activitiesDone: state.activitiesDone,
     screens: extras.screens,
     leaderboard: leaderboardView(state),
+    debrief: state.phase === 'ENDED' ? debriefFor(state) : null,
     benchmarks: {
       competitiveEachTenths: competitive.eachTenths,
       competitivePriceCents: competitive.priceCents,

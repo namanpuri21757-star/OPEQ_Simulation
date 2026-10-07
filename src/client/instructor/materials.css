@@ -1,0 +1,118 @@
+/* /instructor/materials and /instructor/summary: made to be read and printed. */
+
+.page-materials,
+.page-summary {
+  max-width: 50rem;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3);
+}
+
+.materials-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-2);
+}
+
+.materials-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.material {
+  margin-bottom: var(--space-4);
+}
+
+.material h2 {
+  border-bottom: 2px solid var(--line);
+  padding-bottom: var(--space-1);
+}
+
+.material h3 {
+  margin-top: var(--space-3);
+}
+
+.material h4 {
+  margin-bottom: var(--space-1);
+}
+
+.material p,
+.material li {
+  max-width: 70ch;
+}
+
+.material-intro {
+  color: var(--ink-soft);
+  font-size: var(--text-lead);
+}
+
+.material-note {
+  border-left: 4px solid var(--accent);
+  padding-left: var(--space-2);
+}
+
+.material-formula {
+  font-family: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.summary-part {
+  margin-bottom: var(--space-4);
+}
+
+@media print {
+  /* The toolbar and the chooser are screen things; paper gets the pages. */
+  .materials-toolbar .button,
+  .materials-nav {
+    display: none;
+  }
+
+  .page-materials,
+  .page-summary {
+    max-width: none;
+    padding: 0;
+    color: #000000;
+    background: #ffffff;
+  }
+
+  /* Each handout and each debrief screen starts its own sheet. */
+  .material,
+  .summary-part {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .material:first-of-type,
+  .summary-part:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .material-formula,
+  .material-note,
+  .debrief-formula {
+    background: #ffffff;
+    border-color: #999999;
+  }
+
+  /* The page opens every fold-away table itself (see useOpenChartData), so on
+     paper only the "Show the numbers" line is in the way. */
+  .chart-data > summary {
+    display: none;
+  }
+
+  .chart,
+  .data-table,
+  .debrief-timeline > li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

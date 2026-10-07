@@ -12,3 +12,13 @@ export function teamLabel(worldNumber: number, letter: CountryLetter): string {
 export function yearLabel(year: number): string {
   return year === 0 ? 'PRACTICE' : `Year ${year}`;
 }
+
+/**
+ * The one place a team id is spelled, so every file agrees.
+ *
+ * It lives beside the labels rather than in views.ts because the debrief needs
+ * it too, and views.ts imports the debrief: one of the two had to move down.
+ */
+export function teamIdFor(worldId: string, letter: CountryLetter): string {
+  return `${worldId}-${letter}`;
+}

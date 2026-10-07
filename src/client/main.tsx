@@ -8,6 +8,8 @@ import './team/team.css';
 import './instructor/instructor.css';
 import './instructor/cards.css';
 import './projector/projector.css';
+import './debrief/debrief.css';
+import './instructor/materials.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('The page is missing its #root element.');

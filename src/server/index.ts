@@ -6,6 +6,7 @@ import express, { type Express } from 'express';
 import { Server as IoServer } from 'socket.io';
 import type { OpenSessionSummary, OpenSessionsResponse } from '../shared/protocol.js';
 import type { SessionState } from '../shared/state.js';
+import { attachExports } from './exports.js';
 import { attachSockets, type SocketLayer } from './socket.js';
 import { SessionStore, systemClock, type Clock } from './store/index.js';
 
@@ -118,6 +119,9 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
   });
   // Anything already saved comes back before the first client can connect.
   await store.loadAll();
+  // Registered after the single-page-app fallback, which passes /api/ straight
+  // through, so the download links still reach this route.
+  attachExports(app, store);
   const sockets = attachSockets(io, store);
 
   const tickMs = options.tickMs ?? TICK_MS;

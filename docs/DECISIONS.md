@@ -2,6 +2,72 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-07 - Cooperation breaks after a run of two years and a rise of more than 10%
+
+Decision: a year is cooperative when every country produced no more than 10% above an equal share of that year's best joint total, compared exactly rather than through the rounded percent shown beside it. The break year is the first year that is not cooperative and that follows at least two cooperative years in a row. `DebriefBreak` also carries the longest run, so a world that never settled and a world that never broke can be told apart in words.
+
+Reason: SPEC 8.4 asks for "the year cooperation broke" without defining either half. A rule needs some slack, or one country at 38.4 against a share of 38.3 would read as a betrayal; and it needs a run, or a world's very first disagreement would be called a broken agreement when there was never an agreement to break. Ten percent is about four million barrels on the standard settings, which is larger than any rounding and smaller than any real grab. Two years is the shortest run a class would describe as "we had a deal". Comparing exactly matters at the boundary: 42.1 and 42.2 against a share of 38.3 both round to 10%, and only one of them is inside the line.
+
+## 2026-10-07 - A pledge belongs to the next year to close, and is kept within 0.5 million barrels
+
+Decision: `pledgeKept` allows a difference of 5 tenths either way. A pledge is judged against the first year that closed after it was posted; one posted after the last year is left unmarked rather than called broken. A pledge stands until that country posts another one.
+
+Reason: the tolerance is the brief's. The rest follows from when a class talks: the chat window sits between two years, so the promise is about the year that has not happened yet. A promise with no year after it has nothing to judge it by, and calling it broken would put a mark against a group for something it was never given the chance to do.
+
+## 2026-10-07 - The debrief is in the instructor's view only once the game has ended
+
+Decision: `viewForInstructor` carries `debrief` only in ENDED, and `viewForProjector` only in ENDED and only when the projector has been sent one of the five debrief screens. Teams never receive it at all.
+
+Reason: the debrief is a few hundred rows and views go out up to ten times a second, so building it during play would be pure waste; there is also nothing to debrief until the last year is scored. The projector rule is the one that matters for the lesson: the debrief holds every world's numbers and the best responses, and CLAUDE.md rule 8 says neither may be on a screen while there is still a year to play. A teacher who presses too early gets "Your teacher is about to show something here" rather than a leak.
+
+## 2026-10-07 - Show on projector sends the screen and, for World Detail, the world
+
+Decision: `setProjectorScreen` takes an optional `worldNumber`, stored as `SessionState.projectorWorldNumber` and cleared whenever any other screen is sent.
+
+Reason: four of the five debrief screens are about the whole class and one is about one world, so the screen name alone cannot say what the room should see. Keeping the choice in the session rather than in the dashboard's local state means a reload, or a second laptop, still knows which world is up; clearing it on every other screen means a stale number can never reappear later.
+
+## 2026-10-07 - The benchmarks on the game-theory screen are Year 1's, and a world lands within 5%
+
+Decision: `theoryFor` works the cooperative and competitive outcomes out for Year 1, before any new producer. A world is called cooperative when its average supply is within 5% above the cooperative total, competitive when it is within 5% of the competitive total, beyond when it is more than 5% above that, and between otherwise.
+
+Reason: the benchmarks move when the new producer arrives, so one year has to be chosen; Year 1 is the year every preset shares and the year the agreement was made in, and it is the year the printed answer key already uses. The 5% band is about four million barrels on the standard settings, which is inside the noise a class can act on, so a world that is one tenth away from a benchmark is described as being at it rather than near it.
+
+## 2026-10-07 - Exports are downloaded over HTTP with the instructor key
+
+Decision: `GET /api/sessions/:sessionId/export/:name?k=<instructorKey>` serves the six CSV files and the JSON file, built by pure functions in `src/shared/exports.ts`. The projector key gets 403. The JSON bundle is assembled field by field rather than from the state object.
+
+Reason: a download is a link, and a link is the only way a browser saves a file to disk with a name on it. Building the files on the server keeps them out of the view (they are far larger than one) and means a test can compare a real download with the stored outcomes. Assembling the JSON by hand is the same rule as the views: the day someone adds a field to `SessionState`, a spread would start exporting keys and terminal tokens and a field-by-field build would not.
+
+## 2026-10-07 - CSV files use CRLF, a byte-order mark, and a quote in front of a formula
+
+Decision: `src/shared/csv.ts` writes RFC 4180 rows with CRLF endings; the HTTP layer prefixes a UTF-8 byte-order mark; a field that begins with an equals sign, a plus, a minus or an at sign is prefixed with a single quote.
+
+Reason: all three are about the spreadsheet a teacher actually opens. Without the mark, Excel on a Windows laptop reads a UTF-8 file as the local code page and mangles any accented name a student typed. Without the prefix, a huddle reason that starts with an equals sign is read as a formula and shows an error instead of what the group wrote. Numbers are written plain, with no currency sign or thousands separator, so a column can be summed; the unit is in the heading instead.
+
+## 2026-10-07 - The classroom materials are data, generated into docs/materials and rendered on screen
+
+Decision: each material is a list of blocks built from `Settings` in `src/shared/materials`. `npm run benchmarks` turns them into `docs/materials/<slug>.md` and `npm run verify` fails if those files fall behind; `/instructor/materials` renders the same blocks from the running session's settings.
+
+Reason: SPEC 8.4 asks for the files and for a printable screen, and two hand-written copies drift the first time a teacher changes the price line. One source means the briefing a class reads always matches the game it is about to play. The blocks are a small vocabulary (heading, paragraph, bullets, steps, note, formula, table) because that is all five handouts need, and a small vocabulary is what makes both renderers short.
+
+## 2026-10-07 - The runbook's agendas are worked out from the presets
+
+Decision: `agendaRows` walks the settings the way the suggester does and adds up each stage. The three allowances it cannot read from the settings are fixed: 6 minutes for the briefing, 45 seconds for each reveal and 12 minutes for the debrief.
+
+Reason: a runbook that promises "this fits a 50-minute lesson" has to be checked against the timers the server will really use, or it is a guess. The three fixed numbers are the parts where a teacher is talking rather than a timer counting, and they are in one place so they can be changed once. The totals come out near 45, 70 and 82 minutes for the three presets, which leaves a class the few minutes it takes to sit down.
+
+## 2026-10-07 - The print-friendly pages open the tables behind the charts themselves
+
+Decision: `useOpenChartData` sets `open` on every chart's fold-away table on the summary page, and the print stylesheet hides only the "Show the numbers" line.
+
+Reason: SPEC section 9 puts a data table behind every chart, and a closed details element prints as nothing but its summary. No CSS opens one reliably across browsers, so the page that exists to be printed opens them itself. On the projector the opposite is wanted, and that is a plain display rule, because the screens there already show their tables.
+
+## 2026-10-07 - teamIdFor moved from views.ts to labels.ts
+
+Decision: the one place a team id is spelled now lives beside the labels, and views.ts re-exports it.
+
+Reason: the debrief needs it and views.ts imports the debrief, so one of the two had to move down. Labels is where the other "how this is named everywhere" helpers already are, and nothing there imports anything but constants.
+
 ## 2026-10-07 - A settings patch carries only the fields that were sent
 
 Decision: `settingsPatchShape` strips the top-level `.default()` off every field before making it optional, and `settingsInputSchema` uses it. Groups such as `timers` keep their inner defaults, because a form sends a group whole.

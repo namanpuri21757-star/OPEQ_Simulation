@@ -7,6 +7,7 @@ import {
   projectorView,
 } from '../../../tests/support/instructorView';
 import { message, NOW, timing } from '../../../tests/support/teamView';
+import { playedDebrief } from '../../../tests/support/debrief';
 import ProjectorPage, { ProjectorScreen } from './ProjectorPage';
 
 const show = (over: Parameters<typeof projectorView>[0] = {}) => {
@@ -97,6 +98,36 @@ describe('the projector at a reveal', () => {
     });
 
     expect(screen.queryByRole('heading', { name: "This year's price" })).toBeNull();
+  });
+});
+
+describe('the projector during the debrief', () => {
+  const debrief = playedDebrief();
+
+  it('shows exactly the screen the instructor sent', () => {
+    show({ phase: 'ENDED', screen: 'leaderboard', worldNumber: null, debrief });
+    expect(
+      screen.getByRole('heading', { level: 2, name: debrief.titles.leaderboard }),
+    ).toBeVisible();
+    // The room screen is gone while a debrief screen is up.
+    expect(screen.queryByText('Game over')).toBeNull();
+  });
+
+  it('shows the world the instructor picked', () => {
+    show({ phase: 'ENDED', screen: 'worldDetail', worldNumber: 2, debrief });
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toContain('World 2');
+  });
+
+  it('waits politely when a debrief screen was sent before the game ended', () => {
+    // The server only fills the debrief in once the game has ended, so this is
+    // what a terminal-free room sees if the teacher presses too early.
+    show({ phase: 'YEAR_OPEN', screen: 'leaderboard', debrief: null });
+    expect(screen.getByText('Your teacher is about to show something here.')).toBeInTheDocument();
+  });
+
+  it('still has no controls on it', () => {
+    show({ phase: 'ENDED', screen: 'questions', debrief });
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 });
 

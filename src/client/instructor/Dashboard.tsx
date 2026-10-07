@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { InstructorTeamView, InstructorView } from '@shared/views';
-import { formatProfitK } from '@shared/units';
 import type { ConnectionStatus, SendCommand } from '../net';
 import { statusMessage } from '../net';
 import { Banner, Button, Toast, useToast } from '../ui';
@@ -9,6 +8,8 @@ import { Alerts } from './Alerts';
 import { BriefingControl } from './BriefingControl';
 import { ChatFeeds } from './ChatFeeds';
 import { DangerZone } from './DangerZone';
+import { DebriefPanel } from './DebriefPanel';
+import { ExportsPanel } from './ExportsPanel';
 import { LobbyPanel } from './LobbyPanel';
 import { OverrideDialog } from './OverrideDialog';
 import { PhaseBar } from './PhaseBar';
@@ -94,6 +95,9 @@ export function Dashboard({ view, send, status, serverNow, onDeleted }: Dashboar
           <Link className="button" to="/instructor/cards" target="_blank" rel="noreferrer">
             Team cards
           </Link>
+          <Link className="button" to="/instructor/materials" target="_blank" rel="noreferrer">
+            Materials
+          </Link>
         </div>
       </header>
 
@@ -144,19 +148,10 @@ export function Dashboard({ view, send, status, serverNow, onDeleted }: Dashboar
           <TeamGrid view={view} onOverride={setOverriding} onMute={(team) => void onMute(team)} />
           <ChatFeeds view={view} send={send} onSaid={say} />
           <LobbyPanel view={view} send={send} onSaid={say} />
-          {view.phase === 'ENDED' && (
-            <section className="panel" aria-labelledby="totals-heading">
-              <h2 id="totals-heading">Where it ended</h2>
-              <ol className="totals">
-                {view.leaderboard.countries.map((row) => (
-                  <li key={`${String(row.worldNumber)}-${row.letter}`}>
-                    {`${row.label}: ${formatProfitK(row.cumulativeProfitK)}`}
-                  </li>
-                ))}
-              </ol>
-              <p className="hint">The full debrief arrives in the next step of the build.</p>
-            </section>
-          )}
+          {view.phase === 'ENDED' && <DebriefPanel view={view} send={send} onSaid={say} />}
+          {/* Downloads are their own section (SPEC 8.4), not part of the
+              debrief: a lesson that ran out of time can still be taken away. */}
+          <ExportsPanel view={view} />
         </>
       )}
 

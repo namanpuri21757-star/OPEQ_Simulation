@@ -46,6 +46,19 @@ export const PROJECTOR_SCREENS = [
 ] as const;
 export type ProjectorScreen = (typeof PROJECTOR_SCREENS)[number];
 
+/** The debrief screens, which are the ones the projector can be sent. */
+export const DEBRIEF_PROJECTOR_SCREENS: readonly ProjectorScreen[] = [
+  'worldComparison',
+  'worldDetail',
+  'leaderboard',
+  'gameTheory',
+  'questions',
+];
+
+export function isDebriefScreen(screen: ProjectorScreen): boolean {
+  return DEBRIEF_PROJECTOR_SCREENS.includes(screen);
+}
+
 /** How many briefing screens there are (SPEC 8.3): story, price, roles, year. */
 export const BRIEFING_SLIDES = 4;
 
@@ -250,6 +263,8 @@ export interface SessionState {
   finalYearAnnounced: boolean;
   resultsRevealedToTeams: boolean;
   projectorScreen: ProjectorScreen;
+  /** Which world the mirrored World Detail screen is about, when one is sent. */
+  projectorWorldNumber: number | null;
   worlds: WorldState[];
   teams: Record<string, TeamState>;
   messages: MessageRecord[];

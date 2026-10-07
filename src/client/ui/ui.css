@@ -333,6 +333,38 @@ select {
   fill: var(--ink-soft);
 }
 
+/* Worlds 5 and 6: the world-comparison chart can carry six lines. */
+.chart-series-5 path,
+.chart-series-5 .chart-marker {
+  stroke: var(--series-e);
+  fill: var(--series-e);
+}
+
+.chart-series-6 path,
+.chart-series-6 .chart-marker {
+  stroke: var(--series-f);
+  fill: var(--series-f);
+}
+
+/* A labelled moment: a chat window, the new producer, the final year. */
+.chart-mark line {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+
+.chart-marks {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.chart-marks li {
+  border-left: 3px solid var(--line);
+  padding-left: var(--space-1);
+}
+
 .chart-legend {
   list-style: none;
   display: flex;
@@ -357,6 +389,18 @@ select {
 
 .chart-legend li.chart-series-3 .chart-swatch {
   color: var(--country-c);
+}
+
+.chart-legend li.chart-series-4 .chart-swatch {
+  color: var(--ink-soft);
+}
+
+.chart-legend li.chart-series-5 .chart-swatch {
+  color: var(--series-e);
+}
+
+.chart-legend li.chart-series-6 .chart-swatch {
+  color: var(--series-f);
 }
 
 .chart-data summary {

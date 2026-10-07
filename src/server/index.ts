@@ -4,6 +4,8 @@ import { createServer as createHttpServer, type Server as HttpServer } from 'nod
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import express, { type Express } from 'express';
 import { Server as IoServer } from 'socket.io';
+import type { OpenSessionSummary, OpenSessionsResponse } from '../shared/protocol.js';
+import type { SessionState } from '../shared/state.js';
 import { attachSockets, type SocketLayer } from './socket.js';
 import { SessionStore, systemClock, type Clock } from './store/index.js';
 
@@ -67,6 +69,24 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, name: 'crude-accord', version });
+  });
+
+  // A printed join code names a team, not a session, so a terminal has to learn
+  // which session is open on this computer before it can say hello (SPEC 8.2).
+  // Read-only and deliberately tiny: no keys, no team ids, no join codes.
+  app.get('/api/sessions', (_req, res) => {
+    const sessions: OpenSessionSummary[] = store
+      .sessionIds()
+      .map((id) => store.get(id))
+      .filter((state): state is SessionState => state !== undefined)
+      .sort((x, y) => y.createdAt - x.createdAt)
+      .map((state) => ({
+        sessionId: state.sessionId,
+        createdAt: state.createdAt,
+        phase: state.phase,
+        anyFree: Object.values(state.teams).some((team) => !team.claimed),
+      }));
+    res.json({ sessions } satisfies OpenSessionsResponse);
   });
 
   // The built client is a single page app: unknown paths must return index.html

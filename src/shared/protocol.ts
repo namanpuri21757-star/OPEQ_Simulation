@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { type CountryLetter, JOIN_CODE_LENGTH } from './constants.js';
 import { settingsShape, PRESET_NAMES } from './settings.js';
 import { PHASES, PROJECTOR_SCREENS, BRIEFING_SLIDES } from './state.js';
-import type { Actor } from './state.js';
+import type { Actor, Phase } from './state.js';
 
 // ---------------------------------------------------------------------------
 // Small pieces every command shares.
@@ -423,4 +423,25 @@ export function parseCommand(raw: unknown): CommandParse {
   const where = issue && issue.path.length > 0 ? ` (${issue.path.join('.')})` : '';
   const what = issue ? issue.message : 'Something in that request did not look right.';
   return { ok: false, message: `${what}${where}` };
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/sessions
+// ---------------------------------------------------------------------------
+
+/**
+ * A join code names a team, not a session, so a terminal has to find out which
+ * session is open on this computer before it can even say hello (SPEC 8.2).
+ * This summary is deliberately tiny: no keys, no team ids, no join codes.
+ */
+export interface OpenSessionSummary {
+  sessionId: string;
+  createdAt: number;
+  phase: Phase;
+  /** True when at least one country is still free to claim. */
+  anyFree: boolean;
+}
+
+export interface OpenSessionsResponse {
+  sessions: OpenSessionSummary[];
 }

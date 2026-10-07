@@ -59,7 +59,7 @@ describe('the huddle and the prediction', () => {
     const game = await openGame(harness);
     await startPractice(game);
 
-    await game.teams[0]?.must('recordHuddle', {
+    const ack = await game.teams[0]?.must('recordHuddle', {
       suggestions: [
         { name: 'Ada', tenths: 383 },
         { name: 'Ben', tenths: 400 },
@@ -71,6 +71,14 @@ describe('the huddle and the prediction', () => {
       reason: 'Ada wanted to keep the price up.',
     });
     expect(game.teams[1]?.view['huddle']).toBeNull();
+
+    // must() only waits for the team's own view. Views are deliberately capped
+    // at ten a second (SPEC section 9), so the dashboard can still be one behind.
+    const version = ack?.ok === true ? ack.version : 0;
+    await game.instructor.waitForView(
+      (view) => (view['version'] as number) >= version,
+      'the dashboard to catch up',
+    );
     const teams = game.instructor.view['teams'] as Array<{
       teamId: string;
       huddleRecorded: boolean;

@@ -2,6 +2,46 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-06 - A terminal finds its session over HTTP, with GET /api/sessions
+
+Decision: a read-only endpoint lists the sessions open on this computer - `sessionId`, `createdAt`, `phase` and `anyFree` - and a terminal joins the newest one. No keys, no team ids, no join codes.
+Reason: a printed join code names a team, not a session, but `hello` needs a `sessionId` before any command can be sent, so a terminal has a chicken-and-egg problem that no socket command can solve. A classroom server runs one session, so "the newest one here" is always the right answer. The summary carries nothing a student could use for anything else, which is why it is not simply the session state.
+
+## 2026-10-06 - Screens take a view and a send function as props; only the route reads the context
+
+Decision: every panel and screen under `src/client/team` is a plain component with `view`, `send` and an optional `onSaid`. `TeamTerminal` is the only one that calls `useView()`.
+Reason: a component test can then render any screen with a `TeamView` built by `tests/support/teamView.ts` and a stub `send`, with no provider, no socket and no fake timers. It also makes the rule in CLAUDE.md 2 visible: a screen can only show what its view carries.
+
+## 2026-10-06 - Charts are hand-drawn SVG, and recharts was removed
+
+Decision: `src/client/ui/LineChart.tsx` draws its own SVG and always renders a `<details>` with the same numbers in a table. `recharts` is no longer a dependency.
+Reason: SPEC section 9 already requires a data table behind every chart, and section 9 also forbids telling series apart by colour alone, which a chart library makes awkward (each series here carries a marker shape and a dash pattern as well). The charts are a handful of years, so the library was 400 kB of bundle and a second way of doing layout for no gain.
+
+## 2026-10-06 - The decision box opens on the number the server would fill in
+
+Decision: with nothing submitted, the field starts at last year's target, or at `startingOutput` in the first year, and says in plain words "If you send nothing, your country produces 40.0 million barrels."
+Reason: SPEC section 4 fills a missing decision with exactly that number, so the box is not a nudge: it is what will happen anyway, written down. An empty box with a timer running is the one thing a group cannot act on, and a group that wants a different number has to type it either way.
+
+## 2026-10-06 - A terminal whose saved session is gone looks for the game again
+
+Decision: when `hello` is refused the connection clears the saved terminal and the screen offers one button, "Look for the game again", which repeats the `/api/sessions` lookup.
+Reason: a terminal remembers its session in localStorage, so the first computer to open the app after the teacher restarts the server presents yesterday's session id and every command afterwards fails with no explanation on screen. The same button covers a deleted session and a laptop that was asleep since another lesson.
+
+## 2026-10-06 - The client retries by itself when the server hangs up
+
+Decision: on a disconnect where Socket.IO will not retry on its own (the other end closed the socket), the connection reconnects after one second.
+Reason: Socket.IO treats a server-initiated close as deliberate and stays down. For a classroom that is the wrong default: the common cause is the instructor's computer restarting, and SPEC section 9 says terminals rejoin automatically. The outbox means a decision sent during the gap is delivered with its original commandId once hello succeeds.
+
+## 2026-10-06 - The What-if calculator knows nothing about the new producer
+
+Decision: it works from the group's own number plus its guess of the other two, and never adds the new producer's barrels.
+Reason: SPEC section 4 says the new producer arrives unannounced. A calculator that quietly included those barrels would tell a group both that it had arrived and how big it is, which is the one thing the event exists to hide.
+
+## 2026-10-06 - The quick check turns its answers, and every number in it comes from the settings
+
+Decision: `questionsFor(settings)` builds the three questions with the engine, drops a wrong answer that reads the same as the right one, and rotates each question's choices by a different amount.
+Reason: SPEC 8.3 says all numbers come from the session's settings, so a teacher who changes the price line cannot be left with a wrong quiz. Rotating stops the right answer always being the first button, which is what a class learns in about ninety seconds.
+
 ## 2026-10-06 - Everything a command cannot work out for itself travels in the event
 
 Decision: each saved event carries an `issued` object with the values the server generated when the command arrived: the session id, the seed, the keys, fresh join codes, a terminal token, ids for messages and news, and how long a terminal had been offline. The reducer reads those instead of calling `crypto` or a clock.

@@ -1,0 +1,92 @@
+/**
+ * What a terminal remembers about itself between reloads (SPEC section 9).
+ *
+ * Only the four facts a computer needs to come back as the same country. No
+ * student names, no decisions: those live on the instructor's computer, which
+ * is the one place classroom data is allowed to be (SPEC section 9, privacy).
+ *
+ * The store is an interface rather than localStorage itself so a test can hand
+ * the connection a plain object and a private-browsing window that refuses to
+ * save cannot crash a lesson.
+ */
+
+const TERMINAL_KEY = 'crude-accord.terminal';
+
+export interface KeyValueStore {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface SavedTerminal {
+  sessionId: string;
+  teamId: string;
+  token: string;
+  /** "World 2 - Borvia (B)", so the landing page can greet the right team. */
+  label: string;
+}
+
+/** A store that keeps nothing. Used when the browser refuses localStorage. */
+export function memoryStore(): KeyValueStore {
+  const map = new Map<string, string>();
+  return {
+    getItem: (key) => map.get(key) ?? null,
+    setItem: (key, value) => {
+      map.set(key, value);
+    },
+    removeItem: (key) => {
+      map.delete(key);
+    },
+  };
+}
+
+export function browserStore(): KeyValueStore {
+  try {
+    const probe = '__crude-accord-probe__';
+    window.localStorage.setItem(probe, '1');
+    window.localStorage.removeItem(probe);
+    return window.localStorage;
+  } catch {
+    // Private browsing, or storage turned off. The lesson still works; this
+    // computer just has to type its join code again after a reload.
+    return memoryStore();
+  }
+}
+
+function isSaved(value: unknown): value is SavedTerminal {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record['sessionId'] === 'string' &&
+    typeof record['teamId'] === 'string' &&
+    typeof record['token'] === 'string' &&
+    typeof record['label'] === 'string'
+  );
+}
+
+export function readTerminal(store: KeyValueStore): SavedTerminal | null {
+  try {
+    const raw = store.getItem(TERMINAL_KEY);
+    if (raw === null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isSaved(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeTerminal(store: KeyValueStore, terminal: SavedTerminal): void {
+  try {
+    store.setItem(TERMINAL_KEY, JSON.stringify(terminal));
+  } catch {
+    // Nothing to do and nothing to say: the screen works either way.
+  }
+}
+
+export function clearTerminal(store: KeyValueStore): void {
+  try {
+    store.removeItem(TERMINAL_KEY);
+  } catch {
+    // As above.
+  }
+}

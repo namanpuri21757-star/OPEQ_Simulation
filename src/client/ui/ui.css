@@ -1,0 +1,386 @@
+/*
+ * The shared components. Every size here comes from the spacing and type scale
+ * in styles.css, so the screens stay in step with one another.
+ */
+
+/* --- buttons ------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 2.75rem; /* a comfortable target on a tablet */
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.button-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.button-quiet {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+}
+
+.button-large {
+  min-height: 4rem;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-lead);
+}
+
+/* --- badges -------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge-art {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+}
+
+.badge-small .badge-art {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.badge-large .badge-art {
+  width: 3rem;
+  height: 3rem;
+}
+
+.badge-shape {
+  fill: var(--paper);
+  stroke: var(--badge-colour, var(--ink));
+  stroke-width: 3;
+}
+
+.badge-letter {
+  fill: var(--badge-colour, var(--ink));
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.badge-A {
+  --badge-colour: var(--country-a);
+}
+
+.badge-B {
+  --badge-colour: var(--country-b);
+}
+
+.badge-C {
+  --badge-colour: var(--country-c);
+}
+
+.badge-name {
+  font-weight: 600;
+}
+
+/* --- banners ------------------------------------------------------------- */
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--line);
+  border-left-width: 8px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  margin-bottom: var(--space-3);
+}
+
+.banner-warning {
+  border-left-color: var(--focus);
+}
+
+.banner-alert {
+  border-left-color: var(--bad);
+}
+
+.banner-info {
+  border-left-color: var(--accent);
+}
+
+.banner-title {
+  text-transform: uppercase;
+  font-size: var(--text-small);
+  letter-spacing: 0.04em;
+}
+
+/* --- fields -------------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.field > label,
+.stepper-label,
+.slider-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+input[type='text'],
+input[type='number'],
+textarea,
+select {
+  padding: var(--space-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  max-width: 100%;
+}
+
+.hint {
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+  margin: var(--space-1) 0 0;
+}
+
+.problem {
+  color: var(--bad);
+  margin: var(--space-1) 0 0;
+  font-weight: 600;
+}
+
+.stepper-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stepper-input {
+  width: 6rem;
+  font-size: var(--text-lead);
+  text-align: right;
+}
+
+.stepper-unit {
+  color: var(--ink-soft);
+}
+
+.slider {
+  margin: var(--space-3) 0;
+}
+
+.slider-input {
+  width: 100%;
+}
+
+.slider-ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+/* --- dialog -------------------------------------------------------------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background: rgb(0 0 0 / 55%);
+  z-index: 10;
+}
+
+.dialog {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  max-width: 32rem;
+  width: 100%;
+}
+
+.dialog-title {
+  font-size: var(--text-h2);
+}
+
+.dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* --- countdown ----------------------------------------------------------- */
+
+.countdown-time {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-h1);
+  font-weight: 700;
+}
+
+.countdown-low {
+  color: var(--bad);
+}
+
+/* --- tables and charts --------------------------------------------------- */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: var(--space-2);
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid var(--line);
+  padding: var(--space-1) var(--space-2);
+  text-align: right;
+}
+
+.data-table thead th,
+.data-table tbody th {
+  text-align: left;
+  background: var(--paper);
+}
+
+.chart {
+  margin: var(--space-3) 0;
+}
+
+.chart-title {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.chart-art {
+  width: 100%;
+  height: auto;
+  max-width: 40rem;
+}
+
+.chart-axis {
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.chart-tick,
+.chart-axis-label {
+  fill: var(--ink-soft);
+  font-size: 12px;
+}
+
+.chart-series path {
+  stroke-width: 2.5;
+}
+
+.chart-series-1 path,
+.chart-series-1 .chart-marker {
+  stroke: var(--country-a);
+  fill: var(--country-a);
+}
+
+.chart-series-2 path,
+.chart-series-2 .chart-marker {
+  stroke: var(--country-b);
+  fill: var(--country-b);
+}
+
+.chart-series-3 path,
+.chart-series-3 .chart-marker {
+  stroke: var(--country-c);
+  fill: var(--country-c);
+}
+
+.chart-series-4 path,
+.chart-series-4 .chart-marker {
+  stroke: var(--ink-soft);
+  fill: var(--ink-soft);
+}
+
+.chart-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: 0;
+  margin: var(--space-2) 0;
+  font-size: var(--text-small);
+}
+
+.chart-legend .chart-swatch {
+  margin-right: var(--space-1);
+}
+
+.chart-legend li.chart-series-1 .chart-swatch {
+  color: var(--country-a);
+}
+
+.chart-legend li.chart-series-2 .chart-swatch {
+  color: var(--country-b);
+}
+
+.chart-legend li.chart-series-3 .chart-swatch {
+  color: var(--country-c);
+}
+
+.chart-data summary {
+  cursor: pointer;
+}
+
+/* --- toast --------------------------------------------------------------- */
+
+.toast-region {
+  min-height: 2rem;
+}
+
+.toast {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  border: 2px solid var(--line);
+  background: var(--panel);
+}
+
+.toast-good {
+  border-color: var(--good);
+}
+
+.toast-bad {
+  border-color: var(--bad);
+}

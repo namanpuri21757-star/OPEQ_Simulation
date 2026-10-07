@@ -13,8 +13,32 @@
   --accent: #0b5d7a; /* 6.6:1 on --paper */
   --accent-ink: #ffffff;
   --focus: #9a4a00;
+  --good: #0f6b4f; /* 5.2:1 on --paper */
+  --bad: #9a2515; /* 6.4:1 on --paper */
+
+  /* One spacing scale, so every gap on every screen is one of these six. */
   --space: 1rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+
+  /* One type scale. Nothing below 1rem, which is 16px (SPEC section 9). */
+  --text-small: 1rem;
+  --text-body: 1.0625rem;
+  --text-lead: 1.25rem;
+  --text-h2: 1.5rem;
+  --text-h1: 2rem;
+  --text-huge: 4rem;
+
   --radius: 10px;
+
+  /* Country colours. Always paired with a shape and a letter, never alone. */
+  --country-a: #0b5d7a;
+  --country-b: #7a3b0b;
+  --country-c: #4a2c7a;
 
   color-scheme: light dark;
 }
@@ -29,6 +53,23 @@
     --accent: #7fd1ef;
     --accent-ink: #0d1620;
     --focus: #ffcf7a;
+    --good: #6ddba9;
+    --bad: #ff9c8a;
+    --country-a: #7fd1ef;
+    --country-b: #f0b27a;
+    --country-c: #c3aef5;
+  }
+}
+
+/* Calm by choice, and calmer still for anyone who asks (SPEC section 9). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -53,7 +94,7 @@ body {
     'Helvetica Neue',
     Arial,
     sans-serif;
-  font-size: 1rem;
+  font-size: var(--text-body);
   line-height: 1.55;
 }
 

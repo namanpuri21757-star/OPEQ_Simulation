@@ -2,6 +2,78 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-07 - The projector is sent the one debrief screen, not the whole debrief
+
+Decision: `viewForProjector` passes the debrief through `debriefForProjector`, which keeps only what the mirrored screen actually draws. Every reflection and every huddle reason comes out, always, because no debrief screen shows either. Messages, predictions, huddles and members' first names come out of every world except the one World Detail is showing.
+
+Reason: SPEC section 7 says the projector never carries team-private data; SPEC 8.4 and 8.5 say World Detail carries a world's message timeline and that the room sees whatever the teacher sends. Both are true at once only if the projector is sent the screen rather than the dataset. Before this, mirroring the Leaderboard put every world's chat, every huddle reason and every reflection on the wire to a screen in the room - not drawn, but readable by anyone with the projector link. The acceptance privacy scan (I1) found it, and the trimmed view is now the thing it checks.
+
+## 2026-10-07 - A phase name and a command name never reach a screen
+
+Decision: `wrongPhaseMessage` and the new `staleMessage` write plain sentences. The four commands a team can send have their own wording ("This year is closed. Your last number was kept."); everything else says when the step would work in words ("That step does not work before the game has started. It works while the results are up."). `PHASE_IN_WORDS` is the one place each phase is put into a sentence.
+
+Reason: the refusals were developer text - `"submitDecision" cannot be used during YEAR_REVEAL. It works during PRACTICE_OPEN, YEAR_OPEN.` - and a group reads those with a timer running. CLAUDE.md rule 8 asks for plain, kind language. The phase constants are still what the code and the event log use; they are simply never shown. The unit test that used to assert the phase names now asserts the opposite, and that none of them appears.
+
+## 2026-10-07 - Firing the same event twice for the same year is refused
+
+Decision: `fireEvent` refuses when `firedEvents` already holds that kind for the year it would be scheduled in.
+
+Reason: the settings would have ended up identical, so the second press looked harmless - but the record of the lesson would show the event twice, and the debrief and the news both read off that record. A teacher who double-clicks "Bring in the new producer" would have seen it listed twice. Refusing is the honest answer and it is what makes acceptance K4 ("events fire once") true rather than nearly true.
+
+## 2026-10-07 - The socket frame limit sits above anything zod can refuse, not below it
+
+Decision: `maxHttpBufferSize` is 512 kB. Every text field in the protocol has a maximum length, so anything near that size is certain to be refused by a schema, which can say why.
+
+Reason: a frame over the limit is dropped by the socket with no ack at all, and a screen waiting for an ack that never comes is worse than a clear "that is too long". The first attempt at this set the limit to 128 kB and turned a clean `INVALID` into a hang, which acceptance S1 caught. The limit is a backstop against something absurd; the refusing is done by the schemas.
+
+## 2026-10-07 - A number typed but not sent is kept in this browser, per session and per year
+
+Decision: `DecisionPanel` writes what is in the box to localStorage under `crude-accord.draft.<sessionId>.<year>`, reads it back when it opens, and clears it the moment the server confirms a submission.
+
+Reason: acceptance R1 asks for a reload mid-year to come back with the typed number still there. A group agrees on 41.7, someone closes the tab or the laptop sleeps, and with a timer running that number is worth one line of storage. It is per year so last year's number is never offered for this one, and it is cleared on success so there is never a second copy of a decision that counts: from the ack onwards the server's copy is the only one.
+
+## 2026-10-07 - A scrollable table is focusable and carries a group label
+
+Decision: the wrapper `DataTable` and `TeamGrid` put round a table gets `tabIndex={0}`, `role="group"` and an `aria-label`.
+
+Reason: axe found it (serious, `scrollable-region-focusable`). A wide table scrolls sideways on a 1024-pixel laptop, which SPEC section 9 gives as the smallest layout, and a region that scrolls has to be reachable by keyboard or the last columns can only be read with a mouse. The label is the caption, so a screen reader says which table focus has landed in.
+
+## 2026-10-07 - "Old codes stop working" is read as "a terminal finds today's game, and yesterday's code is nothing to it"
+
+Decision: acceptance N1 checks that `/api/sessions` and `newestSession` point a terminal at the newest session on the computer, that a new session's codes are all different, and that yesterday's code typed into today's game is refused `NOT_FOUND` with a sentence about the card on the table. A session left loaded from an earlier lesson is not forcibly closed.
+
+Reason: a printed join code names a team inside a session, so "a code stops working" can only mean something relative to the session a terminal is in - and a terminal always joins the newest. Closing old sessions automatically would be worse: a teacher who starts a second game by mistake would lose the first one's data, and `deleteSession` already exists for when they mean it.
+
+## 2026-10-07 - The load test and the browser test turn the timers up
+
+Decision: both use the `test-fast` preset for its twelve years and its schedule, and override the year and activity timers to classroom lengths through the ordinary advanced settings.
+
+Reason: five-second years exist so a developer can watch a whole game in a minute. With eighteen terminals, or with nine browsers typing real numbers, the clock would close a year before the room had finished, every missing decision would be filled in automatically, and "no decision was lost" and "every year with real input" would both be impossible to state. The timers are a setting a teacher chooses; the thing under test is everything else. Nothing else about the preset is changed.
+
+## 2026-10-07 - The end-to-end suite runs the server as a child process and reads its state off disk
+
+Decision: `tests/e2e/support/server.ts` spawns `dist/server/index.js` with its own port and its own data folder, kills it with no graceful shutdown, and restarts it on the same folder. `savedState` rebuilds a session from the snapshot plus the later events, exactly as the server does on startup.
+
+Reason: F2 and R6 both require the server to be killed mid-year, which a server running inside the test process cannot be. Reading the state back has to replay the events rather than trust the snapshot, because a snapshot is only written at a phase change (SPEC section 9), so after a settings change or a run of submissions the snapshot alone is out of date. The privacy scan needs the real keys, codes and tokens, and this is the only way to get them without the server handing them over.
+
+## 2026-10-07 - A snapshot that will not parse is logged without the error text
+
+Decision: `readSnapshot` catches the error and does not include it in the warning.
+
+Reason: a JSON parse error quotes the text around the problem, and the text of a snapshot is the session state, which holds the instructor key. That was the one path by which a key could have reached a log. Acceptance S3 now writes a broken snapshot on purpose and checks the warning for every key, token and join code.
+
+## 2026-10-07 - The simulation checks the schedule it was given, not a chat and a summit by name
+
+Decision: `checkCoverage` walks `state.settings.schedule` and requires each activity in it to have happened, instead of asserting that some chat window and some summit took place.
+
+Reason: the presets differ. short-50 has one chat window and no summit at all, so the old check was wrong for it, and `npm run simulate -- --preset=short-50` could never pass. Reading the schedule is both correct for all four presets and a stronger check, because it notices an activity that was skipped as well as one that never existed.
+
+## 2026-10-07 - Heap growth in the load test is measured after a forced collection
+
+Decision: `npm run loadtest` runs under `node --expose-gc`, collects twice before each measurement, and compares the heap at the end of the game with the heap after Year 1 rather than with the heap at startup. The test's own clients keep only their last three views.
+
+Reason: the criterion is about a leak, not about how much memory a warm server uses, so the baseline has to be a warm one. Without a forced collection the number is whatever the collector happened to have done and says nothing. And without the cap on kept views the measurement would mostly be the test process holding copies of what it was sent, not the server.
+
 ## 2026-10-07 - Cooperation breaks after a run of two years and a rise of more than 10%
 
 Decision: a year is cooperative when every country produced no more than 10% above an equal share of that year's best joint total, compared exactly rather than through the rounded percent shown beside it. The break year is the first year that is not cooperative and that follows at least two cooperative years in a row. `DebriefBreak` also carries the longest run, so a world that never settled and a world that never broke can be told apart in words.

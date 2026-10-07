@@ -15,7 +15,11 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+          include: [
+            'tests/unit/**/*.test.ts',
+            'tests/integration/**/*.test.ts',
+            'tests/acceptance/**/*.test.ts',
+          ],
           // An integration test plays a whole game through real sockets, and
           // views are deliberately throttled to ten a second, so the default
           // five seconds is not enough.

@@ -14,7 +14,7 @@ import { createServer, type RunningServer } from '../../src/server/index.js';
 import type { Clock } from '../../src/server/store/index.js';
 import { type CreateSessionResult, type Hello } from '../../src/shared/protocol.js';
 import type { PresetName, SettingsInput } from '../../src/shared/settings.js';
-import { GameClient, nextCommandId } from './client.js';
+import { GameClient, nextCommandId, type GameClientOptions } from './client.js';
 
 /** A clock the test moves by hand, so a 15-second wait takes no time at all. */
 export class TestClock implements Clock {
@@ -46,7 +46,7 @@ export interface Harness {
   warnings: string[];
   url: string;
   /** Opens a socket and says hello. */
-  client(name: string, hello: Hello): Promise<GameClient>;
+  client(name: string, hello: Hello, options?: GameClientOptions): Promise<GameClient>;
   /** Closes every client and the server, keeping the data folder. */
   stop(): Promise<void>;
   /** Closes the server and removes the data folder. */
@@ -82,8 +82,8 @@ export async function startServer(options: HarnessOptions = {}): Promise<Harness
       clients.push(client);
       return client;
     },
-    async client(name, hello) {
-      const client = new GameClient(url, name);
+    async client(name, hello, options = {}) {
+      const client = new GameClient(url, name, options);
       clients.push(client);
       const result = await client.hello(hello);
       if (!result.ok) throw new Error(`${name} could not say hello: ${result.message}`);
@@ -113,9 +113,9 @@ export interface Session {
 /** Starts a session and leaves the instructor connected to it. */
 export async function newSession(
   harness: Harness,
-  options: { preset?: PresetName; settings?: SettingsInput } = {},
+  options: { preset?: PresetName; settings?: SettingsInput; client?: GameClientOptions } = {},
 ): Promise<Session> {
-  const setup = new GameClient(harness.url, 'setup');
+  const setup = new GameClient(harness.url, 'setup', options.client ?? {});
   harness.track(setup);
   await setup.hello({ role: 'setup' });
 
@@ -127,11 +127,15 @@ export async function newSession(
   const result = ack.result as CreateSessionResult;
   setup.close();
 
-  const instructor = await harness.client('instructor', {
-    role: 'instructor',
-    sessionId: result.sessionId,
-    instructorKey: result.instructorKey,
-  });
+  const instructor = await harness.client(
+    'instructor',
+    {
+      role: 'instructor',
+      sessionId: result.sessionId,
+      instructorKey: result.instructorKey,
+    },
+    options.client ?? {},
+  );
 
   return { ...result, instructor };
 }
@@ -142,8 +146,9 @@ export async function claim(
   sessionId: string,
   joinCode: string,
   name: string,
+  options: GameClientOptions = {},
 ): Promise<GameClient> {
-  const client = await harness.client(name, { role: 'team', sessionId });
+  const client = await harness.client(name, { role: 'team', sessionId }, options);
   const ack = await client.send('claimTeam', { joinCode });
   if (!ack.ok) throw new Error(`${name} could not claim ${joinCode}: ${ack.message}`);
   const result = ack.result as { teamId: string; token: string };

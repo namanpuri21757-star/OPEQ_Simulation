@@ -6,6 +6,11 @@ import type { ReactNode } from 'react';
  * Every chart in this app has one of these behind it (SPEC section 9), and the
  * history and leaderboard screens use it directly, so there is one place where
  * scope="col" and scope="row" are set correctly.
+ *
+ * The scrolling wrapper is focusable and carries a group label. A wide table on
+ * a 1024-pixel laptop scrolls sideways, and a region that scrolls has to be
+ * reachable by keyboard or the last columns can only be read with a mouse
+ * (SPEC section 9, full keyboard use).
  */
 export interface DataTableProps {
   caption: string;
@@ -25,7 +30,7 @@ export function DataTable({
   hideCaption = false,
 }: DataTableProps) {
   return (
-    <div className="table-scroll">
+    <div className="table-scroll" tabIndex={0} role="group" aria-label={caption}>
       <table className="data-table">
         <caption className={hideCaption ? 'visually-hidden' : undefined}>{caption}</caption>
         <thead>

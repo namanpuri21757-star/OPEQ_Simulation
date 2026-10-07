@@ -291,7 +291,21 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
     });
 
     socket.on(CLIENT_EVENTS.command, (raw: unknown, reply?: (ack: Ack) => void) => {
-      void handleCommand(client, raw).then((ack) => reply?.(ack));
+      // A screen that never gets an ack waits for ever, so a thrown error has to
+      // come back as an ack as well as being logged. It must also never become
+      // an unhandled rejection and take the server down mid-lesson.
+      handleCommand(client, raw)
+        .then((ack) => reply?.(ack))
+        .catch((err: unknown) => {
+          store.log(`A command from a ${client.role ?? 'new'} screen failed: ${String(err)}`);
+          reply?.(
+            ackFail(
+              idOf(raw),
+              'STORAGE',
+              'Something went wrong with that, so nothing was changed. Please try again.',
+            ),
+          );
+        });
     });
 
     socket.on('disconnect', () => {

@@ -159,3 +159,53 @@ export function debriefFor(state: SessionState): DebriefData {
     empty: years.length === 0,
   };
 }
+
+/**
+ * The same debrief, cut down to what one mirrored screen actually draws.
+ *
+ * SPEC section 7 says the projector never carries team-private data; SPEC 8.5
+ * says it shows whatever the instructor sends. Both are true at once only if the
+ * projector is sent the screen rather than the whole dataset: World Detail draws
+ * one world's message timeline, its guesses and whose suggestion won, so the
+ * room sees that world's - and nothing of the other worlds', and nothing that no
+ * screen ever draws.
+ *
+ * What is always taken out:
+ *  - every reflection, which no debrief screen shows and which is the most
+ *    personal thing a student writes,
+ *  - every huddle reason, which no debrief screen shows either.
+ * What is taken out unless this is the world on screen:
+ *  - messages, predictions, huddles, and the members' first names.
+ */
+export function debriefForProjector(
+  data: DebriefData,
+  screen: string,
+  worldNumber: number | null,
+): DebriefData {
+  // World Detail falls back to the first world when the number matches none, so
+  // the trimming has to fall back the same way or the room would see a chart
+  // with no timeline under it.
+  const shown =
+    screen === 'worldDetail'
+      ? (data.worlds.find((world) => world.worldNumber === worldNumber) ?? data.worlds[0])
+      : undefined;
+
+  return {
+    ...data,
+    worlds: data.worlds.map((world) => {
+      const onScreen = shown !== undefined && world.worldId === shown.worldId;
+      return {
+        ...world,
+        messages: onScreen ? world.messages : [],
+        countries: world.countries.map((country) => ({
+          ...country,
+          members: onScreen ? country.members : [],
+          predictions: onScreen ? country.predictions : [],
+          huddles: onScreen ? country.huddles.map((row) => ({ ...row, reason: '' })) : [],
+          memberMatches: onScreen ? country.memberMatches : [],
+          reflection: null,
+        })),
+      };
+    }),
+  };
+}

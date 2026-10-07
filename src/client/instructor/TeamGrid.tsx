@@ -95,7 +95,12 @@ export function TeamGrid({ view, onOverride, onMute }: TeamGridProps) {
           : 'No year is open, so there is nothing to submit.'}
       </p>
 
-      <div className="table-scroll">
+      <div
+        className="table-scroll"
+        tabIndex={0}
+        role="group"
+        aria-label="Every country, world by world"
+      >
         <table className="grid-table">
           <caption className="visually-hidden">
             Each country&rsquo;s computer, decision and notes, by world

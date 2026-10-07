@@ -20,11 +20,14 @@ export { RoleConnection, type RoleConnectionProps } from './RoleConnection';
 export { fetchOpenSessions, newestSession } from './sessions';
 export {
   browserStore,
+  clearDraft,
   clearInstructor,
   clearTerminal,
   memoryStore,
+  readDraft,
   readInstructor,
   readTerminal,
+  writeDraft,
   writeInstructor,
   writeTerminal,
   type KeyValueStore,

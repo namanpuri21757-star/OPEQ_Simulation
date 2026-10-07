@@ -86,6 +86,9 @@ interface LiveSession {
 
 const EMPTY_ACK_MESSAGE = 'Something went wrong saving that. Nothing was changed.';
 
+/** How many createSession acks are remembered for idempotency. */
+const MAX_REMEMBERED_CREATES = 200;
+
 export class SessionStore {
   private readonly sessions = new Map<string, LiveSession>();
   private readonly listeners = new Set<ChangeListener>();
@@ -99,6 +102,11 @@ export class SessionStore {
     this.dataDir = options.dataDir;
     this.clock = options.clock ?? systemClock;
     this.logger = options.logger ?? ((message) => console.warn(message));
+  }
+
+  /** Where a warning goes. The socket layer shares the store's logger. */
+  log(message: string): void {
+    this.logger(message);
   }
 
   onChange(listener: ChangeListener): () => void {
@@ -193,6 +201,13 @@ export class SessionStore {
 
     const already = this.created.get(command.commandId);
     if (already) return ackOk(command.commandId, 1, already);
+    // createSession has no session state to keep its ack in, so it is kept here
+    // instead. A server left running all term must not grow for ever, and only
+    // a click repeated within one lesson could ever ask for an old answer.
+    if (this.created.size >= MAX_REMEMBERED_CREATES) {
+      const oldest = this.created.keys().next();
+      if (!oldest.done) this.created.delete(oldest.value);
+    }
 
     const sessionId = newSessionId();
     const event: SessionEvent = {
@@ -383,20 +398,26 @@ export class SessionStore {
       if (now < state.timer.deadline) continue;
 
       const type = state.phase === 'BETWEEN' ? 'endBetween' : 'closeYear';
-      await this.enqueue(session, () =>
-        this.applyOne(
-          sessionId,
-          session,
-          {
-            commandId: newId(),
-            type,
-            payload: {},
-            expectedPhase: session.state.phase,
-            expectedYear: session.state.year,
-          },
-          { actor: 'system' },
-        ),
-      );
+      // The tick runs from a setInterval, so one session that throws must never
+      // become an unhandled rejection and must never stop the other sessions.
+      try {
+        await this.enqueue(session, () =>
+          this.applyOne(
+            sessionId,
+            session,
+            {
+              commandId: newId(),
+              type,
+              payload: {},
+              expectedPhase: session.state.phase,
+              expectedYear: session.state.year,
+            },
+            { actor: 'system' },
+          ),
+        );
+      } catch (err) {
+        this.logger(`The clock could not close ${state.phase} for ${sessionId}: ${String(err)}`);
+      }
     }
   }
 

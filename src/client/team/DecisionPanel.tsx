@@ -1,8 +1,9 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { OPEN_PHASES } from '@shared/state';
 import { formatQuantity, parseQuantity } from '@shared/units';
 import type { TeamView } from '@shared/views';
-import type { SendCommand } from '../net';
+import type { KeyValueStore, SendCommand } from '../net';
+import { browserStore, clearDraft, readDraft, writeDraft } from '../net';
 import { Button, Dialog, NumberStepper, Slider, type Say } from '../ui';
 import { clientUnits } from './economics';
 
@@ -13,12 +14,20 @@ import { clientUnits } from './economics';
  * all three show the same value. Submitting always goes through a confirmation,
  * because 383 typed instead of 38.3 is the easiest mistake to make with a timer
  * running, and the group can change its mind until the year closes.
+ *
+ * A number that has been typed but not sent is kept in this browser, under this
+ * session and this year. A tab that is closed or a laptop that sleeps mid-year
+ * therefore comes back with the number the group had agreed on still in the box
+ * (acceptance R1). It is cleared as soon as the server has it, because from then
+ * on the server's copy is the only one that counts.
  */
 export interface DecisionPanelProps {
   view: TeamView;
   send: SendCommand;
   /** Somewhere to put a short "Saved" or an error, usually a toast. */
   onSaid?: Say | undefined;
+  /** Test seam: where the unsent number is kept. */
+  store?: KeyValueStore | undefined;
 }
 
 /** What the server would fill in if this group ran out of time. */
@@ -38,14 +47,19 @@ function closedBecause(view: TeamView): string {
   return 'This year is closed. Your teacher will start the next year.';
 }
 
-export function DecisionPanel({ view, send, onSaid }: DecisionPanelProps) {
+export function DecisionPanel({ view, send, onSaid, store }: DecisionPanelProps) {
   const open = OPEN_PHASES.includes(view.phase);
   const capacityTenths = view.settings.capacityTenths;
   const submitted = view.decision;
 
-  const [text, setText] = useState(() =>
-    submitted ? formatQuantity(submitted.tenths) : formatQuantity(autoFillTenths(view)),
-  );
+  const drafts = useMemo(() => store ?? browserStore(), [store]);
+
+  const [text, setText] = useState(() => {
+    if (submitted) return formatQuantity(submitted.tenths);
+    const saved = readDraft(drafts, view.sessionId, view.year);
+    if (saved !== null && parseQuantity(saved, capacityTenths).ok) return saved;
+    return formatQuantity(autoFillTenths(view));
+  });
   const [editing, setEditing] = useState(submitted === null);
   const [problem, setProblem] = useState<string | null>(null);
   const [asking, setAsking] = useState<number | null>(null);
@@ -72,6 +86,13 @@ export function DecisionPanel({ view, send, onSaid }: DecisionPanelProps) {
   const parsed = parseQuantity(text, capacityTenths);
   const tenths = parsed.ok ? parsed.tenths : null;
 
+  /** Types into the box and keeps the number, so a reload still has it. */
+  const typed = (next: string) => {
+    setText(next);
+    setProblem(null);
+    writeDraft(drafts, view.sessionId, view.year, next);
+  };
+
   const ask = () => {
     if (!parsed.ok) {
       setProblem(parsed.message);
@@ -89,6 +110,7 @@ export function DecisionPanel({ view, send, onSaid }: DecisionPanelProps) {
     setAsking(null);
     if (ack.ok) {
       setEditing(false);
+      clearDraft(drafts, view.sessionId, view.year);
       onSaid?.(`Submitted ${formatQuantity(asking)} million barrels.`, 'good');
     } else {
       setProblem(ack.message);
@@ -119,10 +141,7 @@ export function DecisionPanel({ view, send, onSaid }: DecisionPanelProps) {
             id={fieldId}
             label={`How many million barrels will ${view.countryName} produce?`}
             value={text}
-            onChange={(next) => {
-              setText(next);
-              setProblem(null);
-            }}
+            onChange={typed}
             tenths={tenths}
             maxTenths={capacityTenths}
             disabled={!open || busy}
@@ -135,8 +154,7 @@ export function DecisionPanel({ view, send, onSaid }: DecisionPanelProps) {
             tenths={tenths ?? 0}
             maxTenths={capacityTenths}
             onChange={(next) => {
-              setText(formatQuantity(next));
-              setProblem(null);
+              typed(formatQuantity(next));
             }}
             disabled={!open || busy}
           />

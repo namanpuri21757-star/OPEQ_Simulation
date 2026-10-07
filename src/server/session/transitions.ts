@@ -173,13 +173,87 @@ export function phasesFor(command: CommandType): Phase[] {
 }
 
 /**
- * A kind sentence for a command that arrived in the wrong phase, naming what
- * the person would have to do instead.
+ * How each phase reads inside a sentence, for the messages below.
+ *
+ * The phase names themselves (YEAR_REVEAL and so on) are for the code and the
+ * event log. Nobody in a classroom should ever be shown one (CLAUDE.md rule 8).
+ */
+const PHASE_IN_WORDS: Record<Phase, string> = {
+  LOBBY: 'before the game has started',
+  BRIEFING: 'during the briefing',
+  PRACTICE_OPEN: 'during the practice year',
+  PRACTICE_REVEAL: 'while the practice results are up',
+  YEAR_OPEN: 'while a year is open',
+  YEAR_REVEAL: 'while the results are up',
+  BETWEEN: 'during talking time',
+  ENDED: 'now the game has finished',
+};
+
+/**
+ * The commands a student can send, each with a sentence written for a student.
+ *
+ * A group reads these with a timer running, so they say what happened and what
+ * to do, and never name a phase or a command.
+ */
+const STUDENT_MESSAGES: Partial<Record<CommandType, (phase: Phase) => string>> = {
+  submitDecision: (phase) => {
+    if (phase === 'LOBBY' || phase === 'BRIEFING') {
+      return 'The first year has not started yet. Your teacher will open it.';
+    }
+    if (phase === 'ENDED') return 'The game has finished, so there is nothing left to submit.';
+    if (phase === 'BETWEEN') {
+      return 'This is talking time. You will type your number when the next year opens.';
+    }
+    return 'This year is closed. Your last number was kept.';
+  },
+  recordHuddle: () => 'Your notes belong to an open year, and no year is open right now.',
+  submitPrediction: () => 'You can make your guess while your year is open, after you submit.',
+  submitReflection: () => 'The reflection questions open when your teacher ends the game.',
+};
+
+/**
+ * The sentence for a command whose guards named a phase or year that has gone.
+ *
+ * A student sees this when a click left the screen just as the year closed, so
+ * it says what happened in plain words and makes clear nothing was lost. It
+ * names when, not which phase: the phase constants stay in the event log.
+ */
+export function staleMessage(
+  sentPhase: Phase,
+  sentYear: number,
+  nowPhase: Phase,
+  nowYear: number,
+): string {
+  const when = (phase: Phase, year: number) =>
+    `${PHASE_IN_WORDS[phase]} in ${year === 0 ? 'the practice year' : `Year ${String(year)}`}`;
+  return `The game has moved on, so nothing was changed. That was sent ${when(
+    sentPhase,
+    sentYear,
+  )}, and the game is now ${when(nowPhase, nowYear)}.`;
+}
+
+/** "x", "x or y", "x, y or z" - a list a person would say out loud. */
+function listed(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? '';
+  return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1] ?? ''}`;
+}
+
+/**
+ * A kind sentence for a command that arrived in the wrong phase, saying when it
+ * would work instead.
+ *
+ * Team commands get their own wording, because a student reads those; the rest
+ * are written for a teacher, in the same plain words the dashboard uses.
  */
 export function wrongPhaseMessage(command: CommandType, phase: Phase): string {
+  const forStudents = STUDENT_MESSAGES[command];
+  if (forStudents) return forStudents(phase);
+
   const allowed = phasesFor(command);
   if (allowed.length === 0) {
-    return `"${command}" does not change the game, so it cannot be used here.`;
+    return 'That step does not change the game, so there is nothing for it to do here.';
   }
-  return `"${command}" cannot be used during ${phase}. It works during ${allowed.join(', ')}.`;
+  return `That step does not work ${PHASE_IN_WORDS[phase]}. It works ${listed(
+    allowed.map((row) => PHASE_IN_WORDS[row]),
+  )}.`;
 }

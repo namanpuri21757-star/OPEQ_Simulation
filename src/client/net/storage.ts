@@ -143,3 +143,51 @@ export function clearInstructor(store: KeyValueStore): void {
     // As above.
   }
 }
+
+// ---------------------------------------------------------------------------
+// The number a group has typed but not yet sent.
+// ---------------------------------------------------------------------------
+
+/**
+ * A draft decision, kept per session and year so a reload does not lose it.
+ *
+ * A group types 38.3, the laptop sleeps or someone closes the tab, and the
+ * number they had agreed on is gone with a timer running. That is worth one
+ * line in localStorage. It is only ever the number they typed: the decision
+ * that counts is the one the server holds, and this is cleared the moment the
+ * server confirms it.
+ */
+const DRAFT_PREFIX = 'crude-accord.draft';
+
+function draftKey(sessionId: string, year: number): string {
+  return `${DRAFT_PREFIX}.${sessionId}.${String(year)}`;
+}
+
+export function readDraft(store: KeyValueStore, sessionId: string, year: number): string | null {
+  try {
+    return store.getItem(draftKey(sessionId, year));
+  } catch {
+    return null;
+  }
+}
+
+export function writeDraft(
+  store: KeyValueStore,
+  sessionId: string,
+  year: number,
+  text: string,
+): void {
+  try {
+    store.setItem(draftKey(sessionId, year), text);
+  } catch {
+    // Nothing to do and nothing to say: the screen works either way.
+  }
+}
+
+export function clearDraft(store: KeyValueStore, sessionId: string, year: number): void {
+  try {
+    store.removeItem(draftKey(sessionId, year));
+  } catch {
+    // As above.
+  }
+}

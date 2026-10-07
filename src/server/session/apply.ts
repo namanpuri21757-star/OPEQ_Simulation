@@ -40,7 +40,7 @@ import type {
   WorldYearRecord,
 } from '../../shared/state.js';
 import { chatIsOpen, teamIdFor } from '../../shared/views.js';
-import { transitionFor, wrongPhaseMessage } from './transitions.js';
+import { staleMessage, transitionFor, wrongPhaseMessage } from './transitions.js';
 
 /** 1 message per 3 seconds per team (SPEC section 6). */
 export const MESSAGE_GAP_MS = 3000;
@@ -374,10 +374,7 @@ function checkGuards(state: SessionState, event: SessionEvent): ApplyResult | nu
     );
   }
   if (expectedPhase !== state.phase || expectedYear !== state.year) {
-    return fail(
-      'STALE',
-      `The game has moved on. That was sent for ${expectedPhase} in year ${String(expectedYear)}, and we are now in ${state.phase} in year ${String(state.year)}.`,
-    );
+    return fail('STALE', staleMessage(expectedPhase, expectedYear, state.phase, state.year));
   }
   return null;
 }
@@ -845,6 +842,17 @@ function fireEvent(
   const nextYear = state.year + 1;
   if (nextYear > state.settings.years) {
     return fail('CLOSED', 'There are no more years, so an event would never happen.');
+  }
+
+  // A second press on the same button for the same year. The settings would end
+  // up identical, but the record of the lesson would show the event twice, so
+  // the debrief and the news would both be wrong. Refusing is the honest answer
+  // and it makes a double-click safe (acceptance K4).
+  if (state.firedEvents.some((fired) => fired.kind === kind && fired.year === nextYear)) {
+    return fail(
+      'NOT_ALLOWED',
+      `That is already set for Year ${String(nextYear)}. There is nothing more to do.`,
+    );
   }
 
   if (kind === 'newProducer') {

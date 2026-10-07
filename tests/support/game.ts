@@ -13,7 +13,7 @@
 
 import { COUNTRY_LETTERS } from '../../src/shared/constants.js';
 import type { PresetName, SettingsInput } from '../../src/shared/settings.js';
-import type { GameClient } from './client.js';
+import type { GameClient, GameClientOptions } from './client.js';
 import { claim, newSession, type Harness, type Session } from './harness.js';
 
 export interface OpenGame {
@@ -29,17 +29,29 @@ export interface OpenGame {
 
 export async function openGame(
   harness: Harness,
-  options: { preset?: PresetName; settings?: SettingsInput; claimAll?: boolean } = {},
+  options: {
+    preset?: PresetName;
+    settings?: SettingsInput;
+    claimAll?: boolean;
+    client?: GameClientOptions;
+  } = {},
 ): Promise<OpenGame> {
   const session = await newSession(harness, {
     ...(options.preset ? { preset: options.preset } : {}),
     settings: options.settings ?? { worlds: 1 },
+    ...(options.client ? { client: options.client } : {}),
   });
 
   const teams: GameClient[] = [];
   if (options.claimAll !== false) {
     for (const team of session.teams) {
-      const client = await claim(harness, session.sessionId, team.joinCode, team.teamId);
+      const client = await claim(
+        harness,
+        session.sessionId,
+        team.joinCode,
+        team.teamId,
+        options.client ?? {},
+      );
       await client.must('setMembers', { names: ['Ada', 'Ben', 'Cleo'] });
       teams.push(client);
     }
@@ -122,6 +134,27 @@ export async function playYears(game: OpenGame, upTo: number, tenths = 383): Pro
   await submitAll(game, tenths);
   await closeYear(game);
   for (let year = 1; year <= upTo; year += 1) await playYear(game, year, tenths);
+}
+
+/**
+ * Waits until the listed screens have caught up with the instructor.
+ *
+ * game.sync() waits for every terminal, which is no good once one of them is
+ * deliberately offline, so the resilience tests name the ones that are there.
+ */
+export async function syncClients(
+  instructor: GameClient,
+  clients: readonly GameClient[],
+): Promise<void> {
+  const target = (instructor.view['version'] as number | undefined) ?? 0;
+  await Promise.all(
+    clients.map((client) =>
+      client.waitForView(
+        (view) => (view['version'] as number) >= target,
+        `${client.name} to reach version ${String(target)}`,
+      ),
+    ),
+  );
 }
 
 /** Waits until the dashboard agrees about whether a terminal is connected. */

@@ -324,13 +324,19 @@ function checkCoverage(state: SessionState, instructor: InstructorBot): void {
     state.worlds.every((world) => world.practice !== null),
     'Some world never played the practice year.',
   );
+  // Every activity the chosen settings asked for actually happened. This is
+  // read off the schedule rather than hardcoded, because the presets differ:
+  // short-50 has one chat window and no summit, and long-90 has three
+  // activities. Naming them here would make the check wrong for two of the four.
+  for (const activity of state.settings.schedule) {
+    check(
+      state.activitiesDone.includes(`${String(activity.afterYear)}:${activity.kind}`),
+      `The ${activity.kind} after Year ${String(activity.afterYear)} never happened.`,
+    );
+  }
   check(
-    state.activitiesDone.some((key) => key.endsWith(':chat')),
-    'No chat window was ever opened.',
-  );
-  check(
-    state.activitiesDone.some((key) => key.endsWith(':summit')),
-    'No summit was ever held.',
+    state.settings.schedule.length === 0 || state.activitiesDone.length > 0,
+    'The schedule had activities in it and none of them happened.',
   );
   check(state.finalYearAnnounced, 'The final year was never announced.');
   check(

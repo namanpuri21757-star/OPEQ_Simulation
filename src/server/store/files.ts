@@ -186,8 +186,11 @@ export async function readSnapshot(dir: string, logger: Logger): Promise<Session
     const state = parsed as SessionState;
     if (state.schema !== 1 || typeof state.sessionId !== 'string') return null;
     return state;
-  } catch (err) {
-    logger(`No usable snapshot in ${dir} (${String(err)}). Rebuilding from the saved commands.`);
+  } catch {
+    // Deliberately not logging the error: a JSON parse error quotes the text
+    // around the problem, and a snapshot's text holds the instructor key
+    // (SPEC section 9, keys). The folder is enough to find the file.
+    logger(`No usable snapshot in ${dir}. Rebuilding from the saved commands.`);
     return null;
   }
 }

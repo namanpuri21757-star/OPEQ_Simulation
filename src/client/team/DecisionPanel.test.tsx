@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ackFail, ackOk, type Ack } from '@shared/protocol';
 import { teamView } from '../../../tests/support/teamView';
+import { memoryStore, readDraft } from '../net';
 import { DecisionPanel } from './DecisionPanel';
 
 function sender(ack: Ack = ackOk('cmd-1', 8)) {
@@ -128,5 +129,85 @@ describe('DecisionPanel', () => {
     expect(
       screen.getByText('If you send nothing, your country produces 40.0 million barrels.'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('the number a group has typed but not sent (acceptance R1)', () => {
+  it('is kept in this browser, and comes back after a reload', async () => {
+    const user = userEvent.setup();
+    const store = memoryStore();
+    const view = teamView();
+
+    const first = render(<DecisionPanel view={view} send={sender()} store={store} />);
+    await user.clear(field());
+    await user.type(field(), '41.7');
+    // The group agreed on it and the laptop went to sleep. Nothing was sent.
+    first.unmount();
+
+    render(<DecisionPanel view={view} send={sender()} store={store} />);
+    expect(field()).toHaveValue('41.7');
+  });
+
+  it('is forgotten as soon as the server has the number', async () => {
+    const user = userEvent.setup();
+    const store = memoryStore();
+    const view = teamView();
+
+    const first = render(<DecisionPanel view={view} send={sender()} store={store} />);
+    await user.clear(field());
+    await user.type(field(), '41.7');
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, submit' }));
+    first.unmount();
+
+    // From here on the server's copy is the only one that counts, so a reload
+    // shows what the server holds and not what was in the box.
+    const submitted = teamView({
+      decision: { tenths: 383, auto: false, at: 5, byInstructor: false },
+    });
+    render(<DecisionPanel view={submitted} send={sender()} store={store} />);
+    expect(screen.getByText(/Submitted 38.3 million barrels/)).toBeInTheDocument();
+    expect(readDraft(store, view.sessionId, view.year)).toBeNull();
+  });
+
+  it('belongs to one year, so last year s number is never offered for this one', async () => {
+    const user = userEvent.setup();
+    const store = memoryStore();
+
+    const yearOne = render(
+      <DecisionPanel view={teamView({ year: 1 })} send={sender()} store={store} />,
+    );
+    await user.clear(field());
+    await user.type(field(), '41.7');
+    yearOne.unmount();
+
+    // Year 2 opens. The box opens on what the server would fill in, not on the
+    // number that was typed in a different year.
+    render(<DecisionPanel view={teamView({ year: 2 })} send={sender()} store={store} />);
+    expect(field()).not.toHaveValue('41.7');
+    expect(readDraft(store, 'session-demo', 1)).toBe('41.7');
+  });
+
+  it('works when the browser refuses to save anything', async () => {
+    const user = userEvent.setup();
+    // Private browsing: every call throws. The lesson still has to work.
+    const broken = {
+      getItem: () => {
+        throw new Error('no');
+      },
+      setItem: () => {
+        throw new Error('no');
+      },
+      removeItem: () => {
+        throw new Error('no');
+      },
+    };
+
+    render(<DecisionPanel view={teamView()} send={sender()} store={broken} />);
+    await user.clear(field());
+    await user.type(field(), '38.3');
+    expect(field()).toHaveValue('38.3');
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
+    expect(screen.getByRole('button', { name: 'Yes, submit' })).toBeInTheDocument();
   });
 });

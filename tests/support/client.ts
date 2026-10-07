@@ -40,24 +40,51 @@ export interface SendOptions {
 
 const ACK_TIMEOUT_MS = 10000;
 
+export interface GameClientOptions {
+  /**
+   * Which transports socket.io may use. The default is websocket alone, which
+   * is what a classroom gets; the restricted-network tests pass ['polling'] to
+   * play a year the way a school that blocks WebSocket would (acceptance C4).
+   */
+  transports?: Array<'websocket' | 'polling'>;
+  /**
+   * How many view messages to keep. Unlimited by default, because the privacy
+   * scan searches every payload a client was ever sent. The load test sets a
+   * small number so the measurement is of the server's memory and not the
+   * test's own (acceptance C3).
+   */
+  maxViews?: number;
+}
+
 export class GameClient {
   readonly socket: Socket;
   /** Every view message, exactly as it arrived. The visibility tests read this. */
   readonly views: ViewMessage[] = [];
   readonly gone: GoneMessage[] = [];
   readonly claimed: ClaimTeamResult[] = [];
+  /** How many views have arrived, counted even when they are not all kept. */
+  viewCount = 0;
   teamId: string | null = null;
   /** The terminal token, kept so a flaky bot can come back as itself. */
   token: string | null = null;
   sessionId: string | null = null;
+  private readonly maxViews: number;
 
   constructor(
     url: string,
     readonly name = 'client',
+    options: GameClientOptions = {},
   ) {
-    this.socket = io(url, { transports: ['websocket'], forceNew: true, reconnection: false });
+    this.maxViews = options.maxViews ?? Number.POSITIVE_INFINITY;
+    this.socket = io(url, {
+      transports: options.transports ?? ['websocket'],
+      forceNew: true,
+      reconnection: false,
+    });
     this.socket.on(SERVER_EVENTS.view, (message: ViewMessage) => {
+      this.viewCount += 1;
       this.views.push(message);
+      while (this.views.length > this.maxViews) this.views.shift();
     });
     this.socket.on(SERVER_EVENTS.gone, (message: GoneMessage) => {
       this.gone.push(message);

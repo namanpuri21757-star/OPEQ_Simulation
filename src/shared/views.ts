@@ -11,7 +11,7 @@
  */
 
 import { COUNTRY_LETTERS, COUNTRY_NAMES, type CountryLetter } from './constants.js';
-import { debriefFor, type DebriefData } from './debrief.js';
+import { debriefFor, debriefForProjector, type DebriefData } from './debrief.js';
 import {
   competitiveOutcome,
   cooperativeMax,
@@ -629,8 +629,12 @@ export function viewForProjector(state: SessionState, now: number): ProjectorVie
     showsPrices,
     resultsRevealed: state.resultsRevealedToTeams,
     leaderboard: state.resultsRevealedToTeams ? leaderboardView(state) : null,
+    // Cut down to the one screen the teacher sent, so the room is never sent a
+    // world it is not looking at or a sentence no screen draws (SPEC section 7).
     debrief:
-      state.phase === 'ENDED' && isDebriefScreen(state.projectorScreen) ? debriefFor(state) : null,
+      state.phase === 'ENDED' && isDebriefScreen(state.projectorScreen)
+        ? debriefForProjector(debriefFor(state), state.projectorScreen, state.projectorWorldNumber)
+        : null,
   };
 }
 

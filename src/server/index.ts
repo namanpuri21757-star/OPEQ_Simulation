@@ -13,6 +13,19 @@ import { SessionStore, systemClock, type Clock } from './store/index.js';
 /** The 1-second tick that closes overdue years (SPEC section 9). */
 const TICK_MS = 1000;
 
+/**
+ * The largest socket frame the server will read.
+ *
+ * It has to sit ABOVE anything zod could refuse, not below it. Every text field
+ * in the protocol has a maximum length, so a payload of a few hundred kilobytes
+ * is certain to be refused - but only if the server reads it, because an
+ * oversized frame is dropped by the socket with no ack at all, and a screen
+ * waiting for an ack that will never come is worse than a clear "that is too
+ * long". So the limit is a backstop against something absurd, and the refusing
+ * is done by the schemas, which can say why (acceptance S1).
+ */
+const MAX_FRAME_BYTES = 512 * 1024;
+
 export interface CreateServerOptions {
   /** 0 asks the operating system for any free port, which is what tests want. */
   port?: number;
@@ -110,7 +123,13 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
 
   const http = createHttpServer(app);
   // Both transports, because some school networks block plain WebSocket.
-  const io = new IoServer(http, { transports: ['websocket', 'polling'] });
+  //
+  // maxHttpBufferSize is set explicitly rather than left at the default, so the
+  // number has a reason next to it. See MAX_FRAME_BYTES above.
+  const io = new IoServer(http, {
+    transports: ['websocket', 'polling'],
+    maxHttpBufferSize: MAX_FRAME_BYTES,
+  });
 
   const store = new SessionStore({
     dataDir,
@@ -128,7 +147,9 @@ export async function createServer(options: CreateServerOptions = {}): Promise<R
   const ticker =
     tickMs > 0
       ? setInterval(() => {
-          void store.tick();
+          store.tick().catch((err: unknown) => {
+            store.log(`The clock tick failed: ${String(err)}`);
+          });
         }, tickMs)
       : null;
   // The tick must never hold the process open on its own.
@@ -205,6 +226,16 @@ if (isDirectRun) {
       };
       process.on('SIGINT', () => stop('SIGINT'));
       process.on('SIGTERM', () => stop('SIGTERM'));
+
+      // A lesson is worth more than a tidy crash. Anything that escapes is
+      // written down and the server keeps serving; everything that matters is
+      // already on disk, because nothing is broadcast before it is saved.
+      process.on('unhandledRejection', (reason) => {
+        console.error(`Something was not handled: ${String(reason)}`);
+      });
+      process.on('uncaughtException', (err) => {
+        console.error(`Something went wrong but the game is still running: ${String(err)}`);
+      });
     })
     .catch((err: unknown) => {
       console.error('The server could not start.');

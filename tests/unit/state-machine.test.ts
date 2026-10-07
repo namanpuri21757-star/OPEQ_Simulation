@@ -50,9 +50,30 @@ describe('the transition table', () => {
     expect(phasesFor('updateSettings')).toEqual(['LOBBY']);
   });
 
-  it('explains a wrong phase by naming the phases that would work', () => {
+  it('explains a wrong phase by saying when the step would work, in plain words', () => {
     const message = wrongPhaseMessage('openYear', 'LOBBY');
-    expect(message).toContain('LOBBY');
-    expect(message).toContain('YEAR_REVEAL');
+    expect(message).toContain('before the game has started');
+    expect(message).toContain('while the results are up');
+    // The phase names are for the code and the event log. Nobody in the room is
+    // ever shown one, and nor is a command name (CLAUDE.md rule 8).
+    for (const phase of PHASES) expect(message).not.toContain(phase);
+    expect(message).not.toContain('openYear');
+  });
+
+  it('writes a sentence a student can read for every command a team can send', () => {
+    const teamCommands = (
+      ['submitDecision', 'recordHuddle', 'submitPrediction', 'submitReflection'] as const
+    ).map((command) => command);
+
+    for (const command of teamCommands) {
+      for (const phase of PHASES) {
+        if (transitionFor(command, phase) !== null) continue;
+        const message = wrongPhaseMessage(command, phase);
+        expect(message.length, `${command} in ${phase}`).toBeGreaterThan(20);
+        expect(message, `${command} in ${phase}`).toMatch(/\.$/);
+        for (const name of PHASES) expect(message, `${command} in ${phase}`).not.toContain(name);
+        expect(message, `${command} in ${phase}`).not.toContain(command);
+      }
+    }
   });
 });

@@ -60,6 +60,14 @@ interface Client {
   teamId: string | null;
   /** The terminal token this socket presented, so a takeover can be spotted. */
   token: string | null;
+  /**
+   * The team a /check page belongs to, when its browser already holds a token.
+   *
+   * Deliberately separate from `teamId`: a check page is not a terminal, so it
+   * must never make a team look connected. This is used for one thing only -
+   * stamping the network-check result with the country it came from.
+   */
+  checkTeamId: string | null;
   /** A takeover this socket asked for and is waiting on. */
   waitingFor: { teamId: string; token: string } | null;
   /** When the last few commands arrived, for the burst limit. */
@@ -264,6 +272,7 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
       sessionId: null,
       teamId: null,
       token: null,
+      checkTeamId: null,
       waitingFor: null,
       recent: [],
       lastViewAt: 0,
@@ -349,19 +358,28 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
     client.sessionId = state.sessionId;
     client.teamId = null;
     client.token = null;
+    client.checkTeamId = null;
+
+    const teamFor = (presented: string | undefined) =>
+      presented === undefined
+        ? undefined
+        : Object.values(state.teams).find((candidate) => candidate.token === presented);
 
     let needsClaim = false;
     if (hello.role === 'team') {
-      const token = hello.teamToken;
-      const team = token
-        ? Object.values(state.teams).find((candidate) => candidate.token === token)
-        : undefined;
+      const team = teamFor(hello.teamToken);
       if (team) {
         client.teamId = team.teamId;
         client.token = team.token;
       } else {
         needsClaim = true;
       }
+    }
+    // A check page that happens to be on a team's computer says which team it
+    // is, so the lobby can put the result on that country's row. Presence is
+    // untouched: client.teamId stays null, so this never reads as a terminal.
+    if (hello.role === 'check') {
+      client.checkTeamId = teamFor(hello.teamToken)?.teamId ?? null;
     }
 
     return {
@@ -421,7 +439,9 @@ export function attachSockets(io: IoServer, store: SessionStore): SocketLayer {
 
     const ack = await store.handle(sessionId, command, {
       actor: client.actor,
-      actorId: client.teamId,
+      // A check page carries its country here and nothing else; the only
+      // command a "check" actor may send that reads it is `report`.
+      actorId: client.teamId ?? client.checkTeamId,
       terminalOfflineMs,
     });
 

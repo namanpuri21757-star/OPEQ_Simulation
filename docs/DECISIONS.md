@@ -2,6 +2,84 @@
 
 Choices made where the spec was silent, newest first, each with date, decision and reason.
 
+## 2026-10-07 - pressUntil never presses a step it has not just read
+
+Decision: `pressBigButtonSaying(page, expected)` reads the button again immediately before clicking and presses nothing if the label has changed since the caller decided. `pressUntil` uses it, so the step that runs is always one the loop has just looked at.
+
+Reason: the loop read the label, then pressed a moment later. Views arrive at most ten times a second (SPEC section 9), so on a loaded laptop the label it read could be one step behind the button it then clicked - and if the new label was the one it was waiting for, it pressed straight past it and kept going. That is what marched a lesson from the lobby to the end of the game inside one `pressUntil` call, twice, and it was always a false alarm about the app. The guard is on the harness, not on the assertions: nothing is skipped or loosened, the loop just stops deciding on stale information.
+
+## 2026-10-07 - The one big button's confirmation is frozen on the step it was opened for
+
+Decision: the dashboard remembers the suggested action as it was when the confirmation opened, and runs that one. If the lesson moves on while the question is open, the dialog says "the lesson has already moved on", does nothing, and names the step that is next now.
+
+Reason: it read the suggestion live, so a year closing on its own timer while the dialog was open changed both what the dialog said and what pressing Yes would do. A teacher reading "Close Year 3?" could press Yes and get "Open chat window" - a control that does something other than what it says, in front of a room. The guards already stopped a _stale_ command from applying; they could not stop a _newer_ one from being substituted, because the newer one is not stale. The browser suite found it: `pressUntil` read a label, the view changed under the dialog, and the lesson marched from the lobby to the end of the game in one call. The test harness now presses OK and tries again, which is what a teacher would do.
+
+## 2026-10-07 - A network check is tied to a country by the token that browser already holds
+
+Decision: the `/check` page presents the terminal token saved in that browser, and the server stamps the result with the country that token belongs to. A computer with no token reports as "another computer". The token is read for this one purpose and never makes that socket count as the team's terminal.
+
+Reason: SPEC 8.6 asks for "Network check: 9 of 9 OK", which answers the wrong question twenty minutes before a lesson - a teacher needs to know _which_ table has not been round to yet, and a total cannot say. Attribution had to be something the server can trust rather than something a screen claims, and the token is already the one credential that proves which country a computer is. Keeping it out of `client.teamId` matters: if a check page counted as a terminal, a country whose laptop had died would show as connected.
+
+## 2026-10-07 - The launcher's preflight is plain JavaScript with a hand-written .d.mts
+
+Decision: `scripts/preflight.mjs` is JavaScript, with `scripts/preflight.d.mts` beside it so `tests/unit/launcher.test.ts` can use it with types.
+
+Reason: `npm run class` runs the checks _before_ anything is built, so at that moment there is no `dist/` to import and no tsx in the classroom path. Two of the four checks (is there a build, is it stale) exist precisely for the case where nothing is compiled. The declaration file is the price of that, and the test is what keeps it honest: a signature that drifted would stop compiling.
+
+## 2026-10-07 - Build freshness is decided by timestamps, not by hashing the source
+
+Decision: `buildIsCurrent` compares the newest mtime under `src/` and in four config files against the older of `dist/client/index.html` and `dist/server/index.js`.
+
+Reason: this runs while a teacher waits, so it has to answer in well under a second, and the cost of being wrong is one extra build rather than a wrong lesson. Hashing would be exact and slower for no classroom benefit.
+
+## 2026-10-07 - The launcher ranks addresses and prints the best one big
+
+Decision: every non-internal IPv4 address is printed, sorted - private ranges (192.168, 10, 172.16-31) first, anything unusual next, and a 169.254 link-local address last with a note that the network looks broken. The one at the top gets the board address and the QR code.
+
+Reason: a laptop in a school has three or four addresses: Wi-Fi, a docked Ethernet port, a virtual adapter from some other program. Printing them unsorted asks a teacher to guess. A 169.254 address specifically means this computer asked for an address and nobody answered, which is worth saying rather than offering as a choice.
+
+## 2026-10-07 - npm run class prints the saved game's full instructor link
+
+Decision: when a session is already saved in `data/`, the launcher prints the instructor link for it, instructor key included.
+
+Reason: it is the recovery path in `docs/DRY-RUN.md`. The dashboard remembers the game in that browser, but a browser that has been reset, or a different browser, has no way back in. The key is printed only in the teacher's own terminal on the teacher's own computer, which is where `npm run demo` already prints it, and never on a projector or a terminal.
+
+## 2026-10-07 - The firewall advice is printed once, remembered in data/.started-before
+
+Decision: the long firewall explanation prints on the first start on a computer; a marker file in `data/` suppresses it afterwards.
+
+Reason: the operating system only asks the question once, so repeating the answer every lesson is noise in the middle of the output a teacher actually has to read. Deleting `data/` brings it back, which is right: a fresh folder is a fresh computer as far as this is concerned.
+
+## 2026-10-07 - The offline guarantee is tested on request URLs, not on whether a request failed
+
+Decision: `tests/e2e/offline.spec.ts` records every URL each screen asks for and fails on any that is not this server's host and port. A separate check greps the built HTML and CSS - but not the JavaScript bundle - for external `src`, `href`, `url()` and `@import`.
+
+Reason: a font request that times out behind a school firewall is still a page that needed the internet, and on the developer's own machine it would have succeeded silently. Only the URL settles it. The bundle is excluded from the grep because it is full of absolute URLs that are never fetched - XML namespaces, zod's `$schema` strings, the "read more" links inside React's and Socket.IO's error messages - so grepping it would fail on things that are not requests; what it really asks for is covered by the browser half of the test.
+
+## 2026-10-07 - A tab opened on the instructor's computer is a Screen too
+
+Decision: `tests/e2e/support/room.ts` gained `openTab`, which opens another page in an existing context and watches it the same way.
+
+Reason: `/instructor/cards` and `/instructor/summary` are built from what the dashboard saved in that browser, so in a fresh context they correctly show "open your dashboard first". That is also exactly how a teacher reaches them - by pressing a button that opens a new tab - so the test had to do the same thing rather than work around it.
+
+## 2026-10-07 - The two double-click launchers install dependencies on their first run
+
+Decision: `Start Crude Accord.command` and `Start Crude Accord.bat` run `npm install` when `node_modules` is missing, and keep the window open on any failure.
+
+Reason: the README asks a non-technical teacher to double-click one file. If that file worked only after someone had already opened a terminal and typed `npm install`, the README would be wrong. Both say plainly that the first run needs the internet and later ones do not.
+
+## 2026-10-07 - .gitattributes pins the launchers' line endings
+
+Decision: `*.command text eol=lf` and `*.bat text eol=crlf`.
+
+Reason: bash treats a trailing carriage return as part of the command and fails with "command not found"; cmd.exe wants CRLF. Git would otherwise normalise both to whatever the machine doing the checkout prefers, which breaks one launcher or the other depending on who cloned it.
+
+## 2026-10-07 - qrcode draws the terminal QR code, and qrcode-terminal was removed
+
+Decision: `npm run class` uses `qrcode`'s own `type: 'terminal'` renderer. `qrcode-terminal` and its types are gone from package.json.
+
+Reason: `qrcode` was already a dependency, because the screens draw their QR codes with it. One package that both the terminal and the browser use is one fewer thing to keep installed, and an unused declared dependency would ship to every classroom.
+
 ## 2026-10-07 - The projector is sent the one debrief screen, not the whole debrief
 
 Decision: `viewForProjector` passes the debrief through `debriefForProjector`, which keeps only what the mirrored screen actually draws. Every reflection and every huddle reason comes out, always, because no debrief screen shows either. Messages, predictions, huddles and members' first names come out of every world except the one World Detail is showing.

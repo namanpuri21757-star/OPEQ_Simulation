@@ -134,7 +134,79 @@ describe('what the dashboard is sent', () => {
     expect(dashboard(game.instructor).networkChecks['laptop-7']).toMatchObject({
       rttMs: 42,
       transport: 'websocket',
+      // No token was presented, so this is "another computer" in the lobby.
+      teamId: null,
     });
+  });
+
+  it('puts a check from a team’s computer on that team, from its token alone', async () => {
+    const game = await openGame(harness, { settings: { worlds: 1 } });
+    const team = game.teams[0];
+    if (!team) throw new Error('the game should have claimed a team');
+
+    // The check page is a separate tab on the same computer, so it presents the
+    // token the terminal saved - and nothing else.
+    const checker = await harness.client('check-on-team', {
+      role: 'check',
+      sessionId: game.session.sessionId,
+      teamToken: team.token ?? '',
+    });
+    await checker.must('report', { clientId: 'group-laptop', rttMs: 31, transport: 'websocket' });
+    await game.instructor.waitForView(
+      (view) => Object.keys(view['networkChecks'] as object).length === 1,
+      'the check to reach the dashboard',
+    );
+
+    expect(dashboard(game.instructor).networkChecks['group-laptop']).toMatchObject({
+      rttMs: 31,
+      teamId: team.teamId,
+    });
+  });
+
+  it('does not let a check page claim to be a team it has no token for', async () => {
+    const game = await openGame(harness, { settings: { worlds: 1 } });
+    const checker = await harness.client('fake-check', {
+      role: 'check',
+      sessionId: game.session.sessionId,
+      teamToken: 'not-a-real-token-at-all',
+    });
+
+    await checker.must('report', { clientId: 'stranger', rttMs: 20, transport: 'websocket' });
+    await game.instructor.waitForView(
+      (view) => Object.keys(view['networkChecks'] as object).length === 1,
+      'the check to reach the dashboard',
+    );
+
+    expect(dashboard(game.instructor).networkChecks['stranger']?.teamId).toBeNull();
+  });
+
+  it('never counts a check page as a team’s terminal', async () => {
+    const game = await openGame(harness, { settings: { worlds: 1 }, claimAll: true });
+    const team = game.teams[0];
+    if (!team) throw new Error('the game should have claimed a team');
+    const token = team.token ?? '';
+    team.close();
+    await game.instructor.waitForView(
+      (view) =>
+        ((view['teams'] as Array<{ teamId: string; connected: boolean }>).find(
+          (row) => row.teamId === team.teamId,
+        )?.connected ?? true) === false,
+      'the terminal to be seen as offline',
+    );
+
+    // A check page on the same computer presents the same token. The country is
+    // still without a terminal, and the dashboard has to keep saying so.
+    await harness.client('check-after-close', {
+      role: 'check',
+      sessionId: game.session.sessionId,
+      teamToken: token,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const row = dashboard(game.instructor).teams.find(
+      (candidate) => candidate.teamId === team.teamId,
+    );
+    expect(row?.connected).toBe(false);
   });
 
   it('keeps each world’s chat in its own feed', async () => {

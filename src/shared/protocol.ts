@@ -370,7 +370,18 @@ export const helloSchema = z.discriminatedUnion('role', [
     /** Left out by a terminal that has not claimed a team yet. */
     teamToken: token.optional(),
   }),
-  z.strictObject({ role: z.literal('check'), sessionId }),
+  z.strictObject({
+    role: z.literal('check'),
+    sessionId,
+    /**
+     * The terminal token this browser already holds, when it holds one.
+     *
+     * The check page is not a terminal and never counts as one: this is read
+     * only so the result can be shown next to the right country in the lobby.
+     * A computer that has not claimed a team yet simply leaves it out.
+     */
+    teamToken: token.optional(),
+  }),
 ]);
 
 export type Hello = z.output<typeof helloSchema>;

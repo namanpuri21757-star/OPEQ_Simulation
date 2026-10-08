@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { InstructorTeamView, InstructorView } from '@shared/views';
+import type { InstructorTeamView, InstructorView, SuggestedAction } from '@shared/views';
 import type { ConnectionStatus, SendCommand } from '../net';
 import { statusMessage } from '../net';
 import { Banner, Button, Toast, useToast } from '../ui';
@@ -41,14 +41,16 @@ export interface DashboardProps {
 export function Dashboard({ view, send, status, serverNow, onDeleted }: DashboardProps) {
   const { message, say } = useToast();
   const [overriding, setOverriding] = useState<InstructorTeamView | null>(null);
-  const [askingSuggested, setAskingSuggested] = useState(false);
-
   // N and the big button open the same confirmation, so this one piece of state
-  // lives here rather than inside the phase bar.
-  const hasNext = view.suggested.command !== null;
+  // lives here rather than inside the phase bar. It holds the suggestion as it
+  // was when the dialog opened, so the step the teacher read is the step that
+  // runs even if a timer moves the lesson on while they are reading it.
+  const [asking, setAsking] = useState<SuggestedAction | null>(null);
+
+  const suggested = view.suggested;
   const onNext = useCallback(() => {
-    if (hasNext) setAskingSuggested(true);
-  }, [hasNext]);
+    if (suggested.command !== null) setAsking(suggested);
+  }, [suggested]);
   const onPauseOrResume = useCallback(() => {
     if (view.timing.deadline === null && view.timing.remainingMs === null) return;
     void send(view.timing.paused ? 'resume' : 'pause', {}).then((ack) => {
@@ -125,9 +127,9 @@ export function Dashboard({ view, send, status, serverNow, onDeleted }: Dashboar
         send={send}
         onSaid={say}
         serverNow={serverNow}
-        askingSuggested={askingSuggested}
-        onAskSuggested={() => setAskingSuggested(true)}
-        onCancelSuggested={() => setAskingSuggested(false)}
+        asking={asking}
+        onAskSuggested={() => setAsking(suggested)}
+        onCancelSuggested={() => setAsking(null)}
       />
 
       <p className="shortcuts" role="note">

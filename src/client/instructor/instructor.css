@@ -313,7 +313,7 @@ kbd {
 
 .team-row {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) 6rem 9rem minmax(8rem, 1fr) auto;
+  grid-template-columns: minmax(9rem, 1fr) 6rem 9rem 9rem minmax(8rem, 1fr) auto;
   gap: var(--space-2);
   align-items: center;
   padding: var(--space-2);
@@ -342,6 +342,19 @@ kbd {
 }
 
 .team-row-unclaimed .team-row-status {
+  color: var(--ink-soft);
+}
+
+/* Never colour alone (SPEC section 9): the cell always spells the result out. */
+.team-row-check-ok {
+  color: var(--good);
+}
+
+.team-row-check-slow {
+  color: var(--bad);
+}
+
+.team-row-check-none {
   color: var(--ink-soft);
 }
 

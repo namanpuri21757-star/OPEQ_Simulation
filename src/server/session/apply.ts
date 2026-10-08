@@ -714,6 +714,9 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
         rttMs: command.payload.rttMs,
         transport: command.payload.transport,
         at,
+        // Set by the socket layer from the token the check page presented, so
+        // a group cannot report a result for somebody else's country.
+        teamId: event.actorId,
       };
       return { ok: true, state };
     }

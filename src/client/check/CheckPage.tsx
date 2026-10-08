@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { APP_NAME, NETWORK_CHECK_OK_MS, NETWORK_CHECK_PINGS } from '@shared/constants';
-import { RoleConnection, fetchOpenSessions, makeCommandId, newestSession, useView } from '../net';
+import {
+  RoleConnection,
+  browserStore,
+  fetchOpenSessions,
+  makeCommandId,
+  newestSession,
+  readTerminal,
+  useView,
+} from '../net';
 import { Banner, Button, DataTable } from '../ui';
 
 /**
@@ -13,6 +21,11 @@ import { Banner, Button, DataTable } from '../ui';
  * It measures a round trip twenty times with the `ping` command, which changes
  * nothing and is never saved, then sends one `report` that lands on the
  * dashboard as "Network check: 9 of 9 OK".
+ *
+ * When this browser has already claimed a country, the check reports as that
+ * country, so the teacher's lobby list can show a result against each row
+ * rather than a single total. A computer with no country still reports; it is
+ * just counted as "another computer".
  */
 type Phase = 'idle' | 'running' | 'done';
 
@@ -26,16 +39,20 @@ interface Result {
 export default function CheckPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const saved = useMemo(() => readTerminal(browserStore()), []);
 
   // The check page has no code and no key, so like a terminal it has to ask
-  // which session is open on this computer before it can say hello.
+  // which session is open on this computer before it can say hello. If this
+  // computer already belongs to a country, that country's session is the one to
+  // join, so the token it holds is the right token.
   useEffect(() => {
     let alive = true;
     fetchOpenSessions()
       .then((sessions) => {
         if (!alive) return;
-        const newest = newestSession(sessions);
-        if (newest) setSessionId(newest.sessionId);
+        const mine = sessions.find((open) => open.sessionId === saved?.sessionId);
+        const chosen = mine ?? newestSession(sessions);
+        if (chosen) setSessionId(chosen.sessionId);
         else setProblem('No game is open on this computer yet. Ask your teacher to start one.');
       })
       .catch(() => {
@@ -44,7 +61,7 @@ export default function CheckPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [saved]);
 
   if (sessionId === null) {
     return (
@@ -56,14 +73,16 @@ export default function CheckPage() {
     );
   }
 
+  const label = saved && saved.sessionId === sessionId ? saved.label : null;
+
   return (
     <RoleConnection sessionId={sessionId} role="check">
-      <Check />
+      <Check label={label} />
     </RoleConnection>
   );
 }
 
-function Check() {
+function Check({ label }: { label: string | null }) {
   const { send, status, connection } = useView<unknown>();
   const [phase, setPhase] = useState<Phase>('idle');
   const [times, setTimes] = useState<number[]>([]);
@@ -108,6 +127,11 @@ function Check() {
       <p>
         This measures how long this computer takes to reach the teacher&rsquo;s computer and back.
         It changes nothing in the game.
+      </p>
+      <p className="hint">
+        {label === null
+          ? 'This computer has not joined a country yet, so your teacher will see the result as "another computer". Join your country first if you want it next to your name on their screen.'
+          : `Your teacher will see this result next to ${label}.`}
       </p>
 
       {status !== 'online' && (

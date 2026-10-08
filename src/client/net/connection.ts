@@ -232,10 +232,13 @@ export class Connection {
     if (role === 'setup') return { role };
     if (role === 'instructor') return { role, sessionId, instructorKey: key ?? '' };
     if (role === 'projector') return { role, sessionId, projectorKey: key ?? '' };
-    if (role === 'check') return { role, sessionId };
     const saved = readTerminal(this.store);
     const token = saved && saved.sessionId === sessionId ? saved.token : undefined;
-    return token === undefined ? { role, sessionId } : { role, sessionId, teamToken: token };
+    // The check page offers the token for one reason: so its result lands on
+    // the right country's row in the lobby. It is still a "check" socket, so it
+    // can only ping and report, and it never counts as that team's terminal.
+    if (token === undefined) return { role, sessionId };
+    return { role, sessionId, teamToken: token };
   }
 
   private async sayHello(): Promise<void> {

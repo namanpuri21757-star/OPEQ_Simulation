@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
+import { NETWORK_CHECK_OK_MS } from '@shared/constants';
+import type { NetworkCheckRecord } from '@shared/state';
 import type { InstructorTeamView, InstructorView } from '@shared/views';
 import type { SendCommand } from '../net';
 import { Badge, Button, Confirm, QrCode, type Say } from '../ui';
-import { joinLink } from './links';
+import { checkLink, joinLink } from './links';
 import { useState } from 'react';
 
 /**
@@ -15,6 +17,10 @@ import { useState } from 'react';
  * Teams are grouped by world so the roster reads the same way the room is laid
  * out, and each row says in words whether a terminal is connected, so the dot is
  * never the only sign (SPEC section 9).
+ *
+ * Each row also carries that computer's network check (SPEC 8.6), because
+ * "9 of 9 OK" is the wrong answer to the question a teacher actually has before
+ * the bell, which is "which computer is the one that has not checked in yet".
  */
 export type TeamStatus = 'unclaimed' | 'connected' | 'offline';
 
@@ -29,6 +35,44 @@ export const STATUS_WORDS: Record<TeamStatus, string> = {
   offline: 'Offline',
 };
 
+/** What a team's row says about the network check on that computer. */
+export type CheckState = 'none' | 'ok' | 'slow';
+
+export function checkStateOf(record: NetworkCheckRecord | undefined): CheckState {
+  if (!record) return 'none';
+  return record.rttMs <= NETWORK_CHECK_OK_MS && record.transport !== 'unknown' ? 'ok' : 'slow';
+}
+
+export function checkWords(record: NetworkCheckRecord | undefined): string {
+  const state = checkStateOf(record);
+  if (state === 'none' || !record) return 'Not checked yet';
+  return state === 'ok' ? `OK, ${String(record.rttMs)} ms` : `Slow, ${String(record.rttMs)} ms`;
+}
+
+/**
+ * The newest check per team, plus the ones that belong to no team.
+ *
+ * A computer that checks twice replaces its own earlier result because the
+ * reducer keys on its clientId, but two computers on the same country (the
+ * group's own and a spare) are two records, so the newest wins.
+ */
+export function checksByTeam(checks: Record<string, NetworkCheckRecord>): {
+  byTeam: Record<string, NetworkCheckRecord>;
+  loose: NetworkCheckRecord[];
+} {
+  const byTeam: Record<string, NetworkCheckRecord> = {};
+  const loose: NetworkCheckRecord[] = [];
+  for (const record of Object.values(checks)) {
+    if (record.teamId === null) {
+      loose.push(record);
+      continue;
+    }
+    const held = byTeam[record.teamId];
+    if (!held || held.at <= record.at) byTeam[record.teamId] = record;
+  }
+  return { byTeam, loose };
+}
+
 export interface LobbyPanelProps {
   view: InstructorView;
   send: SendCommand;
@@ -38,6 +82,7 @@ export interface LobbyPanelProps {
 export function LobbyPanel({ view, send, onSaid }: LobbyPanelProps) {
   const [releasing, setReleasing] = useState<InstructorTeamView | null>(null);
   const url = joinLink();
+  const { byTeam, loose } = checksByTeam(view.networkChecks);
 
   const act = async (
     type: 'approveTakeover' | 'denyTakeover' | 'releaseTerminal',
@@ -77,12 +122,20 @@ export function LobbyPanel({ view, send, onSaid }: LobbyPanelProps) {
         </Link>
       </div>
 
+      <p className="hint">
+        {`Once a group has joined, ask them to open ${checkLink()} on the same computer. Their result appears on their row below. `}
+        {loose.length === 0
+          ? 'Nothing has checked in from a computer without a country.'
+          : `${String(loose.length)} other computer${loose.length === 1 ? '' : 's'} checked in without a country.`}
+      </p>
+
       {worlds.map(({ world, teams }) => (
         <div className="lobby-world" key={world.worldId}>
           <h3>{`World ${String(world.worldNumber)}`}</h3>
           <ul className="team-rows">
             {teams.map((team) => {
               const status = statusOf(team);
+              const check = checkStateOf(byTeam[team.teamId]);
               return (
                 <li className={`team-row team-row-${status}`} key={team.teamId}>
                   <span className="team-row-who">
@@ -95,6 +148,10 @@ export function LobbyPanel({ view, send, onSaid }: LobbyPanelProps) {
                   <span className="team-row-status">
                     <span aria-hidden="true">{status === 'connected' ? '●' : '○'}</span>{' '}
                     {STATUS_WORDS[status]}
+                  </span>
+                  <span className={`team-row-check team-row-check-${check}`}>
+                    <span className="visually-hidden">Network check</span>
+                    {checkWords(byTeam[team.teamId])}
                   </span>
                   <span className="team-row-members">
                     {team.members.length === 0 ? (

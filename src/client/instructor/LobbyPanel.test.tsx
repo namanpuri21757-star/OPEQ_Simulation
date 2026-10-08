@@ -113,6 +113,73 @@ describe('the lobby', () => {
     expect(screen.queryByRole('button', { name: /^Release/ })).toBeNull();
   });
 
+  it('puts each computer’s network check on its own row', () => {
+    renderLobby({
+      worldCount: 1,
+      teams: [instructorTeam(1, 'A'), instructorTeam(1, 'B'), instructorTeam(1, 'C')],
+      networkChecks: {
+        'check-a': {
+          clientId: 'check-a',
+          rttMs: 42,
+          transport: 'websocket',
+          at: 1000,
+          teamId: 'world-1-A',
+        },
+        'check-b': {
+          clientId: 'check-b',
+          rttMs: 900,
+          transport: 'polling',
+          at: 1000,
+          teamId: 'world-1-B',
+        },
+      },
+    });
+
+    expect(screen.getByText('OK, 42 ms')).toBeInTheDocument();
+    expect(screen.getByText('Slow, 900 ms')).toBeInTheDocument();
+    // Cendra never checked, and that is the row a teacher is looking for.
+    expect(screen.getByText('Not checked yet')).toBeInTheDocument();
+  });
+
+  it('counts the computers that checked in without a country', () => {
+    renderLobby({
+      worldCount: 1,
+      teams: [instructorTeam(1, 'A')],
+      networkChecks: {
+        spare: { clientId: 'spare', rttMs: 30, transport: 'websocket', at: 1000, teamId: null },
+      },
+    });
+
+    expect(screen.getByText(/1 other computer checked in without a country/)).toBeInTheDocument();
+    expect(screen.getByText('Not checked yet')).toBeInTheDocument();
+  });
+
+  it('keeps the newest check when one country has checked twice', () => {
+    renderLobby({
+      worldCount: 1,
+      teams: [instructorTeam(1, 'A')],
+      networkChecks: {
+        first: {
+          clientId: 'first',
+          rttMs: 900,
+          transport: 'polling',
+          at: 1000,
+          teamId: 'world-1-A',
+        },
+        second: {
+          clientId: 'second',
+          rttMs: 20,
+          transport: 'websocket',
+          at: 2000,
+          teamId: 'world-1-A',
+        },
+      },
+    });
+
+    expect(screen.getByText('OK, 20 ms')).toBeInTheDocument();
+    expect(screen.queryByText('Slow, 900 ms')).toBeNull();
+  });
+
   it('links to the printable cards, and shows no instructor key', () => {
     const { container } = render(
       <MemoryRouter>

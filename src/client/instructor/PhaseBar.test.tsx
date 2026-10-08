@@ -5,25 +5,34 @@ import { ackOk, type Ack } from '@shared/protocol';
 import { instructorView, suggested } from '../../../tests/support/instructorView';
 import { timing } from '../../../tests/support/teamView';
 import type { InstructorViewOptions } from '../../../tests/support/instructorView';
+import type { SuggestedAction } from '@shared/views';
 import { PhaseBar } from './PhaseBar';
 
 function sender(ack: Ack = ackOk('cmd-1', 13)) {
   return vi.fn(() => Promise.resolve(ack));
 }
 
-function renderBar(over: InstructorViewOptions = {}, asking = false) {
+/**
+ * Renders the bar, optionally with the suggestion dialog already open.
+ *
+ * `open` true means "the dialog was opened for the suggestion this view
+ * carries". A test that wants the lesson to have moved on while the dialog was
+ * open passes the older suggestion itself.
+ */
+function renderBar(over: InstructorViewOptions = {}, open: boolean | SuggestedAction = false) {
   const send = sender();
   const said = vi.fn();
   const onCancel = vi.fn();
   const onAsk = vi.fn();
   const view = instructorView(over);
+  const asking = open === false ? null : open === true ? view.suggested : open;
   render(
     <PhaseBar
       view={view}
       send={send}
       onSaid={said}
       serverNow={() => view.timing.serverNow}
-      askingSuggested={asking}
+      asking={asking}
       onAskSuggested={onAsk}
       onCancelSuggested={onCancel}
     />,
@@ -96,6 +105,60 @@ describe('the suggested action', () => {
     expect(type).toBe('startBetween');
     expect(payload).toEqual({ kind: 'chat', seconds: 240 });
     expect(options).toEqual({ expectedPhase: 'YEAR_REVEAL', expectedYear: 3 });
+  });
+
+  it('does nothing but say so when the lesson moved on while the dialog was open', async () => {
+    // The dialog was opened for "Close Year 3". While it was open the timer ran
+    // out, the year closed itself, and the next step is now the chat window.
+    const { send, onCancel, user } = renderBar(
+      {
+        phase: 'YEAR_REVEAL',
+        year: 3,
+        suggested: suggested({
+          command: 'startBetween',
+          label: 'Open chat window (4 min)',
+          payload: { kind: 'chat', seconds: 240 },
+          expectedPhase: 'YEAR_REVEAL',
+          expectedYear: 3,
+        }),
+      },
+      suggested({
+        command: 'closeYear',
+        label: 'Close Year 3',
+        expectedPhase: 'YEAR_OPEN',
+        expectedYear: 3,
+      }),
+    );
+
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.getByRole('heading', { name: 'The lesson has already moved on' })).toBeVisible();
+    expect(dialog.getByText(/Nothing has been done/)).toBeVisible();
+    // It names the step that is next now, so the teacher knows what changed.
+    expect(dialog.getByText(/Open chat window/)).toBeVisible();
+    // The step it was opened for is not offered, and nothing is sent either way.
+    expect(dialog.queryByRole('button', { name: /^Yes,/ })).toBeNull();
+
+    await user.click(dialog.getAllByRole('button', { name: 'OK' })[0] as HTMLElement);
+    expect(send).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('runs the step the dialog was opened for, not a newer one', async () => {
+    // Same situation, but the lesson has only changed year: the dialog was
+    // opened for Year 3 and the live suggestion is Year 4. Nothing may be sent
+    // for Year 4 on the strength of a question that said Year 3.
+    const { send } = renderBar(
+      {
+        phase: 'YEAR_OPEN',
+        year: 4,
+        suggested: suggested({ label: 'Close Year 4', expectedYear: 4 }),
+      },
+      suggested({ label: 'Close Year 3', expectedYear: 3 }),
+    );
+
+    expect(screen.queryByRole('button', { name: 'Yes, close year 3' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Yes, close year 4' })).toBeNull();
+    expect(send).not.toHaveBeenCalled();
   });
 
   it('sends nothing when the teacher backs out', async () => {

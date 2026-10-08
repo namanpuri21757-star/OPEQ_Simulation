@@ -10,9 +10,10 @@ Everything you need to run Crude Accord in one lesson, in the order you need it.
 2. Open the instructor link on your computer and the projector link on the second screen. Keep the instructor link to yourself: it is the only link that can change the game.
 3. Choose a preset on the setup screen and check the live preview. If the numbers look odd, change them back before anyone joins.
 4. Press **Print team cards** and cut them up: one card per group, each with its country and its six-character code.
-5. Check the Wi-Fi by opening the address on one team computer. The group types the code from its card and the dashboard shows that country as ready.
-6. Ask one computer per group to open `/check`. The dashboard then says "Network check: 9 of 9 OK".
-7. Hand out the student briefing and the role cards while groups sit down.
+5. Go round the group computers: open the address, type the code from that table’s card, and the dashboard shows that country as ready.
+6. On the same computer, then open `/check` and press **Start the check**. The result appears on that country’s row in the lobby list, so you can see at a glance which table has not been round to yet.
+7. Do not start the lesson until every row says **OK**. A row that says **Slow** still plays; a row that says **Not checked yet** is a computer nobody has tried.
+8. Hand out the student briefing and the role cards while groups sit down.
 
 > Everything stays on your computer. The groups reach it over the school network, and nothing is sent to the internet.
 

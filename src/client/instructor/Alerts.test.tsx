@@ -96,7 +96,13 @@ describe('the alerts list', () => {
       networkChecks: Object.fromEntries(
         Array.from({ length: 9 }, (_, index) => [
           `c${String(index)}`,
-          { clientId: `c${String(index)}`, rttMs: 40, transport: 'websocket', at: NOW },
+          {
+            clientId: `c${String(index)}`,
+            rttMs: 40,
+            transport: 'websocket',
+            at: NOW,
+            teamId: null,
+          },
         ]),
       ),
     });
@@ -110,8 +116,8 @@ describe('the alerts list', () => {
       worldCount: 1,
       teams: [instructorTeam(1, 'A')],
       networkChecks: {
-        fast: { clientId: 'fast', rttMs: 25, transport: 'websocket', at: NOW },
-        slow: { clientId: 'slow', rttMs: 900, transport: 'polling', at: NOW },
+        fast: { clientId: 'fast', rttMs: 25, transport: 'websocket', at: NOW, teamId: null },
+        slow: { clientId: 'slow', rttMs: 900, transport: 'polling', at: NOW, teamId: null },
       },
     });
     render(<Alerts view={view} />);

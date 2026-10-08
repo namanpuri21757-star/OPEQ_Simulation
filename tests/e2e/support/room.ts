@@ -29,6 +29,14 @@ export interface Screen {
    * a view builder says it sends, but what actually arrived.
    */
   frames: string[];
+  /**
+   * Every URL this screen asked for, including the WebSocket it opened.
+   *
+   * The offline guarantee (acceptance O1) is the reason: a page that reached
+   * for a font, a CDN or an analytics beacon would be a lesson that needs the
+   * internet, and this is the list that proves none of them does.
+   */
+  requests: string[];
 }
 
 export interface TeamScreen extends Screen {
@@ -57,7 +65,10 @@ const IGNORED_CONSOLE = [
   'websocket error',
 ];
 
-function watch(page: Page, problems: string[], frames: string[]): void {
+function watch(page: Page, problems: string[], frames: string[], requests: string[]): void {
+  page.on('request', (request) => {
+    requests.push(request.url());
+  });
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const text = message.text();
@@ -68,11 +79,30 @@ function watch(page: Page, problems: string[], frames: string[]): void {
     problems.push(`page error: ${error.message}`);
   });
   page.on('websocket', (socket) => {
+    requests.push(socket.url());
     socket.on('framereceived', (frame) => {
       if (typeof frame.payload === 'string') frames.push(frame.payload);
       else frames.push(frame.payload.toString('utf8'));
     });
   });
+}
+
+/**
+ * Opens another tab on a computer that already has a screen open.
+ *
+ * The printable pages (/instructor/cards, /instructor/summary) are built from
+ * what the dashboard saved in that browser, so they only work in the same
+ * browser - which is exactly how a teacher reaches them, by pressing a button
+ * that opens a new tab.
+ */
+export async function openTab(screen: Screen, url: string): Promise<Screen> {
+  const page = await screen.context.newPage();
+  const problems: string[] = [];
+  const frames: string[] = [];
+  const requests: string[] = [];
+  watch(page, problems, frames, requests);
+  await page.goto(url);
+  return { context: screen.context, page, problems, frames, requests };
 }
 
 /** Opens one browser context (a separate computer, with its own storage). */
@@ -81,9 +111,10 @@ export async function openScreen(browser: Browser, url: string): Promise<Screen>
   const page = await context.newPage();
   const problems: string[] = [];
   const frames: string[] = [];
-  watch(page, problems, frames);
+  const requests: string[] = [];
+  watch(page, problems, frames, requests);
   await page.goto(url);
-  return { context, page, problems, frames };
+  return { context, page, problems, frames, requests };
 }
 
 // ---------------------------------------------------------------------------
@@ -203,17 +234,62 @@ export async function bigButtonLabel(page: Page): Promise<string> {
  *
  * It returns the label it pressed, so a test can assert on the order of the
  * lesson rather than on the phase names, which no teacher ever sees.
+ *
+ * The retry is not papering over anything. A timer can close a year while the
+ * confirmation is open, and the dashboard then refuses to do the newer step on
+ * the strength of a question that asked about the older one: it says "the
+ * lesson has already moved on" and does nothing. A teacher presses OK and
+ * presses the big button again, so that is what this does. Three goes, because
+ * two coincidences in a row is a real problem and should fail.
  */
 export async function pressBigButton(page: Page): Promise<string> {
-  const button = page.getByRole('group', { name: 'The next step' }).getByRole('button');
-  await expect(button).toBeEnabled();
-  const label = (await button.innerText()).trim();
-  await button.click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: /^Yes,/ }).click();
-  await expect(dialog).toBeHidden();
+  const label = await pressBigButtonSaying(page);
+  if (label === null) throw new Error('the big button was not pressed');
   return label;
+}
+
+/**
+ * Presses the big button, but only while it still says what it said.
+ *
+ * `expected` is the label the caller has just read and decided on. The button
+ * is read again immediately before the click, and if the dashboard has had a
+ * new view in between - a year closing on its own timer, say - nothing is
+ * pressed and null comes back, so the caller can look again. Without that, a
+ * loop can read "Next briefing screen", press a moment later when the button
+ * has become "Start the practice year", and sail straight past the step it was
+ * waiting for. That is how `pressUntil` used to march a lesson from the lobby
+ * to the end of the game in one call.
+ *
+ * The retry inside handles the other half of the same race: if the view lands
+ * while the confirmation is open, the dashboard refuses to do the newer step
+ * and says "the lesson has already moved on". A teacher presses OK and tries
+ * again, so that is what this does.
+ */
+export async function pressBigButtonSaying(page: Page, expected?: string): Promise<string | null> {
+  const button = page.getByRole('group', { name: 'The next step' }).getByRole('button');
+  const dialog = page.getByRole('dialog');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await expect(button).toBeEnabled();
+    const label = (await button.innerText()).trim();
+    if (expected !== undefined && label !== expected) return null;
+
+    await button.click();
+    await expect(dialog).toBeVisible();
+
+    const movedOn = dialog.getByRole('heading', { name: 'The lesson has already moved on' });
+    if (await movedOn.isVisible()) {
+      await dialog.getByRole('button', { name: 'OK' }).first().click();
+      await expect(dialog).toBeHidden();
+      if (expected !== undefined) return null;
+      continue;
+    }
+
+    await dialog.getByRole('button', { name: /^Yes,/ }).click();
+    await expect(dialog).toBeHidden();
+    return label;
+  }
+  throw new Error('The lesson moved on under the big button three times in a row.');
 }
 
 /** Presses the big button until its label is the one asked for, then stops. */
@@ -222,7 +298,10 @@ export async function pressUntil(page: Page, wanted: RegExp, limit = 60): Promis
   for (let i = 0; i < limit; i += 1) {
     const label = await bigButtonLabel(page);
     if (wanted.test(label)) return pressed;
-    pressed.push(await pressBigButton(page));
+    // Only presses if the button still says `label`, so the step that runs is
+    // always one this loop has just looked at and decided against.
+    const done = await pressBigButtonSaying(page, label);
+    if (done !== null) pressed.push(done);
   }
   throw new Error(
     `The big button never said something matching ${String(wanted)}. It offered: ${pressed.join(' / ')}`,

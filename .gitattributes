@@ -1,0 +1,8 @@
+# Keep the two double-click launchers in the line endings their shell needs.
+#
+# A .command file is read by bash, which treats a CR at the end of a line as
+# part of the command and fails with "command not found"; a .bat file is read by
+# cmd.exe, which wants CRLF. Git would otherwise normalise both to whatever the
+# machine doing the checkout prefers.
+*.command text eol=lf
+*.bat text eol=crlf

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MAX_MESSAGE_CHARS, type CommandType } from '@shared/protocol';
-import type { InstructorView } from '@shared/views';
+import type { InstructorView, SuggestedAction } from '@shared/views';
 import type { PayloadInputOf, SendCommand, SendOptions } from '../net';
 import { Button, Confirm, Countdown, type Say } from '../ui';
 import { guardsFor, looseSend } from './commands';
@@ -48,7 +48,15 @@ export interface PhaseBarProps {
    * dashboard rather than by this component because the N shortcut opens the
    * same dialog, and one owner means the key and the click cannot disagree.
    */
-  askingSuggested: boolean;
+  /**
+   * The suggestion the open dialog was opened for, frozen at that moment.
+   *
+   * Frozen rather than read live: a year can close on its own timer while the
+   * dialog is open, and then the live suggestion is a different step. A dialog
+   * that said "Close Year 3" must never do "Open chat window" because the
+   * screen changed under it while the teacher was reading.
+   */
+  asking: SuggestedAction | null;
   onAskSuggested(): void;
   onCancelSuggested(): void;
 }
@@ -58,7 +66,7 @@ export function PhaseBar({
   send,
   onSaid,
   serverNow,
-  askingSuggested,
+  asking,
   onAskSuggested,
   onCancelSuggested,
 }: PhaseBarProps) {
@@ -86,16 +94,24 @@ export function PhaseBar({
 
   const suggested = view.suggested;
 
-  const doSuggested = async () => {
-    if (suggested.command === null) return;
+  /** Runs the step the dialog was opened for, not whatever is suggested now. */
+  const doSuggested = async (action: SuggestedAction) => {
+    if (action.command === null) return;
     setBusy(true);
-    const ack = await looseSend(send)(suggested.command as CommandType, suggested.payload, {
-      expectedPhase: suggested.expectedPhase,
-      expectedYear: suggested.expectedYear,
+    const ack = await looseSend(send)(action.command as CommandType, action.payload, {
+      expectedPhase: action.expectedPhase,
+      expectedYear: action.expectedYear,
     });
     setBusy(false);
-    onSaid(ack.ok ? `Done: ${suggested.label}.` : ack.message, ack.ok ? 'good' : 'bad');
+    onSaid(ack.ok ? `Done: ${action.label}.` : ack.message, ack.ok ? 'good' : 'bad');
   };
+
+  /** True when the lesson moved on while the dialog was open. */
+  const movedOn =
+    asking !== null &&
+    (asking.command !== suggested.command ||
+      asking.expectedPhase !== suggested.expectedPhase ||
+      asking.expectedYear !== suggested.expectedYear);
 
   const announce = async () => {
     const trimmed = text.trim();
@@ -214,18 +230,33 @@ export function PhaseBar({
         </Button>
       </div>
 
-      {askingSuggested && suggested.command !== null && (
+      {asking !== null && asking.command !== null && !movedOn && (
         <Confirm
-          title={`${suggested.label}?`}
-          confirmLabel={`Yes, ${suggested.label.toLowerCase()}`}
+          title={`${asking.label}?`}
+          confirmLabel={`Yes, ${asking.label.toLowerCase()}`}
           busy={busy}
           onCancel={onCancelSuggested}
           onConfirm={() => {
             onCancelSuggested();
-            void doSuggested();
+            void doSuggested(asking);
           }}
         >
           <p>This is the next step in your plan. The whole room moves on together.</p>
+        </Confirm>
+      )}
+
+      {asking !== null && movedOn && (
+        <Confirm
+          title="The lesson has already moved on"
+          confirmLabel="OK"
+          cancelLabel="OK"
+          onCancel={onCancelSuggested}
+          onConfirm={onCancelSuggested}
+        >
+          <p>
+            {`While that question was open, the lesson moved on by itself - usually a timer running out. Nothing has been done.`}
+          </p>
+          <p>{`The next step is now "${suggested.label}". Press the big button again if that is what you want.`}</p>
         </Confirm>
       )}
 

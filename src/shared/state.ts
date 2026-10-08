@@ -204,6 +204,13 @@ export interface NetworkCheckRecord {
   rttMs: number;
   transport: string;
   at: number;
+  /**
+   * The country whose computer this was, when the check page knew.
+   *
+   * null for a computer that had not claimed a team yet - the teacher's own
+   * laptop, a spare, or a group checking the Wi-Fi before it has its card.
+   */
+  teamId: string | null;
 }
 
 export interface BetweenState {

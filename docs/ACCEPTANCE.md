@@ -4,6 +4,11 @@ What has to be true before this is used with a real class, how each one is
 checked, and where the check lives. Every row except the two marked **manual** is
 an automated test that runs in `npm run verify`.
 
+The two manual rows (M1 and M2) are the whole reason `docs/READINESS-REPORT.md`
+says the app is not yet ready for a class. They cannot be automated: one needs a
+real school network, the other needs real people. Both are written out step by
+step in that report and rehearsed in `docs/DRY-RUN.md`.
+
 Run it all with `npm run verify`. The quick subset, which leaves out the load
 test and the browsers, is `npm run verify:quick`.
 
@@ -46,8 +51,10 @@ test and the browsers, is `npm run verify:quick`.
 | S1  | Oversized payloads                                                                                                                                     | Refused with a short, readable `INVALID`; nothing reaches the disk; a frame past the socket limit does not take the server down              | `tests/acceptance/S-safety.test.ts`                                                               | Pass                        |
 | S2  | A message containing HTML or a script tag                                                                                                              | Shown as plain characters on every screen; no element created, no script run                                                                 | `tests/acceptance/S-safety.test.ts`, `tests/e2e/safety.spec.ts`                                   | Pass                        |
 | S3  | Keys and tokens in server logs                                                                                                                         | No key, token or join code in any log line, including when a snapshot cannot be read back                                                    | `tests/acceptance/S-safety.test.ts`                                                               | Pass                        |
-| M1  | **Manual (Prompt 8).** A real school network with real group computers                                                                                 | `/check` on every machine reports OK; the lesson runs                                                                                        | -                                                                                                 | Not done - Prompt 8         |
-| M2  | **Manual.** Usability pilot with real people                                                                                                           | A teacher who has not seen it before can run a lesson; groups understand their screen                                                        | -                                                                                                 | Not done - Prompt 8         |
+| O1  | Offline guarantee: the built app, served, with every screen of a lesson driven in a real browser                                                       | No page requests anything but this server; the built markup names no font, stylesheet or script on the internet                              | `tests/e2e/offline.spec.ts`                                                                       | Pass                        |
+| O2  | The launcher's preflight: Node version, a writable data folder, a stale build, a busy port, no network                                                 | Each wrong case is caught and answered with one instruction; a busy port moves to the next free one                                          | `tests/unit/launcher.test.ts`                                                                     | Pass                        |
+| M1  | **Manual.** A real school network with real group computers                                                                                            | `/check` on every machine reports OK on its own row in the lobby; the lesson runs                                                            | `docs/DRY-RUN.md`, `docs/READINESS-REPORT.md`                                                     | Not done - needs a school   |
+| M2  | **Manual.** Usability pilot with real people                                                                                                           | A teacher who has not seen it before can run a lesson; groups understand their screen                                                        | `docs/DRY-RUN.md`, `docs/READINESS-REPORT.md`                                                     | Not done - needs people     |
 
 ## Other browsers
 

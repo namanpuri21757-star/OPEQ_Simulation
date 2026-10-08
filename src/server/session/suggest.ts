@@ -3,14 +3,18 @@
  *
  * The instructor dashboard has exactly one big button, and this decides what it
  * says. It follows the schedule in the settings, so a teacher who only ever
- * presses the big button still runs the lesson as planned: close the year, run
- * the chat window or summit that is due, warn about the final year, open the
- * next year, end the game.
+ * presses the big button still runs the lesson as planned: close the year, turn
+ * messaging on or hold the summit that is due, warn about the final year, open
+ * the next year, end the game.
+ *
+ * A scheduled chat window never opens by itself any more. It arrives here as
+ * "Turn messaging on for 4 minutes", and the payload it carries is exactly what
+ * the switch on the dashboard sends, so the two cannot disagree (SPEC 8.4).
  */
 
 import { activitiesAfterYear, type Settings } from '../../shared/settings.js';
 import { BRIEFING_SLIDES, type SessionState } from '../../shared/state.js';
-import type { SuggestedAction } from '../../shared/views.js';
+import { expiredMessagingWorlds, type SuggestedAction } from '../../shared/views.js';
 
 /** "4 min", or "90 s" when it is not a whole number of minutes. */
 function duration(seconds: number): string {
@@ -22,6 +26,11 @@ function dueActivity(state: SessionState, settings: Settings) {
   return activitiesAfterYear(state.year, settings).find(
     (item) => !state.activitiesDone.includes(`${String(state.year)}:${item.kind}`),
   );
+}
+
+/** The worlds the tick should close, so the store does not reach into state. */
+export function messagingToClose(state: SessionState, now: number): string[] {
+  return expiredMessagingWorlds(state, now);
 }
 
 function action(
@@ -38,7 +47,7 @@ export function nextSuggestedAction(state: SessionState): SuggestedAction {
 
   switch (state.phase) {
     case 'LOBBY':
-      return action(state, 'setBriefingSlide', 'Start the briefing', { slide: 0 });
+      return action(state, 'setBriefingSlide', 'Start briefing', { slide: 0 });
 
     case 'BRIEFING':
       return state.briefingSlide < BRIEFING_SLIDES - 1
@@ -57,13 +66,23 @@ export function nextSuggestedAction(state: SessionState): SuggestedAction {
       return action(state, 'closeYear', `Close Year ${String(state.year)}`);
 
     case 'YEAR_REVEAL': {
+      // Messaging that is still on is the next thing to deal with: a year that
+      // opens with it on would let groups keep talking through the decision.
+      if (state.worlds.some((world) => state.messaging[world.worldId] !== undefined)) {
+        return action(state, 'setMessaging', 'Turn messaging off', { on: false });
+      }
+
       const activity = dueActivity(state, settings);
       if (activity) {
-        const label =
-          activity.kind === 'chat'
-            ? `Open chat window (${duration(activity.seconds)})`
-            : `Hold the summit (${duration(activity.seconds)})`;
-        return action(state, 'startBetween', label, {
+        if (activity.kind === 'chat') {
+          return action(
+            state,
+            'setMessaging',
+            `Turn messaging on for ${duration(activity.seconds)}`,
+            { on: true, seconds: activity.seconds },
+          );
+        }
+        return action(state, 'startBetween', `Hold the summit (${duration(activity.seconds)})`, {
           kind: activity.kind,
           seconds: activity.seconds,
         });
@@ -80,10 +99,8 @@ export function nextSuggestedAction(state: SessionState): SuggestedAction {
       });
     }
 
-    case 'BETWEEN': {
-      const label = state.between?.kind === 'summit' ? 'End the summit' : 'End the chat window';
-      return action(state, 'endBetween', label);
-    }
+    case 'BETWEEN':
+      return action(state, 'endBetween', 'End the summit');
 
     case 'ENDED':
       return state.resultsRevealedToTeams

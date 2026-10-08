@@ -54,7 +54,7 @@ function Field({
         />
         <label htmlFor={id}>{field.label}</label>
         {field.hint !== undefined && (
-          <span className="hint" id={hintId ?? undefined}>
+          <span className="note" id={hintId ?? undefined}>
             {field.hint}
           </span>
         )}
@@ -79,7 +79,7 @@ function Field({
           ))}
         </select>
         {field.hint !== undefined && (
-          <span className="hint" id={hintId ?? undefined}>
+          <span className="note" id={hintId ?? undefined}>
             {field.hint}
           </span>
         )}
@@ -110,7 +110,7 @@ function Field({
         {field.unit !== undefined && <span className="field-unit">{field.unit}</span>}
       </span>
       {field.hint !== undefined && (
-        <span className="hint" id={hintId ?? undefined}>
+        <span className="note" id={hintId ?? undefined}>
           {field.hint}
         </span>
       )}
@@ -149,12 +149,12 @@ function ScheduleEditor({
   return (
     <fieldset className="schedule">
       <legend>Chat windows and summits</legend>
-      <p className="hint">
+      <p className="note">
         Each one runs after the year you choose. A chat window is typed on the terminals; a summit
         sends the Envoys to a meeting point in the room.
       </p>
 
-      {schedule.length === 0 && <p className="hint">No activities. The years run back to back.</p>}
+      {schedule.length === 0 && <p className="note">No activities. The years run back to back.</p>}
 
       {schedule.map((item, index) => (
         <div className="schedule-row" key={index}>
@@ -222,7 +222,7 @@ function Group({ group, ...rest }: AdvancedSettingsProps & { group: FieldGroup }
   return (
     <section className="settings-group" aria-labelledby={`group-${group.name}`}>
       <h3 id={`group-${group.name}`}>{group.name}</h3>
-      <p className="hint">{group.blurb}</p>
+      <p className="note">{group.blurb}</p>
       {group.fields.map((field) => (
         <Field
           key={field.path}
@@ -249,7 +249,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
   return (
     <details className="advanced">
       <summary>Advanced settings</summary>
-      <p className="hint">
+      <p className="note">
         Everything here has a sensible default. Change it only if you want a different lesson - the
         preview above updates as you type.
       </p>

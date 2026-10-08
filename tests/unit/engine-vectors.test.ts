@@ -96,13 +96,13 @@ describe('SPEC section 3 test vectors', () => {
   });
 
   it('BR1: against 76.6 the formula asks for 76.7 and capacity caps it at 75', () => {
-    expect(bestResponseRawTenths(766, standard, 1)).toBe(767);
-    expect(bestResponseTenths(766, standard, 1)).toBe(750);
+    expect(bestResponseRawTenths(766, standard)).toBe(767);
+    expect(bestResponseTenths(766, standard)).toBe(750);
   });
 
   it('BR2: against 115 the best response is 57.5', () => {
-    expect(bestResponseRawTenths(1150, standard, 1)).toBe(575);
-    expect(bestResponseTenths(1150, standard, 1)).toBe(575);
+    expect(bestResponseRawTenths(1150, standard)).toBe(575);
+    expect(bestResponseTenths(1150, standard)).toBe(575);
   });
 
   it('CM1: the cooperative maximum is a total of 115 worth $3,967.50M', () => {

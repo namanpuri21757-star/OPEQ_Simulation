@@ -284,6 +284,91 @@ Decision: the setup form holds the raw text for each numeric field and only move
 
 Reason: "0." has to be typeable on the way to "0.3", and turning it into 0 while someone is typing would be worse than useless. Showing a preview built from the last good value, next to a box the teacher knows is wrong, would be a quietly wrong answer; saying nothing is honest.
 
+## 2026-10-08 - The Analyst role is gone, and everyone after the Operator is an Envoy
+
+Decision: `ROLE_NAMES` is `['Operator', 'Envoy']`. The Operator is the first member of the rotated list and every other member is an Envoy; with one member that person holds both jobs. `envoyNames()` turns the list into "Jared" or "Jared and Mia" for the one line the terminal shows.
+Reason: the Analyst existed to run the What-if calculator and to forecast the other countries, and both of those are removed, so an Analyst would have had nothing to do. SPEC section 5 asked for the 2-member and 4-member rules to be adjusted: two members is now one job each, and three or four share the Envoy job rather than leaving someone watching. Naming every extra member an Envoy also keeps the rule to one sentence, which is what a role card has room for.
+
+## 2026-10-08 - The chat mode setting is replaced by the messaging switch
+
+Decision: `chatMode` (off / windowsOnly / always) is removed from `Settings`. Whether a world may send messages is held in `SessionState.messaging`, keyed by worldId, and changed only by `setMessaging`.
+Reason: PROMPT 9 asks for a switch that is "impossible to miss and impossible to misread". With a chat mode still in the settings, the answer to "can they talk right now?" would have been a function of three things - the mode, the phase and the switch - and no screen could have stated it in one line. One source of truth is what makes the panel's first line honest. The scheduled chat windows survive as `schedule` entries, but they now arrive as the suggested next step rather than opening a phase (SPEC sections 4 and 6).
+
+## 2026-10-08 - A scheduled chat window marks itself done however the teacher turns messaging on
+
+Decision: `setMessaging` with `on: true` during `YEAR_REVEAL` pushes `<year>:chat` onto `activitiesDone` when the plan has a chat scheduled after that year.
+Reason: PROMPT 9 part 7 asks for a test that the plan step and the switch leave the same state. If only the big button marked the activity done, a teacher who used the switch would be asked for the same window again a moment later. Turning messaging on between years IS the window the plan asked for, whichever control was pressed.
+
+## 2026-10-08 - The steppers and the slider are gone from the decision box
+
+Decision: the decision box is one number field, one Submit and the confirmation.
+Reason: three controls that set the same number only make a group wonder which one the game is listening to, and SPEC 8.0 says an element has to answer a question the user has. The field answers "what number?"; the slider and the +/- buttons answered nothing the field did not. Nothing about the value changes: still 0 to capacity, still one decimal, still validated by `parseQuantity`.
+
+## 2026-10-08 - One light theme, and no dark theme
+
+Decision: `src/client/theme.css` declares one light palette. There is no `prefers-color-scheme` block and no `color-scheme: light dark`.
+Reason: half the screens in a lesson are on a wall, and a projector washes a dark background out. A second theme is also a second set of contrast pairs to keep honest, for a setting nobody in a classroom chooses.
+
+## 2026-10-08 - The teacher has two screens, and the app decides which
+
+Decision: `/instructor` shows the start screen in `LOBBY` and the live screen from `BRIEFING` on. The settings move to `/instructor/settings`.
+Reason: one screen that had to be both a setup form and a live dashboard meant that at any moment half of it was about something else. Which one a teacher needs is never a choice they have to make - it follows from the phase - so the app makes it.
+
+## 2026-10-08 - The start screen keeps two small links, not one
+
+Decision: the corner of the start screen holds "Lesson settings" and "Materials".
+Reason: PROMPT 9 part 3 asks for a Materials link and "nothing else on the page". The settings themselves had to stay reachable, because the presets, the years, the timers and the disclosure modes all stay in v2, and a teacher who wants a 50-minute lesson has to be able to say so. Putting the link in the same small corner group is the smallest departure from the instruction and keeps the five steps untouched.
+
+## 2026-10-08 - A problem shows in the cell it belongs to, and one line at the top
+
+Decision: the "Things to look at" list is removed. `CountriesGrid` draws "Offline", "Muted" or "No computer" inside the country's own cell, and `problemLine()` puts at most one sentence under the status strip when something needs doing.
+Reason: reading a sentence, finding the country it named and then looking at the grid anyway is three steps for one fact. The grid is where a teacher is already looking.
+
+## 2026-10-08 - An action that cannot be used now is not drawn at all
+
+Decision: across the teacher's screens, a control whose command would be refused is not rendered, rather than rendered disabled. `disabled` now only ever means "this click is already in flight".
+Reason: a greyed-out button is a thing to wonder about, and a teacher mid-sentence has no time to. This is written into SPEC 8.0 so it holds for screens nobody has built yet.
+
+## 2026-10-08 - The new producer's "announced" flag now only changes the results sentence
+
+Decision: `newProducer.announced` no longer writes anything, because there is no news feed. When it is on, `explainChange` names the new producer in the one-sentence explanation at the reveal; when it is off (the default) nothing names it.
+Reason: the flag existed so a teacher could run the event openly, and the reveal sentence is the one public place left that can carry it. The unannounced default, which is the interesting case, is unchanged.
+
+## 2026-10-08 - The final-year warning is a flag on the state, not a news item
+
+Decision: `announceFinalYear` sets `finalYearAnnounced` and nothing else. Every screen reads that flag: the terminals show a banner, the projector puts FINAL YEAR in its status strip.
+Reason: with the news feed gone there was nowhere for a news item to appear, and the flag was already in all three views. One field, read in three places, is less than one field plus a message that says the same thing.
+
+## 2026-10-08 - A v1 event-log line for a removed command is skipped without a warning
+
+Decision: `readEvents` recognises the removed command types and leaves those lines out silently. Every other unparseable line still raises the "not written completely" warning.
+Reason: that warning exists to tell a teacher a file was cut off by a power cut. A `recordHuddle` from last term's lesson is not damage, and saying so would worry someone for no reason. The removed types are listed in one place (`REMOVED_COMMANDS`), which is also what gives a stale browser tab a sentence it can read.
+
+## 2026-10-08 - Exports are four CSV files plus the JSON
+
+Decision: `predictions.csv` and `huddles.csv` are gone; `messages.csv` loses its Kind, Promised, Actual output and Promise kept columns and gains nothing.
+Reason: every column they held came from a removed feature. The JSON export loses `news`, `huddles` and `predictions` for the same reason.
+
+## 2026-10-08 - Debrief question 9 asks about influence without the huddle table
+
+Decision: SPEC section 10's question 9 is reworded to "How did your group agree on its number each year? Did whoever was at the keyboard have extra influence?", pointing at World Detail.
+Reason: the original asked whose suggestion became the decision, which only the huddle table could answer. The learning goal (LG2, influence inside a group) is worth keeping, so the question stays and becomes one the room answers out loud instead of one the screen answers for them.
+
+## 2026-10-08 - Choosing a debrief screen is a tab, not a button
+
+Decision: the debrief's screen picker and its world picker are `role="tablist"` with `role="tab"` buttons, not rows of primary and secondary buttons.
+Reason: which screen is showing is a state, not an action, and drawing the chosen one as the solid primary button put two primaries on the screen, against SPEC 8.2. The tab role is also the honest one for a control that swaps a panel in place, and `aria-selected` is only valid on a real tab - axe reports it as a critical error on a plain button, which is how the mistake was found.
+
+## 2026-10-08 - startBetween still accepts kind "chat", though nothing sends it
+
+Decision: the `startBetween` payload keeps `kind: 'chat' | 'summit'`. Only a summit is ever suggested or offered, and a messaging window is the switch instead (SPEC section 6).
+Reason: a v1 `events.jsonl` can hold `startBetween {kind:'chat'}`, and a replay has to be able to read it. Narrowing the enum would have turned those lines into "this file was not written completely" warnings on a file that is perfectly intact. The branch is dead in the UI, which is where it matters.
+
+## 2026-10-08 - The load test and the simulation turn messaging on with the switch
+
+Decision: `scripts/loadtest.ts` and `scripts/simulate.ts` drive a scheduled messaging window with `setMessaging`, and the simulation waits for every bot's view to catch up with the press before the bots talk.
+Reason: both harnesses used to open a chat window as a phase, which in v2 no longer lets anyone write - the load test read every correct refusal as a lost message. The wait matters because the press after "turn messaging on" is "turn messaging off": without it the bots raced the teacher and the window closed before any of them had seen it open.
+
 ## 2026-10-06 - A terminal finds its session over HTTP, with GET /api/sessions
 
 Decision: a read-only endpoint lists the sessions open on this computer - `sessionId`, `createdAt`, `phase` and `anyFree` - and a terminal joins the newest one. No keys, no team ids, no join codes.

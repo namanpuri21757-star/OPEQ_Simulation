@@ -4,7 +4,7 @@
 .page-summary {
   max-width: 50rem;
   margin: 0 auto;
-  padding: var(--space-4) var(--space-3);
+  padding: var(--s5) var(--s4);
 }
 
 .materials-toolbar {
@@ -12,33 +12,33 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: var(--space-2);
+  gap: var(--s4);
+  border-bottom: 1px solid var(--ink-faint);
+  padding-bottom: var(--s2);
 }
 
 .materials-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: var(--space-3) 0;
+  gap: var(--s2);
+  margin: var(--s4) 0;
 }
 
 .material {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--s5);
 }
 
 .material h2 {
-  border-bottom: 2px solid var(--line);
-  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--ink-faint);
+  padding-bottom: var(--s1);
 }
 
 .material h3 {
-  margin-top: var(--space-3);
+  margin-top: var(--s4);
 }
 
 .material h4 {
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--s1);
 }
 
 .material p,
@@ -47,25 +47,25 @@
 }
 
 .material-intro {
-  color: var(--ink-soft);
-  font-size: var(--text-lead);
+  color: var(--muted);
+  font-size: var(--t-section);
 }
 
 .material-note {
-  border-left: 4px solid var(--accent);
-  padding-left: var(--space-2);
+  border-left: 4px solid var(--text);
+  padding-left: var(--s2);
 }
 
 .material-formula {
-  font-family: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-2);
+  font-family: var(--mono);
+  background: var(--cream);
+  border: 1px solid var(--ink-faint);
+  border-radius: 0;
+  padding: var(--s2);
 }
 
 .summary-part {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--s5);
 }
 
 @media print {

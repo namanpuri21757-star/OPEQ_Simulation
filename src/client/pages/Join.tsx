@@ -53,16 +53,16 @@ export default function Join() {
     if (params.code === undefined) return <Navigate to="/team" replace />;
 
     return (
-      <main className="page page-join">
+      <main className="sheet page-join">
         <h1>{APP_NAME}</h1>
-        <section className="panel" aria-labelledby="already-heading">
+        <section className="box" aria-labelledby="already-heading">
           <h2 id="already-heading">
             {saved === null
               ? 'This computer is already in the game'
               : `This computer is already ${saved.label}`}
           </h2>
           <p>{`The link you opened is for the code ${code}. What would you like to do?`}</p>
-          <div className="row">
+          <div className="btn-row">
             <Button
               tone="primary"
               size="large"
@@ -123,7 +123,7 @@ export default function Join() {
   const offline = statusMessage(status);
 
   return (
-    <main className="page page-join">
+    <main className="sheet page-join">
       <h1>{APP_NAME}</h1>
       {offline !== null && (
         <Banner tone="warning" title="Offline">
@@ -132,9 +132,9 @@ export default function Join() {
       )}
 
       {shownStep === 'code' && (
-        <section className="panel" aria-labelledby="join-heading">
+        <section className="box" aria-labelledby="join-heading">
           <h2 id="join-heading">Type your team code</h2>
-          <p className="hint">
+          <p className="note">
             {`It is ${String(JOIN_CODE_LENGTH)} characters, on the card your teacher gave you. Lower case and spaces are fine.`}
           </p>
           <p className="field">
@@ -172,7 +172,7 @@ export default function Join() {
       )}
 
       {shownStep === 'waiting' && (
-        <section className="panel" aria-labelledby="waiting-heading">
+        <section className="box" aria-labelledby="waiting-heading">
           <h2 id="waiting-heading">Ask your teacher to approve this computer</h2>
           <p role="status">
             Another computer is already running this country. Your teacher can move it to this one.
@@ -189,12 +189,12 @@ export default function Join() {
       )}
 
       {shownStep === 'confirm' && claim !== null && (
-        <section className="panel" aria-labelledby="confirm-heading">
+        <section className="box" aria-labelledby="confirm-heading">
           <h2 id="confirm-heading">{`You are ${claim.label}. Is that right?`}</h2>
           <p className="confirm-badge">
             <Badge letter={claim.letter} size="large" withName />
           </p>
-          <div className="row">
+          <div className="btn-row">
             <Button
               tone="primary"
               size="large"
@@ -222,9 +222,9 @@ export default function Join() {
       )}
 
       {shownStep === 'members' && (
-        <section className="panel" aria-labelledby="members-heading">
+        <section className="box" aria-labelledby="members-heading">
           <h2 id="members-heading">Who is in your group?</h2>
-          <p className="hint">
+          <p className="note">
             First names only, and only if you want to. They are used for the jobs on this screen and
             nothing else.
           </p>
@@ -251,7 +251,7 @@ export default function Join() {
               {problem}
             </p>
           )}
-          <div className="row">
+          <div className="btn-row">
             <Button tone="primary" size="large" onClick={() => void saveNames()} disabled={busy}>
               Save and start
             </Button>

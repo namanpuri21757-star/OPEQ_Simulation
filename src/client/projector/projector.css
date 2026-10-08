@@ -1,180 +1,168 @@
 /*
- * The projector (SPEC 8.5): very large type, read from the back of the room.
+ * The projector: the same design system as every other screen, at the size a
+ * room reads it from the back (SPEC 8.5).
  *
- * Sizes are in viewport units so one stylesheet works on a classroom projector,
- * a big television and a laptop's second screen. Nothing here is interactive, so
- * there is nothing to reach with a mouse.
+ * Only three things change from theme.css: everything is larger, the rules are
+ * 2px because a hairline disappears on a wall, and there is more air. The
+ * colours, the fonts and the shapes are identical, so a teacher pointing at the
+ * dashboard and the room looking at the wall are looking at the same thing.
  */
 
 .projector {
+  --rule: 2px;
   min-height: 100vh;
-  padding: 3vh 4vw;
-  display: flex;
-  flex-direction: column;
-  gap: 2vh;
-  background: var(--paper);
-  color: var(--ink);
+  padding: var(--s5) var(--s6) var(--s6);
+  font-size: clamp(1.25rem, 1.6vw, 1.75rem);
+}
+
+.projector-strip {
+  font-size: clamp(1.125rem, 1.4vw, 1.5rem);
+}
+
+.projector-strip .strip-key {
+  font-size: clamp(0.875rem, 1vw, 1.125rem);
 }
 
 .projector-title {
-  font-size: clamp(2.5rem, 6vw, 6rem);
-  margin: 0;
-}
-
-.projector-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 2vw;
-  border-bottom: 4px solid var(--line);
-  padding-bottom: 1vh;
-}
-
-.projector-phase {
-  font-size: clamp(1.75rem, 4vw, 4rem);
-  font-weight: 600;
-  margin: 0;
-}
-
-.projector-year {
-  font-size: clamp(2.5rem, 7vw, 7rem);
-  font-weight: 700;
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-/* The countdown component's own type scale is sized for a laptop, so the
-   projector scales it up from here rather than the component knowing about
-   two very different screens. */
-.projector-clock .countdown-time {
-  font-size: clamp(3rem, 9vw, 9rem);
-  line-height: 1;
-}
-
-.projector-h2 {
-  font-size: clamp(1.5rem, 3vw, 3rem);
-  margin: 0 0 1vh;
+  font-size: clamp(3rem, 7vw, 6rem);
 }
 
 .projector-lead {
-  font-size: clamp(1.5rem, 3.2vw, 3.25rem);
-  margin: 0;
+  margin-top: var(--s5);
+  max-width: 40ch;
+  font-size: clamp(1.5rem, 2.4vw, 2.5rem);
+  color: var(--ink);
 }
 
-.projector-join {
+.projector-h2 {
+  font-size: clamp(1.25rem, 1.6vw, 1.75rem);
+  font-weight: 400;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The one big clock. Nothing else on the screen is this size. */
+.projector-clock {
+  padding: var(--s5) 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(5rem, 16vw, 14rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--track-display);
+  text-align: center;
+  color: var(--ink);
+}
+
+/* --- each world between years ------------------------------------------ */
+.projector-worlds {
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 3vw;
+  gap: 0;
+  margin-top: var(--s5);
+  border: var(--rule) solid var(--ink);
+  /* One column per world. The count is set on the element, because the number
+   * of worlds is known and auto-fit would leave each table at its minimum. */
+  grid-template-columns: repeat(var(--worlds, 3), minmax(0, 1fr));
 }
 
-@media (max-width: 60rem) {
-  .projector-join {
-    grid-template-columns: 1fr;
-  }
+.projector-worlds > .projector-world {
+  padding: var(--s5);
+  border-right: var(--rule) solid var(--ink);
+}
+
+.projector-worlds > .projector-world:last-of-type {
+  border-right: 0;
+}
+
+.projector-price {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  color: var(--text);
+}
+
+.projector-worlds .table-scroll {
+  margin-top: var(--s4);
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.projector-worlds table.grid {
+  font-size: clamp(1rem, 1.1vw, 1.25rem);
+}
+
+.projector-worlds .chart-source {
+  grid-column: 1 / -1;
+  padding: var(--s3) var(--s5);
+  border-top: var(--rule) solid var(--ink);
+  font-size: clamp(0.875rem, 1vw, 1.125rem);
+}
+
+/* --- the lobby ---------------------------------------------------------- */
+.projector-join {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s6);
+  margin-top: var(--s5);
+  padding: var(--s5);
+  border: var(--rule) solid var(--ink);
 }
 
 .projector-url {
-  font-size: clamp(2rem, 5vw, 5rem);
-  font-weight: 700;
-  margin: 0;
-  overflow-wrap: anywhere;
-  grid-column: 1;
-}
-
-.projector-note {
-  font-size: clamp(1.25rem, 2.4vw, 2.5rem);
-  margin: 0;
-  grid-column: 1;
+  font-family: var(--mono);
+  font-size: clamp(1.75rem, 3.6vw, 3.5rem);
+  font-weight: 600;
+  word-break: break-all;
+  color: var(--ink);
 }
 
 .qr-projector {
-  width: clamp(10rem, 22vw, 20rem);
-  height: clamp(10rem, 22vw, 20rem);
-  grid-row: 1 / span 3;
-  grid-column: 2;
+  max-width: 14rem;
 }
 
-@media (max-width: 60rem) {
-  .qr-projector {
-    grid-row: auto;
-    grid-column: 1;
-  }
+.projector-note {
+  font-size: clamp(1.125rem, 1.4vw, 1.5rem);
+  color: var(--muted);
 }
 
 .projector-tables {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3vw;
+  margin-top: var(--s5);
 }
 
-/* The heading names the whole section, so it sits above the worlds rather than
-   becoming a fourth column beside them. */
-.projector-tables > .projector-h2 {
-  flex-basis: 100%;
+/* One column per world, because that is how the room is laid out. */
+.projector-table-grid {
+  display: grid;
+  gap: var(--s5) var(--s6);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
-.projector-world h3 {
-  font-size: clamp(1.25rem, 2.4vw, 2.25rem);
-  margin: 0 0 0.5vh;
+.projector-tables .projector-world {
+  margin-top: var(--s4);
 }
 
-.projector-world ul,
-.projector-news ul,
-.price-list {
-  list-style: none;
-  margin: 0;
+.projector-tables ul {
+  margin: var(--s2) 0 0;
   padding: 0;
-  font-size: clamp(1.25rem, 2.2vw, 2.25rem);
+  list-style: none;
 }
 
-.projector-world li,
-.price-list li {
+.projector-tables li {
   display: flex;
-  gap: 1.5vw;
   justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s2) 0;
+  border-top: var(--rule-faint);
 }
 
 .table-state {
-  color: var(--ink-soft);
-}
-
-.price-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4vw;
-}
-
-.price-world {
-  display: block;
-  font-size: clamp(1rem, 1.8vw, 1.75rem);
-  color: var(--ink-soft);
-}
-
-.price-value {
-  display: block;
-  font-size: clamp(2.5rem, 7vw, 7rem);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.projector-prices .price-list li {
-  display: block;
-}
-
-.projector-announcement {
-  border: 4px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 2vh 2vw;
-  font-size: clamp(1.5rem, 3vw, 3rem);
-}
-
-.projector-announcement p {
-  margin: 0;
-}
-
-.projector-news {
-  font-size: clamp(1.25rem, 2.2vw, 2rem);
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--muted);
 }

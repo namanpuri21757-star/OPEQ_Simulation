@@ -68,7 +68,7 @@ export function Countdown({
   const low = ms !== null && ms > 0 && ms <= 30000;
 
   return (
-    <div className="countdown">
+    <span className="countdown">
       <span className="visually-hidden">Time left</span>
       <span className={`countdown-time${low ? ' countdown-low' : ''}`}>
         {paused ? 'Paused by your teacher' : text}
@@ -76,6 +76,6 @@ export function Countdown({
       <span className="visually-hidden" role="status" aria-live="polite">
         {paused ? 'Paused by your teacher.' : milestone === null ? '' : sayLeft(milestone)}
       </span>
-    </div>
+    </span>
   );
 }

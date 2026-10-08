@@ -11,10 +11,10 @@ import { COUNTRY_LETTERS } from '../../src/shared/constants.js';
 import type { GameClient } from '../support/client.js';
 import {
   closeYear,
-  endBetween,
+  messagingOff,
+  messagingOn,
   openGame,
   openYear,
-  startBetween,
   startPractice,
   submitAll,
   type OpenGame,
@@ -31,7 +31,7 @@ afterEach(async () => {
   await harness.cleanup();
 });
 
-/** Plays three worlds through practice, two years and a chat window. */
+/** Plays three worlds through practice, two years and a messaging window. */
 async function playSomeGame(options: { disclosure?: 'full' | 'totalOnly' | 'priceOnly' } = {}) {
   const game = await openGame(harness, {
     settings: {
@@ -46,20 +46,15 @@ async function playSomeGame(options: { disclosure?: 'full' | 'totalOnly' | 'pric
 
   await openYear(game, 1);
   for (const [index, team] of game.teams.entries()) {
-    await team.must('recordHuddle', {
-      suggestions: [{ name: `Ada${String(index)}`, tenths: 383 }],
-      reason: `secret-huddle-${String(index)}`,
-    });
     await team.must('submitDecision', { tenths: 380 + index });
-    await team.must('submitPrediction', { othersTenths: [383, 383], trust: 3 });
   }
   await closeYear(game);
 
-  await startBetween(game, 'chat');
+  await messagingOn(game);
   for (const [index, team] of game.teams.entries()) {
     await team.must('sendMessage', { text: `secret-message-${String(index)}` });
   }
-  await endBetween(game);
+  await messagingOff(game);
 
   await openYear(game, 2);
   await submitAll(game, 400);
@@ -86,24 +81,19 @@ function forbiddenFor(game: OpenGame, team: GameClient): string[] {
     if (other.teamId === me.teamId) continue;
     out.push(other.joinCode);
     if (other.token) out.push(other.token);
-    // Another world's private writing. Same-world chat is shared on purpose.
-    if (other.worldId !== me.worldId) {
-      for (const huddle of Object.values(other.huddles)) out.push(huddle.reason);
+    // Another world's reflections. Same-world messages are shared on purpose.
+    if (other.worldId !== me.worldId && other.reflection) {
+      out.push(...other.reflection.answers);
     }
   }
   for (const message of state.messages) {
-    if (message.worldId !== null && message.worldId !== me.worldId) out.push(message.text);
-  }
-  // A team's own token is fine; nobody else's huddle text is.
-  for (const other of Object.values(state.teams)) {
-    if (other.teamId === me.teamId || other.worldId !== me.worldId) continue;
-    for (const huddle of Object.values(other.huddles)) out.push(huddle.reason);
+    if (message.worldId !== me.worldId) out.push(message.text);
   }
   return [...new Set(out)].filter((needle) => needle.length >= 4);
 }
 
 describe('what a team is sent', () => {
-  it('never contains another world, another team s private writing, or a key', async () => {
+  it('never contains another world, another team s reflections, or a key', async () => {
     const game = await playSomeGame();
 
     for (const team of game.teams) {
@@ -114,15 +104,16 @@ describe('what a team is sent', () => {
     }
   });
 
-  it('keeps its own huddle, prediction and reflection and no one else s', async () => {
+  it('hears its own world and no other', async () => {
     const game = await playSomeGame();
-    const mine = game.teams[0];
-    const theirs = game.teams[1];
+    // Teams 0, 1 and 2 share World 1; team 3 is the first of World 2.
+    const inWorldOne = JSON.stringify(game.teams[0]?.views);
+    const inWorldTwo = JSON.stringify(game.teams[3]?.views);
 
-    expect(JSON.stringify(mine?.views)).toContain('secret-huddle-0');
-    expect(JSON.stringify(mine?.views)).not.toContain('secret-huddle-1');
-    expect(JSON.stringify(theirs?.views)).toContain('secret-huddle-1');
-    expect(JSON.stringify(theirs?.views)).not.toContain('secret-huddle-0');
+    expect(inWorldOne).toContain('secret-message-1');
+    expect(inWorldOne).not.toContain('secret-message-3');
+    expect(inWorldTwo).toContain('secret-message-3');
+    expect(inWorldTwo).not.toContain('secret-message-1');
   });
 
   it('shows every country s output under full disclosure', async () => {
@@ -193,18 +184,14 @@ describe('what a team is sent', () => {
 });
 
 describe('what the projector is sent', () => {
-  it('has no chat, no team-private data and no keys', async () => {
+  it('has no messages, no team-private data and no keys', async () => {
     const game = await playSomeGame();
     const projector = await harness.client('projector', {
       role: 'projector',
       sessionId: game.session.sessionId,
       projectorKey: game.session.projectorKey,
     });
-    await game.instructor.must('announce', { text: 'Well done.' });
-    await projector.waitForView(
-      (view) => (view['announcements'] as unknown[]).length > 0,
-      'the announcement',
-    );
+    await projector.waitForView((view) => view['kind'] === 'projector', 'the first view');
 
     const haystack = JSON.stringify(projector.views);
     const state = harness.server.store.get(game.session.sessionId);
@@ -213,7 +200,6 @@ describe('what the projector is sent', () => {
     expect(haystack).not.toContain(state?.projectorKey ?? '');
     for (let i = 0; i < 9; i += 1) {
       expect(haystack).not.toContain(`secret-message-${String(i)}`);
-      expect(haystack).not.toContain(`secret-huddle-${String(i)}`);
     }
     for (const team of Object.values(state?.teams ?? {})) {
       expect(haystack).not.toContain(team.joinCode);
@@ -271,7 +257,7 @@ describe('what the instructor is sent', () => {
 
     expect(view['instructorKey']).toBe(game.session.instructorKey);
     expect((view['teams'] as unknown[]).length).toBe(9);
-    expect(JSON.stringify(view)).toContain('secret-huddle-0');
+    expect(JSON.stringify(view)).toContain('secret-message-0');
     expect(JSON.stringify(view)).toContain('secret-message-1');
     expect(view['benchmarks']).toMatchObject({ cooperativeShareTenths: 383 });
   });

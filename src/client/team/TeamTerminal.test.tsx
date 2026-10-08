@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ackOk } from '@shared/protocol';
 import type { TeamView } from '@shared/views';
-import { NOW, reveal, teamView } from '../../../tests/support/teamView';
+import { NOW, messaging, reveal, teamView, yearRow } from '../../../tests/support/teamView';
 import { Connection, memoryStore, type ConnectionBundle } from '../net';
 import { ConnectionValueProvider } from '../net/ConnectionProvider';
 import TeamTerminal from './TeamTerminal';
@@ -40,14 +40,30 @@ function show(over: Partial<ConnectionBundle> = {}) {
 const at = (phase: TeamView['phase'], over: Partial<TeamView> = {}) =>
   show({ view: teamView({ phase, ...over }) });
 
+const strip = () => screen.getByRole('group', { name: 'Your country and the clock' });
+
 describe('TeamTerminal', () => {
-  it('always says who and when at the top', () => {
+  it('puts who, when, what to do and the total profit in the status strip', () => {
+    at('YEAR_OPEN', { history: [yearRow(4)] });
+    const bar = strip();
+    expect(bar).toHaveTextContent('Borvia');
+    expect(bar).toHaveTextContent('World 2');
+    expect(bar).toHaveTextContent('Year');
+    expect(bar).toHaveTextContent('Status');
+    expect(bar).toHaveTextContent('Decide');
+    expect(bar).toHaveTextContent('Your total profit');
+    expect(bar).toHaveTextContent('$5,280.00M');
+    expect(bar).toHaveTextContent('Connected');
+  });
+
+  it('says Waiting once the number is in, so the strip answers "what now?"', () => {
+    at('YEAR_OPEN', { decision: { tenths: 383, auto: false, at: NOW, byInstructor: false } });
+    expect(strip()).toHaveTextContent('Waiting');
+  });
+
+  it('names who is at the keyboard and who the Envoy is', () => {
     at('YEAR_OPEN');
-    expect(screen.getByRole('heading', { level: 1, name: 'Borvia' })).toBeInTheDocument();
-    expect(screen.getByText('World 2 - Borvia (B)')).toBeInTheDocument();
-    expect(screen.getByText('Year 5')).toBeInTheDocument();
-    expect(screen.getByText('Year is open')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByText('At the keyboard: Maya · Envoy: Leo and Sam')).toBeInTheDocument();
   });
 
   it('shows the reconnecting banner, with where the decisions are, when offline', () => {
@@ -55,7 +71,7 @@ describe('TeamTerminal', () => {
     expect(
       screen.getByText('Reconnecting... Your decisions are saved on the instructor’s computer.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Reconnecting')).toBeInTheDocument();
+    expect(strip()).toHaveTextContent('Offline');
   });
 
   it('shows no banner while it is connected', () => {
@@ -66,18 +82,22 @@ describe('TeamTerminal', () => {
   it.each([
     ['LOBBY', 'Waiting for your teacher to start'],
     ['BRIEFING', 'You run an oil country'],
-    ['ENDED', 'The game has finished'],
-  ] as const)('shows the %s screen', (phase, heading) => {
+  ] as const)('shows the %s screen', (phase, text) => {
     at(phase);
-    expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    expect(screen.getByText(text)).toBeInTheDocument();
   });
 
-  it('shows the decision box in an open year', () => {
+  it('shows the ENDED screen with the total and the three questions', () => {
+    at('ENDED', { history: [yearRow(4)] });
+    expect(screen.getByRole('heading', { name: 'Three questions' })).toBeInTheDocument();
+    expect(screen.getByText('Borvia, total over every scored year')).toBeInTheDocument();
+  });
+
+  it('shows the decision box, and no calculator, in an open year', () => {
     at('YEAR_OPEN');
-    expect(
-      screen.getByLabelText('How many million barrels will Borvia produce?'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'What-if calculator' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Million barrels')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'What-if calculator' })).toBeNull();
+    expect(screen.queryByText(/my guess of the others/i)).toBeNull();
   });
 
   it('shows the result in a reveal', () => {
@@ -86,16 +106,10 @@ describe('TeamTerminal', () => {
   });
 
   it('sends the Envoys to the meeting point at a summit', () => {
-    at('BETWEEN', { between: { kind: 'summit', afterYear: 7, seconds: 300 }, chatOpen: true });
-    expect(
-      screen.getByRole('heading', { name: 'Envoys: go to the meeting point' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Summit')).toBeInTheDocument();
-  });
-
-  it('names the chat window when that is what is open', () => {
-    at('BETWEEN', { between: { kind: 'chat', afterYear: 3, seconds: 240 }, chatOpen: true });
-    expect(screen.getByRole('heading', { name: 'Chat window' })).toBeInTheDocument();
+    at('BETWEEN', { between: { kind: 'summit', afterYear: 7, seconds: 300 } });
+    // Once in the status strip, once as the heading of the summit box.
+    expect(screen.getAllByText('Summit')).toHaveLength(2);
+    expect(screen.getByText(/go to the meeting point/)).toBeInTheDocument();
   });
 
   it('warns about the final year once it is announced', () => {
@@ -116,31 +130,25 @@ describe('TeamTerminal', () => {
     expect(screen.getByRole('button', { name: 'Join again with our code' })).toBeInTheDocument();
   });
 
-  /** Everything a student can type in or drag, whichever of them is on screen. */
-  const inputs = () => [
-    ...screen.queryAllByRole('textbox'),
-    ...screen.queryAllByRole('slider'),
-    ...screen.queryAllByRole('radio'),
-  ];
-
   it('gives every input on the year screen a label a screen reader can read', () => {
-    at('YEAR_OPEN');
-    const before = inputs();
-    // The decision field, the slider, the what-if pair, the huddle and its reason.
-    expect(before.length).toBeGreaterThan(5);
-    for (const box of before) expect(box).toHaveAccessibleName();
+    at('YEAR_OPEN', { messaging: messaging({ on: true }) });
+    const inputs = screen.getAllByRole('textbox');
+    // The decision field and the message box, and nothing else to fill in.
+    expect(inputs).toHaveLength(2);
+    for (const box of inputs) expect(box).toHaveAccessibleName();
   });
 
-  it('gives every input the waiting question adds a label as well', () => {
+  it('adds nothing to fill in once the number is submitted', () => {
     at('YEAR_OPEN', { decision: { tenths: 383, auto: false, at: NOW, byInstructor: false } });
-    const after = inputs();
-    // Two guesses and the five trust buttons arrive once the number is in.
-    expect(screen.getAllByRole('radio')).toHaveLength(5);
-    for (const box of after) expect(box).toHaveAccessibleName();
+    // The waiting question v1 added two guesses and five trust buttons here.
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  it('gives every input on the chat screen a label too', () => {
-    at('BETWEEN', { between: { kind: 'chat', afterYear: 3, seconds: 240 }, chatOpen: true });
-    for (const box of screen.getAllByRole('textbox')) expect(box).toHaveAccessibleName();
+  it('removes every panel v2 dropped from the year screen', () => {
+    at('YEAR_OPEN', { messaging: messaging({ on: true }) });
+    for (const gone of ['Huddle', 'What-if', 'News', 'Promise a number', 'trust']) {
+      expect(screen.queryByText(new RegExp(gone, 'i'))).toBeNull();
+    }
   });
 });

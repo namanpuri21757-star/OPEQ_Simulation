@@ -65,7 +65,7 @@ test.describe('C1 - everyone joins at once', () => {
         );
         opened.push(screen);
         await expect(
-          screen.page.getByRole('heading', { name: 'Get the room joined' }),
+          screen.page.getByRole('heading', { name: 'Step 3 Connect the team computers' }),
         ).toBeVisible();
         return screen;
       })();
@@ -90,14 +90,13 @@ test.describe('C1 - everyone joins at once', () => {
       // Nine different countries, not the same one nine times.
       expect(new Set(joined.map((entry) => entry.shown)).size).toBe(9);
 
-      // And the dashboard agrees that all nine are connected.
-      for (const team of lesson.teams) {
-        await expect(
-          lesson.instructor.page
-            .locator(`.team-row:has-text("${team.joinCode}")`)
-            .locator('.team-row-status'),
-        ).toContainText('Connected');
-      }
+      // And Step 3 of the start screen agrees that all nine are connected.
+      await expect(
+        lesson.instructor.page.getByText(`${String(lesson.teams.length)} of ${String(lesson.teams.length)} connected`),
+      ).toBeVisible();
+      await expect(
+        lesson.instructor.page.locator('.connect-grid .cell-line', { hasText: 'Connected' }),
+      ).toHaveCount(lesson.teams.length);
 
       const problems = opened.flatMap((screen) => screen.problems);
       expect(problems, `\n${problems.join('\n')}`).toEqual([]);

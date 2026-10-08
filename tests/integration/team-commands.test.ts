@@ -1,6 +1,6 @@
 /**
- * The rest of what a terminal can do: names, the huddle, the prediction prompt,
- * and the network check (SPEC sections 5, 8.6).
+ * The rest of what a terminal can do: names, the rotating roles, and the
+ * network check (SPEC sections 5, 8.6).
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -26,8 +26,7 @@ describe('member names', () => {
     expect(game.teams[0]?.view['members']).toEqual(['Ada', 'Ben', 'Member 3']);
     expect(game.teams[0]?.view['roles']).toMatchObject({
       operator: 'Ada',
-      analysts: ['Ben'],
-      envoy: 'Member 3',
+      envoys: ['Ben', 'Member 3'],
     });
   });
 
@@ -54,82 +53,39 @@ describe('member names', () => {
   });
 });
 
-describe('the huddle and the prediction', () => {
-  it('keeps the huddle for the team and the instructor only', async () => {
+describe('the commands v2 removed', () => {
+  it('refuses each of them with a sentence a person can read', async () => {
     const game = await openGame(harness);
     await startPractice(game);
+    const team = game.teams[0];
+    if (!team) throw new Error('no team');
 
-    const ack = await game.teams[0]?.must('recordHuddle', {
-      suggestions: [
-        { name: 'Ada', tenths: 383 },
-        { name: 'Ben', tenths: 400 },
-      ],
-      reason: 'Ada wanted to keep the price up.',
-    });
+    const removed: Array<[string, unknown]> = [
+      ['recordHuddle', { suggestions: [{ name: 'Ada', tenths: 383 }], reason: 'why' }],
+      ['submitPrediction', { othersTenths: [383, 383], trust: 4 }],
+      ['sendPledge', { tenths: 383 }],
+      ['announce', { text: 'Five minutes left.' }],
+    ];
 
-    expect(game.teams[0]?.view['huddle']).toMatchObject({
-      reason: 'Ada wanted to keep the price up.',
-    });
-    expect(game.teams[1]?.view['huddle']).toBeNull();
+    for (const [type, payload] of removed) {
+      const ack = await team.sendRaw({
+        commandId: `removed-${type}`,
+        type,
+        payload,
+        expectedPhase: team.phase,
+        expectedYear: team.year,
+      });
+      expect(ack.ok, `${type} was still accepted`).toBe(false);
+      if (ack.ok) continue;
+      expect(ack.code).toBe('INVALID');
+      // A plain sentence, not a schema dump: no "zod", no "expected", no path.
+      expect(ack.message).toMatch(/removed/i);
+      expect(ack.message.length).toBeLessThan(160);
+    }
 
-    // must() only waits for the team's own view. Views are deliberately capped
-    // at ten a second (SPEC section 9), so the dashboard can still be one behind.
-    const version = ack?.ok === true ? ack.version : 0;
-    await game.instructor.waitForView(
-      (view) => (view['version'] as number) >= version,
-      'the dashboard to catch up',
-    );
-    const teams = game.instructor.view['teams'] as Array<{
-      teamId: string;
-      huddleRecorded: boolean;
-    }>;
-    expect(teams.find((team) => team.teamId === game.teams[0]?.teamId)?.huddleRecorded).toBe(true);
-  });
-
-  it('refuses a reason over 140 characters', async () => {
-    const game = await openGame(harness);
-    await startPractice(game);
-
-    const ack = await game.teams[0]?.send('recordHuddle', {
-      suggestions: [],
-      reason: 'x'.repeat(141),
-    });
-
-    expect(ack?.ok).toBe(false);
-  });
-
-  it('asks for the decision before the guess', async () => {
-    const game = await openGame(harness);
-    await startPractice(game);
-
-    const tooEarly = await game.teams[0]?.send('submitPrediction', {
-      othersTenths: [383, 383],
-      trust: 4,
-    });
-    expect(tooEarly?.ok).toBe(false);
-    if (!tooEarly || tooEarly.ok) return;
-    expect(tooEarly.message).toMatch(/Submit your own number first/);
-
-    await game.teams[0]?.must('submitDecision', { tenths: 383 });
-    await game.teams[0]?.must('submitPrediction', { othersTenths: [383, 400], trust: 4 });
-
-    expect(game.teams[0]?.view['prediction']).toMatchObject({
-      othersTenths: [383, 400],
-      trust: 4,
-    });
-  });
-
-  it('keeps a trust score inside 1 to 5', async () => {
-    const game = await openGame(harness);
-    await startPractice(game);
-    await game.teams[0]?.must('submitDecision', { tenths: 383 });
-
-    const ack = await game.teams[0]?.send('submitPrediction', {
-      othersTenths: [383, 383],
-      trust: 9,
-    });
-
-    expect(ack?.ok).toBe(false);
+    // And nothing reached the state.
+    const state = harness.server.store.get(game.session.sessionId);
+    expect(state?.messages).toEqual([]);
   });
 });
 

@@ -80,43 +80,42 @@ test.describe('F2 - a whole game in nine browsers', () => {
       // In the lobby it shows the join address and the table cards (SPEC 8.5).
       await expect(projector.page.locator('.projector-url')).toContainText('/join');
       await expect(projector.page.getByRole('heading', { name: /Find your table/i })).toBeVisible();
+      // The lobby strip says what the room is doing and nothing else: there is
+      // no messaging to report before anyone has joined.
+      await expect(
+        projector.page.getByRole('group', { name: 'Where the game is' }),
+      ).toContainText('WELCOME');
 
       // --- nine groups join ------------------------------------------------
 
       for (const team of lesson.teams) {
         terminals.push(await claimTeam(browser, lesson, team, ['Ada', 'Ben', 'Cleo']));
       }
-      // The dashboard says all nine are connected.
-      for (const team of lesson.teams) {
-        await expect(
-          dash.locator(`.team-row:has-text("${team.joinCode}")`).locator('.team-row-status'),
-        ).toContainText('Connected');
-      }
+      // Step 3 of the start screen counts them, so the teacher can see at a
+      // glance that the room is ready.
+      await expect(dash.getByText(`${String(WORLDS * 3)} of ${String(WORLDS * 3)} connected`)).toBeVisible();
+      await expect(dash.getByText('Every computer is connected.')).toBeVisible();
 
-      // --- the briefing and the quick check --------------------------------
+      // --- the briefing -----------------------------------------------------
 
-      expect(await bigButtonLabel(dash)).toBe('Start the briefing');
+      expect(await bigButtonLabel(dash)).toBe('Start briefing');
       await pressBigButton(dash);
       const first = terminals[0];
       if (!first) throw new Error('no terminal');
-      await expect(first.page.getByText('Briefing, screen 1 of 4')).toBeVisible();
+      await expect(first.page.getByText('Briefing \u00b7 Screen 1 of 4')).toBeVisible();
+      // There is nothing to click on a briefing screen any more.
+      await expect(first.page.locator('.briefing-body button')).toHaveCount(0);
 
       await pressUntil(dash, /^Start the practice year$/);
-      await expect(first.page.getByText('Briefing, screen 4 of 4')).toBeVisible();
-
-      // The quick check is on the last briefing screen, with instant feedback
-      // and no marking (SPEC 8.3).
-      const check = first.page.getByRole('heading', { name: 'Quick check' });
-      await expect(check).toBeVisible();
-      const firstQuestion = first.page.locator('.check-list > li').first();
-      await firstQuestion.getByRole('button').first().click();
-      await expect(firstQuestion.locator('.check-feedback')).not.toHaveText('');
+      await expect(first.page.getByText('Briefing \u00b7 Screen 4 of 4')).toBeVisible();
 
       // --- the practice year ------------------------------------------------
 
       await pressBigButton(dash);
       await Promise.all(terminals.map((terminal) => waitForYear(terminal, 'PRACTICE')));
-      await expect(first.page.getByText('This is the practice year')).toBeVisible();
+      await expect(
+        first.page.getByText('This year does not count towards your score.'),
+      ).toBeVisible();
 
       await Promise.all(
         terminals.map((terminal, index) => submitDecision(terminal, formatted(380 + index))),
@@ -127,11 +126,11 @@ test.describe('F2 - a whole game in nine browsers', () => {
       // Every terminal sees the practice reveal, with a price and a sentence.
       await Promise.all(
         terminals.map(async (terminal) => {
-          await expect(terminal.page.locator('.reveal-price')).toBeVisible();
+          await expect(terminal.page.locator('.obs-value').first()).toBeVisible();
         }),
       );
       // And so does the projector, because projectorShowsPrices is on.
-      await expect(projector.page.locator('.price-list')).toBeVisible();
+      await expect(projector.page.locator('.projector-price').first()).toBeVisible();
 
       // --- every year, with real input --------------------------------------
 
@@ -148,21 +147,15 @@ test.describe('F2 - a whole game in nine browsers', () => {
           terminals.map((terminal) => waitForYear(terminal, `Year ${String(year)}`)),
         );
 
-        // The new producer arrives in Year 9 and is announced, so the news
-        // reaches every terminal and the room screen.
-        if (year === 9) {
-          await expect(first.page.getByText(/Another producer has started selling/)).toBeVisible();
-          await expect(
-            projector.page.getByText(/Another producer has started selling/),
-          ).toBeVisible();
-        }
-
-        // The final-year warning was given before the last year opened.
+        // The final-year warning was given before the last year opened, and
+        // the projector says so too.
         if (year === YEARS) {
           await expect(
             first.page.getByText('Your teacher says this is the final year'),
           ).toBeVisible();
-          await expect(dash.locator('.phase-controls')).toBeVisible();
+          await expect(
+            projector.page.getByRole('group', { name: 'Where the game is' }),
+          ).toContainText('FINAL YEAR');
         }
 
         // One terminal is reloaded mid-year with a number typed but not sent.
@@ -188,20 +181,27 @@ test.describe('F2 - a whole game in nine browsers', () => {
         await pressUntil(dash, new RegExp(`^Close Year ${String(year)}$`));
         await pressBigButton(dash);
         await Promise.all(
-          terminals.map((terminal) => expect(terminal.page.locator('.reveal-price')).toBeVisible()),
+          terminals.map((terminal) =>
+            expect(terminal.page.locator('.obs-value').first()).toBeVisible(),
+          ),
         );
 
-        // A chat window follows Year 3 and Year 10; a summit follows Year 7.
+        // A messaging window follows Year 3 and Year 10; a summit follows
+        // Year 7. The window is the switch now, not a phase of its own.
         const label = await bigButtonLabel(dash);
-        if (/^Open chat window/.test(label)) {
+        if (/^Turn messaging on/.test(label)) {
           await pressBigButton(dash);
           await Promise.all(
             terminals.map((terminal) =>
-              expect(terminal.page.getByRole('heading', { name: 'Chat window' })).toBeVisible(),
+              expect(terminal.page.locator('.messages-state')).toContainText('Messaging is on'),
             ),
           );
+          // The room is told, and told how long is left.
+          await expect(
+            projector.page.getByRole('group', { name: 'Where the game is' }),
+          ).toContainText('ON');
 
-          // One group writes a message, another promises a number, and both
+          // Two groups write, including a promise in plain words, and both
           // reach the other countries in their own world.
           const writer = terminals[0];
           const promiser = terminals[1];
@@ -215,19 +215,17 @@ test.describe('F2 - a whole game in nine browsers', () => {
           chatted = true;
 
           if (!pledged) {
-            await promiser.page.getByLabel('Promise a number (million barrels)').fill('38.3');
-            await promiser.page.getByRole('button', { name: 'Send our promise' }).click();
-            await expect(sameWorld.page.locator('.message-list')).toContainText(
-              'We will produce 38.3 million barrels.',
-            );
-            await expect(
-              sameWorld.page.locator('.message-list .message-tag', { hasText: 'promise' }),
-            ).toBeVisible();
+            const promise = 'We will produce 38.3 million barrels.';
+            await promiser.page
+              .getByLabel('Write to the other countries in your world')
+              .fill(promise);
+            await promiser.page.getByRole('button', { name: 'Send', exact: true }).click();
+            await expect(sameWorld.page.locator('.message-list')).toContainText(promise);
             pledged = true;
           }
 
-          // A world's chat is that world's own: the next world never sees it,
-          // anywhere on its screen.
+          // A world's messages are that world's own: the next world never sees
+          // them, anywhere on its screen.
           const otherWorld = terminals.find(
             (terminal) => terminal.worldNumber !== writer.worldNumber,
           );
@@ -237,21 +235,25 @@ test.describe('F2 - a whole game in nine browsers', () => {
             'We will produce 38.3 million barrels.',
           );
 
+          // Turning it off is the next step, and then the input is gone.
+          expect(await bigButtonLabel(dash)).toBe('Turn messaging off');
           await pressBigButton(dash);
+          await expect(
+            writer.page.getByLabel('Write to the other countries in your world'),
+          ).toHaveCount(0);
+          await expect(writer.page.locator('.message-list')).toContainText(text);
         } else if (/^Hold the summit/.test(label)) {
           await pressBigButton(dash);
           await Promise.all(
             terminals.map((terminal) =>
-              expect(
-                terminal.page.getByRole('heading', { name: 'Envoys: go to the meeting point' }),
-              ).toBeVisible(),
+              expect(terminal.page.getByText(/go to the meeting point/)).toBeVisible(),
             ),
           );
           await pressBigButton(dash);
         }
       }
 
-      expect(chatted, 'no chat window was ever opened').toBe(true);
+      expect(chatted, 'messaging was never turned on').toBe(true);
       expect(pledged, 'no promise was ever made').toBe(true);
 
       // --- the end, and the reflections -------------------------------------
@@ -266,7 +268,7 @@ test.describe('F2 - a whole game in nine browsers', () => {
       await Promise.all(
         terminals.map(async (terminal) => {
           await expect(
-            terminal.page.getByRole('heading', { name: 'The game has finished' }),
+            terminal.page.getByRole('heading', { name: 'Three questions' }),
           ).toBeVisible();
           // Nothing about another world yet (SPEC section 7).
           await expect(
@@ -309,11 +311,11 @@ test.describe('F2 - a whole game in nine browsers', () => {
       ).toBeVisible();
 
       await expect(dash.getByRole('heading', { name: 'Debrief' })).toBeVisible();
-      const tabs = dash.getByRole('navigation', { name: 'Debrief screens' });
+      const tabs = dash.getByRole('tablist', { name: 'Debrief screens' });
 
       for (const name of DEBRIEF_SCREENS) {
         const title = TITLES[name];
-        await tabs.getByRole('button', { name: title }).click();
+        await tabs.getByRole('tab', { name: title }).click();
         // Each screen names itself in its own heading, which is how the test
         // knows the right one is up: the tab titles are short labels, and the
         // headings are the sentences the teacher reads out.
@@ -464,7 +466,7 @@ async function reloadMidYear(terminals: TeamScreen[], year: number): Promise<voi
   if (!terminal) throw new Error('no terminal to reload');
   const typed = '41.7';
 
-  const field = terminal.page.getByLabel(/How many million barrels will .+ produce\?/);
+  const field = terminal.page.getByRole('textbox', { name: 'Million barrels' });
   await field.fill(typed);
   await expect(field).toHaveValue(typed);
 
@@ -472,16 +474,15 @@ async function reloadMidYear(terminals: TeamScreen[], year: number): Promise<voi
   await terminal.page.reload();
 
   // The same country, within five seconds.
-  await expect(terminal.page.locator('.terminal-label')).toHaveText(terminal.label, {
-    timeout: 5000,
-  });
-  await expect(terminal.page.locator('.terminal-year')).toHaveText(`Year ${String(year)}`);
+  await expect(terminal.page.locator('.team-country')).toHaveText(
+    terminal.label.replace(/^World \d+ - /, '').replace(/ \([ABC]\)$/, ''),
+    { timeout: 5000 },
+  );
+  await expect(terminal.page.locator('.team-year')).toHaveText(String(year));
   expect(Date.now() - startedAt).toBeLessThan(5000);
 
   // And the number is still there.
-  await expect(terminal.page.getByLabel(/How many million barrels will .+ produce\?/)).toHaveValue(
-    typed,
-  );
+  await expect(terminal.page.getByRole('textbox', { name: 'Million barrels' })).toHaveValue(typed);
 }
 
 /**
@@ -502,26 +503,26 @@ async function restartMidYear(
 
   const dash = instructor.page;
   // The dashboard comes back by itself and says what happened (SPEC section 9).
-  await expect(dash.locator('.phase-paused')).toHaveText('Resumed after restart - press Resume', {
+  await expect(dash.locator('.phase-paused')).toHaveText('Resumed after restart - press Resume.', {
     timeout: 60_000,
   });
-  await expect(dash.locator('.terminal-status, .phase-where')).toBeVisible();
+  await expect(dash.locator('.dash-year')).toHaveText(String(year));
 
   // Every terminal comes back as itself, on the right year, with its number.
   for (const terminal of terminals) {
-    await expect(terminal.page.locator('.terminal-status')).toContainText('Connected', {
+    await expect(terminal.page.locator('.team-status')).toContainText('Connected', {
       timeout: 60_000,
     });
-    await expect(terminal.page.locator('.terminal-year')).toHaveText(`Year ${String(year)}`);
+    await expect(terminal.page.locator('.team-year')).toHaveText(String(year));
     const value = sent.get(terminal.teamId)?.get(year);
     expect(value).toBeDefined();
-    await expect(terminal.page.locator('.decision-state')).toContainText(
-      `Submitted ${String(value)} million barrels`,
+    await expect(terminal.page.locator('.decision-done')).toContainText(
+      `Submitted: ${String(value)} million barrels.`,
     );
   }
 
   // So does the projector.
-  await expect(projector.page.locator('.projector-year')).toHaveText(`Year ${String(year)}`, {
+  await expect(projector.page.locator('.projector-year')).toHaveText(String(year), {
     timeout: 60_000,
   });
 

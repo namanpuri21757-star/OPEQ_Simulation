@@ -167,23 +167,7 @@ export class TeamBot {
     if (this.strategy === 'flaky') await this.reconnect();
 
     const tenths = this.decide();
-
-    await this.client.send('recordHuddle', {
-      suggestions: [
-        { name: 'Ada', tenths },
-        { name: 'Ben', tenths: Math.max(0, tenths - 20) },
-      ],
-      reason: 'We talked it over and this felt fair.',
-    });
-
     const ack = await this.client.send('submitDecision', { tenths });
-
-    if (ack.ok) {
-      await this.client.send('submitPrediction', {
-        othersTenths: [this.cooperativeShareTenths(), this.cooperativeShareTenths()],
-        trust: this.strategy === 'cooperative' ? 5 : 2,
-      });
-    }
 
     if (this.strategy === 'lateSubmitter') {
       // A group that keeps tinkering: the last number before closing counts.
@@ -192,14 +176,20 @@ export class TeamBot {
     return ack;
   }
 
-  /** What a bot says during a chat window or a summit. */
+  /** True when this bot's own world may send a message right now (SPEC 6). */
+  canSendMessage(): boolean {
+    const messaging = this.client.view['messaging'] as { on: boolean } | undefined;
+    return messaging?.on === true && this.client.view['muted'] !== true;
+  }
+
+  /** What a bot says while messaging is on. */
   async talk(): Promise<void> {
-    const share = this.cooperativeShareTenths();
     if (this.strategy === 'competitive' || this.strategy === 'random') {
       await this.client.send('sendMessage', { text: 'We will do what is best for us.' });
       return;
     }
-    await this.client.send('sendPledge', { tenths: share });
+    const share = (this.cooperativeShareTenths() / 10).toFixed(1);
+    await this.client.send('sendMessage', { text: `We will produce ${share} million barrels.` });
   }
 
   async reflect(): Promise<void> {

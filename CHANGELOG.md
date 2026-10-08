@@ -6,6 +6,62 @@ This project follows [semantic versioning](https://semver.org): the version
 before 1.0.0 was never released to anyone, so the entries below describe how the
 app was built rather than how it changed for a user.
 
+## 2.0.0 — 2026-10-08
+
+The clarity release. Nine features were removed and every screen was redesigned
+around one rule, now written into `docs/SPEC.md` as section 8.0:
+
+> Every element on a screen must answer a question the user has at that moment.
+> If it does not, it is not on the screen.
+
+The game is unchanged. The price rule, the costs, the timers, the number of
+years, the practice year, auto-fill, the disclosure modes, the unannounced new
+producer, the final-year warning, the summit, persistence and reconnection all
+behave exactly as they did in 1.0.0.
+
+### Removed
+
+From the team terminal: the briefing quick check; the Huddle panel; the
+waiting-time predictions and trust rating, and the debrief charts and exports
+built on them; the What-if calculator; the News panel and every news banner; the
+"Promised" and "Promise kept?" columns and the structured pledge behind them;
+and the Analyst role.
+
+From the teacher's screens: the Announcement button, and the Change demand
+button with the demand-event setting.
+
+Each removal took its tests with it, as an authorised spec change. What it
+dragged out with it - the chat mode setting, the decision box's steppers and
+slider, the v1 dark theme, the dashboard's "Things to look at" list - is listed
+in the Changelog at the end of `docs/SPEC.md` and argued in
+`docs/DECISIONS.md`.
+
+### Added
+
+- **One messaging switch.** Held per world, off by default, with its own command
+  (`setMessaging`) and its own test file. Turning it on asks how long and which
+  worlds; it turns itself off when the time runs out; the plan's scheduled
+  windows arrive as the suggested next step and leave exactly the same state as
+  the switch does.
+- **`src/client/theme.css`.** Every colour, space, rule weight, font stack and
+  type size in one file. Six colours, one light theme, a visible grid of 1px
+  rules, and monospace tabular figures for every number on every screen.
+- **Two teacher screens instead of one.** A start screen of five numbered steps
+  before the lesson, a live screen during it, and the lesson settings on a page
+  of their own.
+- **`docs/screenshots/v2/`**, filled by `tests/e2e/screenshots.spec.ts`: every
+  main screen at 1280x800, and the projector at 1920x1080.
+
+### Changed
+
+- Exports are four CSV files plus the JSON, not six plus the JSON.
+- `messages.csv` is World, Year, Letter, Country, Text and Sent at.
+- Debrief question 9 asks how a group agreed on its number rather than whose
+  huddle suggestion won, because the huddle table that answered it is gone.
+- A session saved by 1.0.0 still opens: everything removed is dropped on the way
+  in, and an event-log line for a command that no longer exists is skipped
+  without a warning (`tests/integration/v1-sessions.test.ts`).
+
 ## 1.0.0 — 2026-10-07
 
 The first version meant for a real classroom. Everything an instructor needs to

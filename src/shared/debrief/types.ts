@@ -23,9 +23,6 @@ export const DEBRIEF_SCREENS = [
 ] as const;
 export type DebriefScreen = (typeof DEBRIEF_SCREENS)[number];
 
-/** A pledge counts as kept when the actual output is this close to it. */
-export const PLEDGE_TOLERANCE_TENTHS = 5;
-
 /**
  * How far above its cooperative share a country may produce and still count as
  * cooperating, in whole percent. The break-year rule uses it.
@@ -48,10 +45,6 @@ export interface DebriefCountryYear {
   shareTenths: number;
   /** How far above that share this country produced, in whole percent. */
   aboveSharePct: number;
-  /** The latest pledge this country made before the year closed. */
-  pledgeTenths: number | null;
-  /** null when there was no pledge to keep. */
-  pledgeKept: boolean | null;
 }
 
 export interface DebriefYear {
@@ -84,7 +77,7 @@ export interface DebriefBreak {
   note: string;
 }
 
-export type DebriefMarkerKind = 'chat' | 'summit' | 'newProducer' | 'demand' | 'finalYear';
+export type DebriefMarkerKind = 'chat' | 'summit' | 'newProducer' | 'finalYear';
 
 /** A moment worth labelling on a chart. */
 export interface DebriefMarker {
@@ -96,48 +89,12 @@ export interface DebriefMarker {
 
 export interface DebriefMessage {
   messageId: string;
-  kind: 'chat' | 'pledge' | 'announcement';
-  letter: CountryLetter | null;
-  countryName: string | null;
+  letter: CountryLetter;
+  countryName: string;
   text: string;
   at: number;
-  /** Set on a pledge: the number promised, in tenths. */
-  tenths?: number;
   /** The year this message came before, or null when no year followed it. */
   year: number | null;
-  /** On a pledge with a year after it: whether that country kept it. */
-  kept: boolean | null;
-  actualTenths: number | null;
-}
-
-export interface DebriefPrediction {
-  year: number;
-  /** The team's guess for the other two countries added together. */
-  predictedTenths: number;
-  actualTenths: number;
-  /** How far out the guess was, always positive. */
-  errorTenths: number;
-  trust: number;
-}
-
-export interface DebriefHuddleSuggestion {
-  name: string;
-  tenths: number;
-  /** True when the group's decision ended up being this suggestion. */
-  matched: boolean;
-}
-
-export interface DebriefHuddleRow {
-  year: number;
-  decisionTenths: number;
-  reason: string;
-  suggestions: DebriefHuddleSuggestion[];
-}
-
-export interface DebriefMemberMatch {
-  name: string;
-  suggestions: number;
-  matched: number;
 }
 
 export interface DebriefCountry {
@@ -148,15 +105,8 @@ export interface DebriefCountry {
   label: string;
   members: string[];
   cumulativeProfitK: number;
-  pledgesMade: number;
-  pledgesKept: number;
-  predictions: DebriefPrediction[];
-  /** The average size of a prediction error, or null with no predictions. */
-  meanPredictionErrorTenths: number | null;
-  /** The average trust score in tenths (35 means 3.5), or null. */
-  averageTrustTenths: number | null;
-  huddles: DebriefHuddleRow[];
-  memberMatches: DebriefMemberMatch[];
+  /** How many messages this country sent, across every window. */
+  messagesSent: number;
   reflection: string[] | null;
 }
 

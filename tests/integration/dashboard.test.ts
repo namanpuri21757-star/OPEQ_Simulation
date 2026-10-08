@@ -209,8 +209,9 @@ describe('what the dashboard is sent', () => {
     expect(row?.connected).toBe(false);
   });
 
-  it('keeps each world’s chat in its own feed', async () => {
-    const game = await openGame(harness, { settings: { worlds: 2, chatMode: 'always' } });
+  it('keeps each world’s messages in its own feed', async () => {
+    const game = await openGame(harness, { settings: { worlds: 2 } });
+    await game.instructor.must('setMessaging', { on: true });
     const world1 = game.world(1);
     const world2 = game.world(2);
 
@@ -388,13 +389,14 @@ describe('a whole game run from the suggested button', () => {
     // The labels the teacher actually read, in order. Every scheduled step from
     // SPEC section 4 has to be among them.
     const labels = teacher.steps;
-    expect(labels[0]).toBe('Start the briefing');
+    expect(labels[0]).toBe('Start briefing');
     for (const label of [
       'Start the practice year',
       'Close the practice year',
       'Start Year 1',
       'Close Year 1',
-      'Open chat window (5 s)',
+      'Turn messaging on for 5 s',
+      'Turn messaging off',
       'Hold the summit (5 s)',
       'Announce the final year',
       'Close Year 12',

@@ -113,25 +113,6 @@ export interface TakeoverRequest {
   token: string;
 }
 
-export interface HuddleSuggestion {
-  name: string;
-  tenths: number;
-}
-
-export interface HuddleRecord {
-  suggestions: HuddleSuggestion[];
-  reason: string;
-  at: number;
-}
-
-export interface PredictionRecord {
-  /** The team's guess for the other two countries, in the order they appear. */
-  othersTenths: number[];
-  /** How much the team trusts any agreement in its world, 1 to 5. */
-  trust: number;
-  at: number;
-}
-
 export interface ReflectionRecord {
   answers: string[];
   at: number;
@@ -149,38 +130,35 @@ export interface TeamState {
   token: string | null;
   muted: boolean;
   pendingTakeover: TakeoverRequest | null;
-  huddles: Record<number, HuddleRecord>;
-  predictions: Record<number, PredictionRecord>;
   reflection: ReflectionRecord | null;
   lastMessageAt: number | null;
 }
 
-export type MessageKind = 'chat' | 'pledge' | 'announcement';
-
+/**
+ * One message in a world channel.
+ *
+ * Every message is a plain line typed by one country and read by the other two
+ * in its world. v2 has no announcements and no structured pledges, so there is
+ * nothing left to tell messages apart by.
+ */
 export interface MessageRecord {
   messageId: string;
-  /** null on an announcement that went to every world. */
-  worldId: string | null;
-  /** null on an instructor announcement. */
-  teamId: string | null;
-  letter: CountryLetter | null;
-  kind: MessageKind;
+  worldId: string;
+  teamId: string;
+  letter: CountryLetter;
   text: string;
-  /** Set on a pledge: the number the team promised, in tenths. */
-  tenths?: number;
   at: number;
 }
 
-export type NewsKind = 'newProducer' | 'demand' | 'finalYear' | 'note';
-
-/** Public news, shown on terminals and the projector. */
-export interface NewsRecord {
-  newsId: string;
-  kind: NewsKind;
-  worldId: string | null;
-  year: number;
-  text: string;
-  at: number;
+/**
+ * One world's open messaging window.
+ *
+ * A world with no entry cannot send messages. `until` is when it closes by
+ * itself; null means it stays open until the teacher turns it off.
+ */
+export interface MessagingWindow {
+  until: number | null;
+  startedAt: number;
 }
 
 export interface OverrideRecord {
@@ -193,7 +171,7 @@ export interface OverrideRecord {
 }
 
 export interface FiredEventRecord {
-  kind: 'newProducer' | 'demand';
+  kind: 'newProducer';
   /** The year the event starts to bite. */
   year: number;
   at: number;
@@ -275,7 +253,8 @@ export interface SessionState {
   worlds: WorldState[];
   teams: Record<string, TeamState>;
   messages: MessageRecord[];
-  news: NewsRecord[];
+  /** Open messaging windows, keyed by worldId. Absent means off (SPEC 6). */
+  messaging: Record<string, MessagingWindow>;
   overrides: OverrideRecord[];
   firedEvents: FiredEventRecord[];
   networkChecks: Record<string, NetworkCheckRecord>;

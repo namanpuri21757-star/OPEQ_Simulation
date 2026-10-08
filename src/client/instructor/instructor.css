@@ -1,539 +1,491 @@
 /*
- * The instructor screens. Wider than a team terminal, because a teacher is
- * looking at nine countries at once, and still readable at 1024x768.
+ * The teacher's two screens: the start page before the lesson and the live page
+ * during it (SPEC 8.4).
  *
- * Everything here uses the spacing and type scale from styles.css, so the
- * dashboard and the terminals look like one piece of software.
+ * Both are built from the ruled grid in theme.css. This file only places things:
+ * the card sheet, the connection grid, the messaging switch and the per-world
+ * results columns.
  */
 
-.page-instructor {
-  max-width: 88rem;
+/* --- the header band both screens share -------------------------------- */
+.teacher-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s6) 0 var(--s5);
 }
 
-.page-instructor-start {
-  max-width: 44rem;
+.teacher-title {
+  font-size: var(--t-display);
 }
 
-.instructor-header {
+.teacher-facts {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.teacher-corner {
+  display: flex;
+  gap: var(--s4);
+  padding: var(--s4) 0 0;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+/* --- a numbered step box ------------------------------------------------ */
+.step-title {
+  font-size: var(--t-section);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* --- the nine team cards on the start screen ---------------------------- */
+.card-sheet {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: var(--s4);
+  border: var(--rule-line);
+}
+
+.card-sheet > * {
+  border-right: var(--rule-line);
+  border-bottom: var(--rule-line);
+}
+
+.card-sheet > *:nth-child(3n) {
+  border-right: 0;
+}
+
+.card-sheet > *:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+.team-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4);
+}
+
+.team-card-code {
+  display: block;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.team-card-qr {
+  width: 4.5rem;
+  flex: 0 0 auto;
+}
+
+.team-card-where {
+  display: block;
+  font-size: var(--t-label);
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* --- the 3 x 3 connection grid ------------------------------------------ */
+.connect-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: var(--s4);
+  border: var(--rule-line);
+}
+
+.connect-grid > * {
+  padding: var(--s3) var(--s4);
+  border-right: var(--rule-line);
+  border-bottom: var(--rule-line);
+  font-size: var(--t-small);
+}
+
+.connect-grid > *:nth-child(3n) {
+  border-right: 0;
+}
+
+.connect-grid > *:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+/* --- the plan, as numbered one-liners ---------------------------------- */
+.plan {
+  margin: var(--s4) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: plan;
+}
+
+.plan li {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-top: var(--rule-faint);
+  counter-increment: plan;
+}
+
+.plan li::before {
+  content: counter(plan);
+  flex: 0 0 1.5rem;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.plan-minutes {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* --- the next step ----------------------------------------------------- */
+.next-step {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  gap: var(--s5);
 }
 
-.instructor-header h1 {
-  margin-bottom: var(--space-1);
+.next-step-main {
+  flex: 1 1 20rem;
 }
 
-.instructor-header-actions {
+.next-step-what {
+  margin-top: var(--s2);
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+/* --- the messaging switch ---------------------------------------------- */
+.switch {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--s4);
 }
 
-.instructor-header-actions .button {
-  text-decoration: none;
-}
-
-/* --- the phase bar ------------------------------------------------------- */
-
-.phase-bar {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 2fr);
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: 2px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--panel);
-  margin-bottom: var(--space-3);
-}
-
-@media (max-width: 56rem) {
-  .phase-bar {
-    grid-template-columns: 1fr;
-  }
-}
-
-.phase-name {
-  font-size: var(--text-lead);
+.switch-state {
+  font-family: var(--mono);
+  font-size: 2.25rem;
   font-weight: 600;
-  margin: 0;
+  line-height: 1;
 }
 
-.phase-year {
-  font-size: var(--text-h1);
-  font-weight: 700;
+.switch-on {
+  color: var(--good);
+}
+
+.switch-off {
+  color: var(--muted);
+}
+
+.switch-label {
+  font-size: var(--t-section);
+  color: var(--ink);
+}
+
+.messaging-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s5);
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: var(--rule-faint);
+}
+
+.choice-group {
+  border: 0;
   margin: 0;
+  padding: 0;
+  min-width: 12rem;
+}
+
+.choice-group legend {
+  padding: 0 0 var(--s2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--t-small);
+}
+
+.messaging-clocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s5);
+  margin-top: var(--s4);
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
 }
 
-.phase-paused {
-  color: var(--focus);
-  font-weight: 600;
-  margin: var(--space-1) 0 0;
-}
-
-.phase-next {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.phase-next .button {
-  width: 100%;
-}
-
-/* The secondary controls sit under both columns, smaller and grouped, so the
-   one suggested action is never competing with eight others. */
-.phase-controls {
-  grid-column: 1 / -1;
+/* --- world tabs over the message feeds --------------------------------- */
+.tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--line);
+  gap: 0;
+  margin-top: var(--s3);
 }
 
-.shortcuts {
-  color: var(--ink-soft);
-  font-size: var(--text-small);
-  margin: 0 0 var(--space-3);
+.tab {
+  padding: var(--s2) var(--s4);
+  border: var(--rule-line);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
-kbd {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: 0.9em;
-  padding: 0.1em 0.4em;
-  border: 1px solid var(--line);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: var(--paper);
+.tab + .tab {
+  border-left: 0;
 }
 
-/* --- alerts -------------------------------------------------------------- */
-
-.alerts {
-  margin-bottom: var(--space-3);
+.tab[aria-selected='true'] {
+  background: var(--ink);
+  color: var(--cream);
 }
 
-.alert-list {
-  list-style: none;
+.feed {
   margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
+  padding: var(--s3) 0 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  list-style: none;
+  font-size: var(--t-small);
 }
 
-.alert {
-  padding: var(--space-2) var(--space-3);
-  border-left: 8px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--paper);
+.feed li {
+  padding: var(--s2) 0;
+  border-top: var(--rule-faint);
 }
 
-.alert-alert {
-  border-left-color: var(--bad);
-  font-weight: 600;
+.feed-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
 }
 
-.alert-warning {
-  border-left-color: var(--focus);
-}
-
-.alert-info {
-  border-left-color: var(--accent);
-}
-
-/* --- the grid ------------------------------------------------------------ */
-
-.grid-panel {
-  margin-bottom: var(--space-3);
-}
-
-.grid-table {
-  border-collapse: collapse;
+/* --- the countries grid ------------------------------------------------- */
+.countries {
   width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--s4);
 }
 
-.grid-table th,
-.grid-table td {
-  border: 1px solid var(--line);
-  padding: var(--space-2);
+.countries th,
+.countries td {
+  padding: var(--s3);
+  border: var(--rule-faint);
   text-align: left;
   vertical-align: top;
 }
 
-.grid-table thead th {
-  background: var(--paper);
+.countries thead th {
+  background: var(--ink-wash);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
 }
 
-.grid-table tbody th {
-  background: var(--paper);
-  white-space: nowrap;
-}
-
-.grid-country {
-  display: block;
-  font-weight: 600;
-}
-
-.grid-cell {
-  min-width: 13rem;
-}
-
-.grid-status {
-  margin: 0;
-  font-size: var(--text-small);
-}
-
-.grid-status-offline,
-.grid-status-unclaimed {
-  color: var(--ink-soft);
-}
-
-.grid-status-connected {
-  color: var(--good);
-}
-
-.grid-decision {
-  margin: var(--space-1) 0 0;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.grid-decision-in {
-  color: var(--good);
-}
-
-.grid-time {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: var(--text-small);
-  font-variant-numeric: tabular-nums;
-}
-
-.grid-marks {
-  list-style: none;
+.cell-line {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 0;
-  padding: 0;
-  font-size: var(--text-small);
+  align-items: baseline;
+  gap: var(--s2);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
-.grid-marks li {
-  padding: 0 var(--space-1);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-}
-
-.grid-mark-muted {
-  border-color: var(--bad);
+.cell-problem {
+  font-family: var(--sans);
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
   color: var(--bad);
 }
 
-.grid-actions {
+.cell-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
+  gap: var(--s2);
+  margin-top: var(--s2);
 }
 
-/* The cell buttons name their country for a screen reader, so the visible
-   label is shortened to the verb and the rest is read from the row header. */
-.grid-actions .button,
-.chat-mutes .button,
-.team-row-actions .button {
-  font-size: var(--text-small);
-  min-height: 2.25rem;
-  padding: var(--space-1) var(--space-2);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cell-actions .btn {
+  padding: var(--s1) var(--s2);
+  font-size: 0.6875rem;
 }
 
-/* --- the lobby ----------------------------------------------------------- */
-
-.lobby-panel {
-  margin-bottom: var(--space-3);
-}
-
-.join-invite {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-  justify-content: space-between;
-}
-
-.join-invite-lead {
-  margin: 0;
-  color: var(--ink-soft);
-}
-
-.join-url {
-  font-size: var(--text-h1);
-  font-weight: 700;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.qr {
-  display: block;
-}
-
-.qr-paper {
-  fill: #ffffff;
-}
-
-.qr-ink {
-  fill: #000000;
-}
-
-.qr-large {
-  width: 12rem;
-  height: 12rem;
-}
-
-.lobby-world h3 {
-  margin: var(--space-4) 0 var(--space-2);
-}
-
-.team-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* --- per-world results columns ----------------------------------------- */
+.world-results {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--s5);
+  grid-template-columns: 1fr;
 }
 
-.team-row {
+/* Two across on a laptop: six columns of figures do not fit in a third of a
+ * 1280-pixel screen, and a price that scrolls out of sight is a price nobody
+ * reads. */
+@media (min-width: 60rem) {
+  .world-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 100rem) {
+  .world-results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* --- the footer -------------------------------------------------------- */
+.teacher-footer {
+  padding: var(--s5) 0 0;
+  font-size: var(--t-label);
+  color: var(--muted);
+}
+
+.teacher-footer kbd {
+  font-family: var(--mono);
+  padding: 0 var(--s1);
+  border: var(--rule-faint);
+}
+
+/* --- starting over, kept out of the way -------------------------------- */
+.danger {
+  padding: var(--s5) 0 0;
+  font-size: var(--t-label);
+  color: var(--muted);
+}
+
+.danger > summary {
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.danger .btn-row {
+  margin-top: var(--s3);
+}
+
+/* --- the dashboard's own link, kept out of the way --------------------- */
+.own-link {
+  padding: var(--s4) 0 0;
+  font-size: var(--t-label);
+  color: var(--muted);
+}
+
+.own-link > summary {
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.own-link-url {
+  margin-top: var(--s2);
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+/* --- the settings page -------------------------------------------------- */
+.settings-grid {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) 6rem 9rem 9rem minmax(8rem, 1fr) auto;
-  gap: var(--space-2);
-  align-items: center;
-  padding: var(--space-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  gap: var(--s5);
+  grid-template-columns: 1fr;
 }
 
-@media (max-width: 64rem) {
-  .team-row {
+@media (min-width: 60rem) {
+  .settings-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-.team-row-code {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: var(--text-lead);
-  letter-spacing: 0.1em;
-}
-
-.team-row-connected .team-row-status {
-  color: var(--good);
-}
-
-.team-row-offline .team-row-status {
-  color: var(--bad);
-}
-
-.team-row-unclaimed .team-row-status {
-  color: var(--ink-soft);
-}
-
-/* Never colour alone (SPEC section 9): the cell always spells the result out. */
-.team-row-check-ok {
-  color: var(--good);
-}
-
-.team-row-check-slow {
-  color: var(--bad);
-}
-
-.team-row-check-none {
-  color: var(--ink-soft);
-}
-
-.team-row-actions {
+.preset {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  justify-content: flex-end;
-}
-
-/* --- the setup form ------------------------------------------------------ */
-
-.setup {
-  margin-bottom: var(--space-3);
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-top: var(--rule-faint);
+  font-size: var(--t-small);
 }
 
 .presets {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-3);
-  margin: 0 0 var(--space-3);
-}
-
-.preset {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-1) 0;
-}
-
-.preset .hint {
-  display: block;
+  border: 0;
   margin: 0;
+  padding: 0;
+}
+
+.presets legend {
+  padding: 0 0 var(--s2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
 }
 
 .field-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--s3);
 }
 
 .field-number {
   width: 7rem;
-  text-align: right;
+  padding: var(--s2) var(--s3);
+  border: var(--rule-line);
+  background: var(--cream);
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-}
-
-.field-text {
-  width: 100%;
-  max-width: 28rem;
+  text-align: right;
 }
 
 .field-unit {
-  color: var(--ink-soft);
-  font-size: var(--text-small);
+  font-size: var(--t-label);
+  color: var(--muted);
 }
 
-.field-check {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
+.settings-section {
+  margin-top: var(--s5);
 }
 
-.field-check > label {
-  font-weight: 400;
-  margin: 0;
-}
-
-.field-check .hint {
-  flex-basis: 100%;
-}
-
-.field .problem,
-.field .hint {
-  display: block;
-}
-
-.advanced,
-.danger {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-3);
-  margin-bottom: var(--space-3);
-  background: var(--panel);
-}
-
-.advanced > summary,
-.danger > summary,
-.own-link > summary {
+.settings-section > summary {
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
   cursor: pointer;
-  font-weight: 600;
 }
 
-.settings-group {
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--line);
-}
-
-.schedule {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-3);
-}
-
-.schedule-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.schedule-row .field {
-  margin-bottom: 0;
-}
-
-.preview-points {
+.settings-fields {
   display: grid;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-}
-
-.preview-points dt {
-  font-weight: 600;
-}
-
-.preview-points dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-/* --- chat feeds ---------------------------------------------------------- */
-
-.chat-panel {
-  margin-bottom: var(--space-3);
-}
-
-.chat-feeds {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  gap: var(--space-3);
-}
-
-.chat-feed {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-2);
-}
-
-.chat-mutes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-bottom: var(--space-2);
-}
-
-.chat-feed .message-list {
-  max-height: 18rem;
-  overflow-y: auto;
-}
-
-.totals {
-  font-variant-numeric: tabular-nums;
-}
-
-.own-link-url {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  overflow-wrap: anywhere;
-}
-
-/* --- the check page ------------------------------------------------------ */
-
-.page-check {
-  max-width: 44rem;
-}
-
-.check-result {
-  margin-top: var(--space-3);
+  gap: var(--s4);
+  margin-top: var(--s4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }

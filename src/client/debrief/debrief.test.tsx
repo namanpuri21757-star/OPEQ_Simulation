@@ -67,26 +67,25 @@ describe('World Detail', () => {
 
   it('labels the moments that matter on the chart', () => {
     render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={1} />);
-    expect(screen.getByText(/Chat after Year 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Messaging on after Year 2/)).toBeInTheDocument();
   });
 
-  it('marks a promise kept and a promise broken', () => {
+  it('lists what was said, with the year each message came before', () => {
     render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={1} />);
     const timeline = screen.getByRole('list', { name: 'Message timeline' });
     expect(within(timeline).getAllByRole('listitem')).toHaveLength(3);
-    expect(screen.getByText(/did not: produced 75.0/)).toBeInTheDocument();
-    expect(screen.getByText(/kept it: produced 38.3/)).toBeInTheDocument();
+    expect(within(timeline).getByText('Shall we all keep to an equal share?')).toBeInTheDocument();
+    expect(within(timeline).getAllByText('before Year 3').length).toBe(2);
+    // No promise column: whether a country kept its word is read off the table.
+    expect(screen.queryByText(/kept it: produced/)).toBeNull();
+    expect(screen.queryByText('Promises kept, by country')).toBeNull();
   });
 
-  it('shows the guesses and the huddles', () => {
+  it('counts the messages each country sent beside its total profit', () => {
     render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={1} />);
-    const guesses = tableNamed(/Guesses against what really happened/);
-    expect(within(guesses).getByRole('row', { name: /Borvia/ }).textContent).toContain('5');
-
-    const huddles = tableNamed(/Huddle suggestions against the number the group sent/);
-    expect(within(huddles).getByRole('row', { name: /Ardonia/ }).textContent).toContain(
-      'Ada 75.0 (this one)',
-    );
+    const table = tableNamed(/Each country in this world/);
+    expect(within(table).getByRole('row', { name: /Ardonia/ }).textContent).toContain('1');
+    expect(within(table).getByRole('row', { name: /Cendra/ }).textContent).toContain('0');
   });
 
   it('shows the world asked for, not always the first one', () => {
@@ -94,9 +93,8 @@ describe('World Detail', () => {
     expect(screen.getByRole('heading', { level: 2 }).textContent).toContain('World 2');
   });
 
-  it('says so kindly when a group recorded nothing', () => {
+  it('says so kindly when nobody in the world spoke', () => {
     render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={2} />);
-    expect(screen.getByText(/No group in this world recorded a huddle/)).toBeInTheDocument();
     expect(screen.getByText(/Nobody in this world sent a message/)).toBeInTheDocument();
   });
 });

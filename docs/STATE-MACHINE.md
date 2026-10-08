@@ -25,7 +25,7 @@ Do not edit by hand: a unit test fails if this file and the code disagree.
 | closeYear | PRACTICE_OPEN | PRACTICE_REVEAL | Locks practice, fills missing decisions and resolves every world. |
 | closeYear | YEAR_OPEN | YEAR_REVEAL | Locks the year, fills missing decisions and resolves every world. |
 | openYear | PRACTICE_REVEAL, YEAR_REVEAL, BETWEEN | YEAR_OPEN | Opens the next scored year. Only ever the year after the current one. |
-| startBetween | YEAR_REVEAL | BETWEEN | Runs a chat window or a face-to-face summit on a timer. |
+| startBetween | YEAR_REVEAL | BETWEEN | Runs a face-to-face summit on a timer, while the room moves. |
 | endBetween | BETWEEN | YEAR_REVEAL | Ends the activity and goes back to the reveal of the year it followed. |
 | endGame | LOBBY, BRIEFING, PRACTICE_OPEN, PRACTICE_REVEAL, YEAR_OPEN, YEAR_REVEAL, BETWEEN | ENDED | Ends the game. Any year still open is dropped and never scored. |
 | resetSession | LOBBY, BRIEFING, PRACTICE_OPEN, PRACTICE_REVEAL, YEAR_OPEN, YEAR_REVEAL, BETWEEN, ENDED | LOBBY | Clears every decision, outcome and message. Teams keep their codes. |
@@ -38,7 +38,7 @@ Do not edit by hand: a unit test fails if this file and the code disagree.
 | pause | PRACTICE_OPEN, YEAR_OPEN, BETWEEN | Keeps the remaining time. |
 | resume | PRACTICE_OPEN, YEAR_OPEN, BETWEEN | Rebuilds the deadline. |
 | extend | PRACTICE_OPEN, YEAR_OPEN, BETWEEN | Adds 1 to 600 seconds. |
-| announce | any phase | To every world or to one. |
+| setMessaging | any phase | Turns messaging on or off, for every world or for some of them. |
 | fireEvent | PRACTICE_REVEAL, YEAR_REVEAL, BETWEEN | Between years only. Takes effect in the next year. |
 | announceFinalYear | PRACTICE_REVEAL, YEAR_REVEAL, BETWEEN | Only when the next year is the last one. |
 | overrideDecision | PRACTICE_OPEN, YEAR_OPEN | Open year only. A reason is required and is logged. |
@@ -53,11 +53,8 @@ Do not edit by hand: a unit test fails if this file and the code disagree.
 | claimTeam | any phase | A terminal takes a country. |
 | setMembers | any phase | First names, 1 to 4. |
 | submitDecision | PRACTICE_OPEN, YEAR_OPEN | Can be changed until the year closes. The last one counts. |
-| recordHuddle | PRACTICE_OPEN, YEAR_OPEN | Private to the team and instructor. |
-| submitPrediction | PRACTICE_OPEN, YEAR_OPEN | Only after submitting. |
 | submitReflection | ENDED | Three questions at the end. |
-| sendMessage | any phase | Subject to the chat mode and mute. |
-| sendPledge | any phase | A promise, compared at the reveal. |
+| sendMessage | any phase | Only while this world’s messaging window is open, and not when muted. |
 | report | any phase | A network check result. |
 
 ## Timers and pausing

@@ -6,6 +6,7 @@ import CheckPage from './check/CheckPage';
 import CardsPage from './instructor/CardsPage';
 import InstructorPage from './instructor/InstructorPage';
 import MaterialsPage from './instructor/MaterialsPage';
+import SettingsPage from './instructor/SettingsPage';
 import SummaryPage from './instructor/SummaryPage';
 import Join from './pages/Join';
 import Landing from './pages/Landing';
@@ -15,14 +16,15 @@ import TeamTerminal from './team/TeamTerminal';
 /** Every route in SPEC section 8, so a link or a reload always lands somewhere
  * sensible. The debrief itself lives on the dashboard; the two pages beside it
  * here are the printable ones. */
-function Placeholder({ title }: { title: string }) {
+function NotFound() {
   return (
-    <main className="page">
-      <h1>{APP_NAME}</h1>
-      <p className="tagline">{APP_TAGLINE}</p>
-      <section className="panel">
-        <h2>{title}</h2>
-        <p>Setup in progress</p>
+    <main className="sheet">
+      <header className="teacher-band">
+        <h1 className="teacher-title">{APP_NAME}</h1>
+      </header>
+      <section className="box">
+        <p className="lede">{APP_TAGLINE}</p>
+        <p className="note">That page does not exist. Try the address your teacher gave you.</p>
       </section>
     </main>
   );
@@ -63,11 +65,12 @@ export default function App() {
       />
       <Route path="/instructor" element={<InstructorPage />} />
       <Route path="/instructor/cards" element={<CardsPage />} />
+      <Route path="/instructor/settings" element={<SettingsPage />} />
       <Route path="/instructor/summary" element={<SummaryPage />} />
       <Route path="/instructor/materials" element={<MaterialsPage />} />
       <Route path="/projector/:id" element={<ProjectorPage />} />
       <Route path="/check" element={<CheckPage />} />
-      <Route path="*" element={<Placeholder title="Page not found" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

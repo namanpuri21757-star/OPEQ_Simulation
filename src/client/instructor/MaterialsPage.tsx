@@ -56,11 +56,11 @@ export function Materials({ settings, live }: MaterialsProps) {
   const showing = docs.filter((doc) => wanted === null || doc.slug === wanted);
 
   return (
-    <main className="page page-materials">
+    <main className="sheet page-materials">
       <header className="materials-toolbar">
         <div>
           <h1>{APP_NAME} materials</h1>
-          <p className="hint">
+          <p className="note">
             {live
               ? 'Every number below comes from the settings of the game on this computer.'
               : 'No game is open on this computer, so these use the standard settings.'}

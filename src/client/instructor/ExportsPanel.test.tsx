@@ -12,12 +12,12 @@ import { ExportsPanel } from './ExportsPanel';
  * file name, and that nothing here tries to build a file in the browser.
  */
 describe('the downloads', () => {
-  it('offers all seven files', () => {
+  it('offers all five files', () => {
     render(<ExportsPanel view={instructorView({ phase: 'ENDED' })} />);
     for (const file of EXPORT_FILES) {
       expect(screen.getByRole('link', { name: file.label })).toBeInTheDocument();
     }
-    expect(screen.getAllByRole('link')).toHaveLength(7);
+    expect(screen.getAllByRole('link')).toHaveLength(5);
   });
 
   it('points each link at this session, with the instructor key', () => {

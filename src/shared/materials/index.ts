@@ -16,7 +16,7 @@ import type { MaterialDoc } from './types.js';
 
 export * from './types.js';
 export { markdownFor, MATERIALS_NOTE } from './markdown.js';
-export { agendaMinutes, agendaRows, type AgendaRow } from './agenda.js';
+export { agendaMinutes, agendaRows, classPlan, type AgendaRow } from './agenda.js';
 
 /** Every material, in the order a teacher meets them. */
 export function materialsFor(settings: Settings): MaterialDoc[] {

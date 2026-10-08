@@ -23,7 +23,6 @@ import {
   floorDiv,
   roundDiv,
   roundHalfAwayFromZero,
-  toCents,
   toTenths,
 } from './integers.js';
 import { randomIntInclusive, seededRng } from './rng.js';
@@ -80,14 +79,6 @@ export function applyVariance(
   return clamp(clamp(shifted, lowest, highest), 0, capacityTenths);
 }
 
-/** The highest price (a) for a year in cents, after any demand event. */
-export function effectiveA(year: number, settings: Settings): number {
-  const { aCents } = economicUnits(settings);
-  const event = settings.demandEvent;
-  if (!event.enabled || year < 1 || year < event.year) return aCents;
-  return aCents + toCents(event.deltaA);
-}
-
 /** The new producer's output in tenths: 0 until the year it enters. */
 export function newProducerTenths(year: number, settings: Settings): number {
   const np = settings.newProducer;
@@ -138,23 +129,21 @@ export interface WorldYearOutcome {
 /** The parts of a year that the plain-sentence explanation is allowed to use. */
 export interface ExplainInputs {
   aCents: number;
-  demandEventApplied: boolean;
-  demandEventAnnounced: boolean;
   newProducerAnnounced: boolean;
 }
 
 /**
  * Settles one world for one year.
  *
- * The practice year counts as year 0, so neither the new producer nor a demand
- * event can appear in it: both are scheduled for a numbered year.
+ * The practice year counts as year 0, so the new producer can never appear in
+ * it: it is scheduled for a numbered year.
  */
 export function resolveWorldYear(input: ResolveWorldYearInput): WorldYearOutcome {
   const { settings, sessionSeed, worldId, isPractice } = input;
   const year = isPractice ? PRACTICE_YEAR : input.year;
   const units: EconomicUnits = economicUnits(settings);
 
-  const aCents = effectiveA(year, settings);
+  const aCents = units.aCents;
   const qn = newProducerTenths(year, settings);
 
   const actual = {} as Record<CountryLetter, number>;
@@ -183,7 +172,6 @@ export function resolveWorldYear(input: ResolveWorldYearInput): WorldYearOutcome
     };
   }
 
-  const event = settings.demandEvent;
   return {
     year,
     isPractice,
@@ -197,8 +185,6 @@ export function resolveWorldYear(input: ResolveWorldYearInput): WorldYearOutcome
       costCents: units.costCents,
       capacityTenths: units.capacityTenths,
       variancePct: settings.variancePct,
-      demandEventApplied: event.enabled && year >= 1 && year >= event.year,
-      demandEventAnnounced: event.announced,
       newProducerAnnounced: settings.newProducer.announced,
     },
   };
@@ -223,10 +209,10 @@ interface Dollars {
   capacityTenths: number;
 }
 
-function dollars(settings: Settings, year: number): Dollars {
+function dollars(settings: Settings): Dollars {
   const units = economicUnits(settings);
   return {
-    a: effectiveA(year, settings) / 100,
+    a: units.aCents / 100,
     b: units.bHundredths / 100,
     c: units.costCents / 100,
     capacityTenths: units.capacityTenths,
@@ -240,20 +226,16 @@ function dollars(settings: Settings, year: number): Dollars {
  * othersTenths is all other supply in the world, so it has to include the new
  * producer in the years it is there.
  */
-export function bestResponseRawTenths(
-  othersTenths: number,
-  settings: Settings,
-  year: number,
-): number {
-  const { a, b, c } = dollars(settings, year);
+export function bestResponseRawTenths(othersTenths: number, settings: Settings): number {
+  const { a, b, c } = dollars(settings);
   const q = (a - c - b * (othersTenths / 10)) / (2 * b);
   return roundHalfAwayFromZero(q * 10);
 }
 
 /** The best response a country can actually produce: clamped to [0, capacity]. */
-export function bestResponseTenths(othersTenths: number, settings: Settings, year: number): number {
-  const { capacityTenths } = dollars(settings, year);
-  return clamp(bestResponseRawTenths(othersTenths, settings, year), 0, capacityTenths);
+export function bestResponseTenths(othersTenths: number, settings: Settings): number {
+  const { capacityTenths } = dollars(settings);
+  return clamp(bestResponseRawTenths(othersTenths, settings), 0, capacityTenths);
 }
 
 export interface SymmetricOutcome {
@@ -273,11 +255,11 @@ export interface SymmetricOutcome {
  * other two at once gives q = (a - c - b * Qn) / (4b).
  */
 export function competitiveOutcome(settings: Settings, year: number): SymmetricOutcome {
-  const { a, b, c, capacityTenths } = dollars(settings, year);
+  const { a, b, c, capacityTenths } = dollars(settings);
   const qn = newProducerTenths(year, settings);
   const q = (a - c - b * (qn / 10)) / (4 * b);
   const eachTenths = clamp(roundHalfAwayFromZero(q * 10), 0, capacityTenths);
-  return symmetric(eachTenths, qn, settings, year);
+  return symmetric(eachTenths, qn, settings);
 }
 
 export interface CooperativeOutcome {
@@ -299,13 +281,13 @@ export interface CooperativeOutcome {
  * jointMax = (max(0, a - b * (Q* + Qn)) - c) * Q*.
  */
 export function cooperativeMax(settings: Settings, year: number): CooperativeOutcome {
-  const { a, b, c, capacityTenths } = dollars(settings, year);
+  const { a, b, c, capacityTenths } = dollars(settings);
   const units = economicUnits(settings);
   const qn = newProducerTenths(year, settings);
   const q = (a - c - b * (qn / 10)) / (2 * b);
   const totalTenths = clamp(roundHalfAwayFromZero(q * 10), 0, 3 * capacityTenths);
 
-  const price = priceCents(totalTenths + qn, effectiveA(year, settings), units.bHundredths);
+  const price = priceCents(totalTenths + qn, units.aCents, units.bHundredths);
   const shareTenths = clamp(roundHalfAwayFromZero(totalTenths / 3), 0, capacityTenths);
 
   return {
@@ -314,20 +296,15 @@ export function cooperativeMax(settings: Settings, year: number): CooperativeOut
     newProducerTenths: qn,
     priceCents: price,
     jointMaxK: profitK(price, units.costCents, totalTenths),
-    equalShares: symmetric(shareTenths, qn, settings, year),
+    equalShares: symmetric(shareTenths, qn, settings),
   };
 }
 
 /** Price and profit when all three countries produce the same amount. */
-function symmetric(
-  eachTenths: number,
-  qn: number,
-  settings: Settings,
-  year: number,
-): SymmetricOutcome {
+function symmetric(eachTenths: number, qn: number, settings: Settings): SymmetricOutcome {
   const units = economicUnits(settings);
   const totalTenths = eachTenths * 3 + qn;
-  const price = priceCents(totalTenths, effectiveA(year, settings), units.bHundredths);
+  const price = priceCents(totalTenths, units.aCents, units.bHundredths);
   const each = profitK(price, units.costCents, eachTenths);
   return {
     eachTenths,
@@ -349,8 +326,6 @@ export interface PriceSnapshot {
   /** All supply in the world, the new producer included. */
   totalTenths: number;
   newProducerTenths: number;
-  demandEventApplied: boolean;
-  demandEventAnnounced: boolean;
   newProducerAnnounced: boolean;
 }
 
@@ -360,8 +335,6 @@ export function snapshotOf(outcome: WorldYearOutcome): PriceSnapshot {
     priceCents: outcome.priceCents,
     totalTenths: outcome.totalTenths,
     newProducerTenths: outcome.newProducerTenths,
-    demandEventApplied: outcome.inputs.demandEventApplied,
-    demandEventAnnounced: outcome.inputs.demandEventAnnounced,
     newProducerAnnounced: outcome.inputs.newProducerAnnounced,
   };
 }
@@ -370,10 +343,9 @@ export function snapshotOf(outcome: WorldYearOutcome): PriceSnapshot {
  * One plain sentence about why the price moved.
  *
  * It only ever uses what the recipient is allowed to know: under priceOnly the
- * world total is private, so no reason is given at all; a demand event is named
- * only when it was announced; the new producer is named only when it was
- * announced. Under full and totalOnly the world total is public either way, so
- * quoting the change in supply gives nothing away.
+ * world total is private, so no reason is given at all, and the new producer is
+ * named only when it was announced. Under full and totalOnly the world total is
+ * public either way, so quoting the change in supply gives nothing away.
  */
 export function explainChange(
   previous: PriceSnapshot | null,
@@ -407,10 +379,6 @@ function reasonsFor(previous: PriceSnapshot, current: PriceSnapshot): string[] {
     reasons.push(
       `world supply ${direction} ${formatQuantity(Math.abs(supplyDelta))} million barrels`,
     );
-  }
-
-  if (current.demandEventApplied && !previous.demandEventApplied && current.demandEventAnnounced) {
-    reasons.push('the news changed how much the world wants to buy');
   }
 
   if (current.newProducerAnnounced && current.newProducerTenths > previous.newProducerTenths) {

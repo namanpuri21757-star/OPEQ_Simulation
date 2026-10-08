@@ -28,7 +28,7 @@ import type {
 } from './debrief/types.js';
 
 export * from './debrief/types.js';
-export { percentOf, pledgeKept } from './debrief/world.js';
+export { percentOf } from './debrief/world.js';
 export { THEORY_YEAR, theoryFor } from './debrief/theory.js';
 export { questionsFor } from './debrief/questions.js';
 
@@ -170,12 +170,10 @@ export function debriefFor(state: SessionState): DebriefData {
  * room sees that world's - and nothing of the other worlds', and nothing that no
  * screen ever draws.
  *
- * What is always taken out:
- *  - every reflection, which no debrief screen shows and which is the most
- *    personal thing a student writes,
- *  - every huddle reason, which no debrief screen shows either.
- * What is taken out unless this is the world on screen:
- *  - messages, predictions, huddles, and the members' first names.
+ * What is always taken out: every reflection, which no debrief screen shows and
+ * which is the most personal thing a student writes.
+ * What is taken out unless this is the world on screen: its messages and its
+ * members' first names.
  */
 export function debriefForProjector(
   data: DebriefData,
@@ -200,9 +198,6 @@ export function debriefForProjector(
         countries: world.countries.map((country) => ({
           ...country,
           members: onScreen ? country.members : [],
-          predictions: onScreen ? country.predictions : [],
-          huddles: onScreen ? country.huddles.map((row) => ({ ...row, reason: '' })) : [],
-          memberMatches: onScreen ? country.memberMatches : [],
           reflection: null,
         })),
       };

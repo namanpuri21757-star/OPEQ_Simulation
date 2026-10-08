@@ -1,5 +1,5 @@
 /**
- * The exports (SPEC 8.4): six CSV files and one full JSON file.
+ * The exports (SPEC 8.4): four CSV files and one full JSON file.
  *
  * Pure functions of the session state, so a test can compare an export with the
  * stored outcomes directly and the server only has to add the HTTP headers.
@@ -10,7 +10,7 @@
  */
 
 import { COUNTRY_LETTERS, COUNTRY_NAMES, type CountryLetter } from './constants.js';
-import { csvDocument, isoTime, yesNo, yesNoBlank } from './csv.js';
+import { csvDocument, isoTime, yesNo } from './csv.js';
 import { debriefFor } from './debrief.js';
 import { cooperativeMax } from './engine/engine.js';
 import { teamIdFor, yearLabel } from './labels.js';
@@ -125,111 +125,26 @@ export function outcomesCsv(state: SessionState): string {
   );
 }
 
-/** Every message, with each pledge marked kept or broken. */
+/** Every message, tagged with the year it came before. */
 export function messagesCsv(state: SessionState): string {
   const debrief = debriefFor(state);
   const rows: string[][] = [];
 
   for (const world of debrief.worlds) {
     for (const message of world.messages) {
-      // An announcement went to every world, so it appears once per world; the
-      // World column says which room was reading it.
       rows.push([
         String(world.worldNumber),
         message.year === null ? '' : String(message.year),
-        message.kind,
-        message.letter ?? '',
-        message.countryName ?? 'Instructor',
+        message.letter,
+        message.countryName,
         message.text,
-        message.tenths === undefined ? '' : quantityNumber(message.tenths),
-        message.actualTenths === null ? '' : quantityNumber(message.actualTenths),
-        yesNoBlank(message.kept),
         isoTime(message.at),
       ]);
     }
   }
 
   return csvDocument(
-    [
-      'World',
-      'Year it came before',
-      'Kind',
-      'Letter',
-      'Who wrote it',
-      'Text',
-      'Promised (million barrels)',
-      'Actual output (million barrels)',
-      'Promise kept',
-      'Sent at (UTC)',
-    ],
-    rows,
-  );
-}
-
-/** What each group expected the other two to produce, and how much it trusted them. */
-export function predictionsCsv(state: SessionState): string {
-  const debrief = debriefFor(state);
-  const rows = debrief.worlds.flatMap((world) =>
-    world.countries.flatMap((country) =>
-      country.predictions.map((row) => [
-        String(world.worldNumber),
-        country.letter,
-        country.countryName,
-        String(row.year),
-        quantityNumber(row.predictedTenths),
-        quantityNumber(row.actualTenths),
-        quantityNumber(row.errorTenths),
-        String(row.trust),
-      ]),
-    ),
-  );
-  return csvDocument(
-    [
-      'World',
-      'Letter',
-      'Country',
-      'Year',
-      'Guess for the other two (million barrels)',
-      'What they really produced (million barrels)',
-      'How far out (million barrels)',
-      'Trust (1 to 5)',
-    ],
-    rows,
-  );
-}
-
-/** Each member's suggestion beside the number the group actually sent. */
-export function huddlesCsv(state: SessionState): string {
-  const debrief = debriefFor(state);
-  const rows = debrief.worlds.flatMap((world) =>
-    world.countries.flatMap((country) =>
-      country.huddles.flatMap((huddle) =>
-        huddle.suggestions.map((suggestion) => [
-          String(world.worldNumber),
-          country.letter,
-          country.countryName,
-          String(huddle.year),
-          suggestion.name,
-          quantityNumber(suggestion.tenths),
-          quantityNumber(huddle.decisionTenths),
-          yesNo(suggestion.matched),
-          huddle.reason,
-        ]),
-      ),
-    ),
-  );
-  return csvDocument(
-    [
-      'World',
-      'Letter',
-      'Country',
-      'Year',
-      'Member',
-      'Suggested (million barrels)',
-      'Group decision (million barrels)',
-      'Suggestion became the decision',
-      'Reason the group gave',
-    ],
+    ['World', 'Year it came before', 'Letter', 'Who wrote it', 'Text', 'Sent at (UTC)'],
     rows,
   );
 }
@@ -299,20 +214,15 @@ export function fullJson(state: SessionState): string {
       members: team.members,
       claimed: team.claimed,
       muted: team.muted,
-      huddles: team.huddles,
-      predictions: team.predictions,
       reflection: team.reflection,
     })),
     messages: state.messages.map((message) => ({
       worldNumber:
         state.worlds.find((world) => world.worldId === message.worldId)?.worldNumber ?? null,
-      kind: message.kind,
       letter: message.letter,
       text: message.text,
-      ...(message.tenths === undefined ? {} : { tenths: message.tenths }),
       at: isoTime(message.at),
     })),
-    news: state.news,
     overrides: state.overrides.map((override) => ({
       ...override,
       at: isoTime(override.at),
@@ -325,8 +235,7 @@ export function fullJson(state: SessionState): string {
   return `${JSON.stringify(bundle, null, 2)}\n`;
 }
 
-export type ExportName =
-  'decisions' | 'outcomes' | 'messages' | 'predictions' | 'huddles' | 'reflections' | 'session';
+export type ExportName = 'decisions' | 'outcomes' | 'messages' | 'reflections' | 'session';
 
 export interface ExportFile {
   name: ExportName;
@@ -338,7 +247,7 @@ export interface ExportFile {
   build(state: SessionState): string;
 }
 
-/** The seven files, in the order the buttons appear. */
+/** The five files, in the order the buttons appear. */
 export const EXPORT_FILES: readonly ExportFile[] = [
   {
     name: 'decisions',
@@ -357,23 +266,9 @@ export const EXPORT_FILES: readonly ExportFile[] = [
   {
     name: 'messages',
     fileName: 'messages.csv',
-    label: 'Messages and promises (CSV)',
+    label: 'Messages (CSV)',
     contentType: 'text/csv; charset=utf-8',
     build: messagesCsv,
-  },
-  {
-    name: 'predictions',
-    fileName: 'predictions.csv',
-    label: 'Guesses and trust (CSV)',
-    contentType: 'text/csv; charset=utf-8',
-    build: predictionsCsv,
-  },
-  {
-    name: 'huddles',
-    fileName: 'huddles.csv',
-    label: 'Huddles (CSV)',
-    contentType: 'text/csv; charset=utf-8',
-    build: huddlesCsv,
   },
   {
     name: 'reflections',

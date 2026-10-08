@@ -25,7 +25,7 @@ export default function CardsPage({ store }: CardsPageProps) {
 
   if (saved === null) {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">
           Open your dashboard first, then come back here. The cards are built from the game running
@@ -48,7 +48,7 @@ function Cards() {
 
   if (view === null || view.kind !== 'instructor') {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">Getting the codes...</p>
       </main>
@@ -67,7 +67,7 @@ export function TeamCards({ view }: { view: InstructorView }) {
     <main className="cards-page">
       <div className="cards-toolbar">
         <h1>Team cards</h1>
-        <p className="hint">
+        <p className="note">
           {`${String(teams.length)} cards, four to a page. Cut them up and put one on each table.`}
         </p>
         <Button tone="primary" onClick={() => window.print()}>

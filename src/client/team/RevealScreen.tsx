@@ -1,142 +1,146 @@
 import { formatPrice, formatProfitK, formatQuantity } from '@shared/units';
-import type { CountryLineView, RevealView, TeamView } from '@shared/views';
-import { Badge, DataTable } from '../ui';
+import type { RevealView, TeamView } from '@shared/views';
+import type { SendCommand } from '../net';
+import { DataTable, type Say } from '../ui';
 import { HistoryPanel } from './HistoryPanel';
-import { NewsPanel } from './NewsPanel';
+import { MessagesPanel } from './MessagesPanel';
 
 /**
  * The result of a year (SPEC 8.3).
  *
- * The price is the biggest thing on the screen, and right under it is one plain
- * sentence saying what changed and why. The sentence is written on the server, by
- * the same function for every world, and already leaves out anything this team is
- * not allowed to know.
+ * The price is the headline, and right under it is one plain sentence saying
+ * what changed and why. The sentence is written on the server, by the same
+ * function for every world, and already leaves out anything this team is not
+ * allowed to know.
  *
  * Which columns appear is likewise the server's decision: under totalOnly and
- * priceOnly the other countries' outputs simply are not in the view.
+ * priceOnly the other countries' outputs simply are not in the view. There are
+ * no promise columns any more - a promise was a plain message, and the message
+ * list is where to read it.
+ *
+ * The messages box is here as well as on the year screen, because a messaging
+ * window is opened between years: this screen is what a group is sitting in
+ * front of when the teacher turns the switch on.
  */
-function promise(line: CountryLineView): string {
-  if (line.pledgeTenths === null) return 'no promise';
-  return `${formatQuantity(line.pledgeTenths)} promised`;
-}
-
-function keptWords(line: CountryLineView): string {
-  if (line.pledgeTenths === null || line.actualTenths === null) return '-';
-  const difference = line.actualTenths - line.pledgeTenths;
-  if (difference === 0) return 'kept its promise';
-  if (difference > 0) return `produced ${formatQuantity(difference)} more than promised`;
-  return `produced ${formatQuantity(-difference)} less than promised`;
+export interface RevealScreenProps {
+  view: TeamView;
+  send: SendCommand;
+  onSaid?: Say | undefined;
+  serverNow?: (() => number) | undefined;
 }
 
 function PriceHeadline({ reveal }: { reveal: RevealView }) {
   const change = reveal.priceChangeCents;
   return (
-    <div className="reveal-price">
-      <p className="reveal-price-label">{`${reveal.label} price`}</p>
-      <p className="reveal-price-value">{formatPrice(reveal.priceCents)}</p>
-      <p className="reveal-price-unit">per barrel</p>
+    <>
+      <p className="obs-period">{reveal.label}</p>
+      <p>
+        <strong className="obs-value">{formatPrice(reveal.priceCents)}</strong>
+        <span className="obs-units">$ per barrel</span>
+      </p>
       {change !== null && change !== 0 && (
-        <p className="reveal-price-change">
-          {`${change > 0 ? 'Up' : 'Down'} ${formatPrice(Math.abs(change))} from last year`}
+        <p className={`obs-change ${change > 0 ? 'obs-up' : 'obs-down'}`}>
+          <span aria-hidden="true">{change > 0 ? '▲' : '▼'}</span>{' '}
+          {`${formatPrice(Math.abs(change))} from last year`}
         </p>
       )}
-    </div>
+    </>
   );
 }
 
-export function RevealScreen({ view }: { view: TeamView }) {
+export function RevealScreen({ view, send, onSaid, serverNow }: RevealScreenProps) {
   const reveal = view.reveal;
   if (reveal === null) {
     return (
-      <p className="waiting" role="status">
-        Waiting for your teacher to show the results.
-      </p>
+      <section className="box">
+        <p className="note" role="status">
+          Waiting for your teacher to show the results.
+        </p>
+      </section>
     );
   }
 
   const full = view.settings.disclosure === 'full';
-  const others = reveal.countries.filter((line) => line.letter !== view.letter);
 
   return (
-    <>
-      <section className="panel reveal" aria-labelledby="reveal-heading">
-        <h2 id="reveal-heading">{`${reveal.label} results`}</h2>
-        <PriceHeadline reveal={reveal} />
-        <p className="reveal-sentence" role="status">
-          {reveal.sentence}
-        </p>
+    <div className="cols cols-2">
+      <div className="stack">
+        <section className="box" aria-labelledby="reveal-heading">
+          <h2 className="visually-hidden" id="reveal-heading">
+            {`${reveal.label} results`}
+          </h2>
+          <PriceHeadline reveal={reveal} />
+          <p className="lede" role="status" style={{ marginTop: 'var(--s4)' }}>
+            {reveal.sentence}
+          </p>
 
-        <dl className="reveal-own">
-          <dt>You produced</dt>
-          <dd>
-            {`${formatQuantity(reveal.ownActualTenths)} million barrels`}
-            {reveal.ownAuto && <span className="tag"> filled in for you</span>}
-            {reveal.ownActualTenths !== reveal.ownTargetTenths && (
-              <span className="hint">{` (you asked for ${formatQuantity(reveal.ownTargetTenths)})`}</span>
+          <div className="facts">
+            <p>
+              <span className="fact-key">You produced</span>
+              <span className="fact-value">{formatQuantity(reveal.ownActualTenths)}</span>{' '}
+              <span className="obs-units">million barrels</span>
+              {reveal.ownAuto && <span className="auto-mark">auto</span>}
+            </p>
+            <p>
+              <span className="fact-key">Your profit this year</span>
+              <span className="fact-value">{formatProfitK(reveal.ownProfitK)}</span>
+            </p>
+            <p>
+              <span className="fact-key">Your total so far</span>
+              <span className="fact-value">
+                {reveal.isPractice ? 'not counted' : formatProfitK(reveal.cumulativeProfitK)}
+              </span>
+            </p>
+            {reveal.totalTenths !== null && (
+              <p>
+                <span className="fact-key">World production</span>
+                <span className="fact-value">{formatQuantity(reveal.totalTenths)}</span>{' '}
+                <span className="obs-units">million barrels</span>
+              </p>
             )}
-          </dd>
-          <dt>Your profit this year</dt>
-          <dd>{formatProfitK(reveal.ownProfitK)}</dd>
-          <dt>Your total so far</dt>
-          <dd>
-            {reveal.isPractice
-              ? 'the practice year does not count'
-              : formatProfitK(reveal.cumulativeProfitK)}
-          </dd>
-          {reveal.totalTenths !== null && (
-            <>
-              <dt>The whole world produced</dt>
-              <dd>{`${formatQuantity(reveal.totalTenths)} million barrels`}</dd>
-            </>
-          )}
-          {reveal.newProducerTenths !== null && reveal.newProducerTenths > 0 && (
-            <>
-              <dt>Other suppliers</dt>
-              <dd>{`${formatQuantity(reveal.newProducerTenths)} million barrels`}</dd>
-            </>
-          )}
-        </dl>
-      </section>
+          </div>
+        </section>
 
-      <section className="panel" aria-labelledby="world-heading">
-        <h2 id="world-heading">Your world this year</h2>
-        {full ? (
-          <DataTable
-            caption="What each country promised and what it produced"
-            columns={['Country', 'Promised', 'Produced', 'Promise kept?']}
-            rows={reveal.countries.map((line) => [
-              `${line.countryName} (${line.letter})${line.letter === view.letter ? ' - you' : ''}`,
-              line.pledgeTenths === null ? 'no promise' : formatQuantity(line.pledgeTenths),
-              line.actualTenths === null
-                ? 'not shown'
-                : `${formatQuantity(line.actualTenths)}${line.auto ? ' (auto)' : ''}`,
-              keptWords(line),
-            ])}
-          />
-        ) : (
-          <>
-            <p className="hint">
+        <section className="box" aria-labelledby="world-heading">
+          <div className="box-head">
+            <h2 id="world-heading">{`Your world in ${reveal.label}`}</h2>
+          </div>
+          {full ? (
+            <DataTable
+              caption="What each country produced"
+              columns={['Country', 'Produced (million barrels)', 'Profit']}
+              rows={reveal.countries.map((line) => [
+                `${line.countryName}${line.letter === view.letter ? ' (you)' : ''}`,
+                line.actualTenths === null ? 'not shown' : formatQuantity(line.actualTenths),
+                line.profitK === null ? 'only you see this' : formatProfitK(line.profitK),
+              ])}
+              hideCaption
+            />
+          ) : (
+            <p className="note">
               Your teacher has set this game so that you only see your own output. The price tells
               you what everyone did together.
             </p>
-            <ul className="promise-list">
-              {others.map((line) => (
-                <li key={line.letter}>
-                  <Badge letter={line.letter} size="small" />
-                  <span>{`${line.countryName}: ${promise(line)}`}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+          )}
+          {reveal.newProducerTenths !== null && reveal.newProducerTenths > 0 && (
+            <p className="note" style={{ marginTop: 'var(--s4)' }}>
+              {`Other suppliers: ${formatQuantity(reveal.newProducerTenths)} million barrels.`}
+            </p>
+          )}
+        </section>
 
-      <NewsPanel view={view} />
-      <HistoryPanel view={view} />
+        <HistoryPanel view={view} />
 
-      <p className="waiting" role="status">
-        Waiting for the next year.
-      </p>
-    </>
+        <section className="box">
+          <p className="note" role="status">
+            Waiting for the next year.
+          </p>
+        </section>
+      </div>
+
+      <div className="stack">
+        <MessagesPanel view={view} send={send} onSaid={onSaid} serverNow={serverNow} />
+      </div>
+    </div>
   );
 }

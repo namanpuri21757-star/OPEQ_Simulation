@@ -166,7 +166,10 @@ export async function createLesson(
   await page.getByRole('link', { name: 'I am the instructor' }).click();
 
   await page.getByRole('button', { name: 'Create session' }).click();
-  await expect(page.getByRole('heading', { name: 'Set the game up' })).toBeVisible();
+  // The start screen: five numbered steps, and the settings in the corner.
+  await expect(page.getByRole('heading', { name: 'Step 1 Print team cards' })).toBeVisible();
+  await page.getByRole('link', { name: 'Lesson settings' }).click();
+  await expect(page.getByRole('heading', { name: 'Lesson settings' })).toBeVisible();
 
   // The preset, then the worlds.
   await page.locator(`#preset-${preset}`).check();
@@ -191,6 +194,10 @@ export async function createLesson(
   await expect(
     page.getByRole('status').filter({ hasText: 'Settings saved.' }).first(),
   ).toBeVisible();
+
+  // Back to the screen the lesson is run from.
+  await page.getByRole('link', { name: 'Back to the start screen' }).click();
+  await expect(page.getByRole('heading', { name: 'Step 5 Start' })).toBeVisible();
 
   // The keys and the codes, read the way a teacher reads a printed card.
   const sessionId = await newestSessionId(server);
@@ -223,10 +230,21 @@ export async function newestSessionId(server: GameServer): Promise<string> {
   return newest.sessionId;
 }
 
-/** The label on the one big button right now. */
+/**
+ * The label on the one big button right now.
+ *
+ * Read with textContent rather than innerText, because the button's label is
+ * uppercased by CSS and innerText would hand back the shouted version. The
+ * arrow after the words is a visual affordance and not part of what the button
+ * says, so it is dropped too.
+ */
+export function readLabel(text: string | null): string {
+  return (text ?? '').replace(/▸/g, '').replace(/\s+/g, ' ').trim();
+}
+
 export async function bigButtonLabel(page: Page): Promise<string> {
   const button = page.getByRole('group', { name: 'The next step' }).getByRole('button');
-  return (await button.innerText()).trim();
+  return readLabel(await button.textContent());
 }
 
 /**
@@ -271,7 +289,7 @@ export async function pressBigButtonSaying(page: Page, expected?: string): Promi
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await expect(button).toBeEnabled();
-    const label = (await button.innerText()).trim();
+    const label = readLabel(await button.textContent());
     if (expected !== undefined && label !== expected) return null;
 
     await button.click();
@@ -350,14 +368,16 @@ export async function claimTeam(
 /** Types a number into the decision box and submits it, confirming. */
 export async function submitDecision(screen: TeamScreen, value: string): Promise<void> {
   const page = screen.page;
-  const field = page.getByLabel(/How many million barrels will .+ produce\?/);
+  const field = page.getByRole('textbox', { name: 'Million barrels' });
   await expect(field).toBeEnabled();
   await field.fill(value);
   await page.getByRole('button', { name: /^Submit( the new number)?$/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Yes, submit' }).click();
-  await expect(page.locator('.decision-state')).toContainText(`Submitted ${value} million barrels`);
+  await expect(page.locator('.decision-done')).toContainText(
+    `Submitted: ${value} million barrels.`,
+  );
 }
 
 /** Opens the decision box again, for a group that wants to change its mind. */
@@ -368,7 +388,8 @@ export async function reopenDecision(screen: TeamScreen): Promise<void> {
 
 /** Waits until this terminal is showing the year the dashboard has opened. */
 export async function waitForYear(screen: TeamScreen, label: string): Promise<void> {
-  await expect(screen.page.locator('.terminal-year')).toHaveText(label, { timeout: 30_000 });
+  const wanted = label === 'PRACTICE' ? 'PRACTICE' : label.replace('Year ', '');
+  await expect(screen.page.locator('.team-year')).toHaveText(wanted, { timeout: 30_000 });
 }
 
 /** Everything every screen complained about, as one list. */

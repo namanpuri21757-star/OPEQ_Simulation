@@ -82,7 +82,7 @@ skipped, no retries configured.
 | N3     | Two sessions in separate data folders                                         | Pass         |
 | F1     | Three simulated classes with different strategy mixes                         | Pass         |
 | F2     | A complete lesson in nine browsers, with a reload and a restart               | Pass         |
-| A1     | Accessibility: axe on twelve screens                                          | Pass         |
+| A1     | Accessibility: axe on thirteen screens                                          | Pass         |
 | A2     | Keyboard only: join, play a year, read the result, no mouse                   | Pass         |
 | S1     | Oversized payloads                                                            | Pass         |
 | S2     | A message containing HTML or a script tag                                     | Pass         |

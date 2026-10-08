@@ -7,7 +7,7 @@
  * see on the screen is the characters, no element is created, and no script
  * runs.
  *
- * It is tested through the chat panel because that is the only place one group's
+ * It is tested through the messages panel because that is the only place one group's
  * typing reaches another group's screen.
  */
 
@@ -44,14 +44,14 @@ test.describe('S2 - markup in a message', () => {
       const reader = terminals[1];
       if (!writer || !reader) throw new Error('missing terminals');
 
-      // Get to a chat window, which is the only time a group may write.
+      // Turn messaging on, which is the only time a group may write.
       await pressUntil(dash, /^Start the practice year$/);
       await pressBigButton(dash);
       await pressUntil(dash, /^Close the practice year$/);
       await pressBigButton(dash);
-      await pressUntil(dash, /^Open chat window/);
+      await pressUntil(dash, /^Turn messaging on/);
       await pressBigButton(dash);
-      await expect(writer.page.getByRole('heading', { name: 'Chat window' })).toBeVisible();
+      await expect(writer.page.locator('.messages-state')).toContainText('Messaging is on');
 
       for (const [index, attempt] of ATTEMPTS.entries()) {
         // One message per three seconds per team (SPEC section 6), so the
@@ -87,9 +87,9 @@ test.describe('S2 - markup in a message', () => {
         await from.page.waitForTimeout(3100);
       }
 
-      // The dashboard's chat feed shows them as characters too.
+      // The dashboard's message feed shows them as characters too.
       for (const attempt of ATTEMPTS) {
-        await expect(dash.locator('.chat-feeds')).toContainText(attempt);
+        await expect(dash.locator('.feed')).toContainText(attempt);
       }
 
       const problems = [writer, reader, lesson.instructor].flatMap((screen) => screen.problems);

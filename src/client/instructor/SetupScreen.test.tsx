@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ackFail, ackOk, type Ack } from '@shared/protocol';
@@ -14,7 +15,9 @@ function setup(ack?: Ack) {
   const send = sender(ack);
   const said = vi.fn();
   render(
-    <SetupScreen view={instructorView({ phase: 'LOBBY', year: 0 })} send={send} onSaid={said} />,
+    <MemoryRouter>
+      <SetupScreen view={instructorView({ phase: 'LOBBY', year: 0 })} send={send} onSaid={said} />
+    </MemoryRouter>,
   );
   return { send, said, user: userEvent.setup() };
 }
@@ -85,7 +88,9 @@ describe('the setup screen', () => {
     expect(
       await screen.findByText('That is not a number yet. Type digits, like 70 or 0.3.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'What these settings play like' })).toBeNull();
+    expect(
+      screen.getByText('The preview comes back as soon as every setting is a number the game can use.'),
+    ).toBeInTheDocument();
   });
 
   it('keeps a half-typed decimal exactly as typed', async () => {
@@ -144,13 +149,13 @@ describe('the setup screen', () => {
     expect(field('Practice year')).toHaveValue(String(PRESETS['short-50'].timers.practiceSeconds));
     // The number of worlds is the teacher's choice about the room, not the
     // preset's, so it survives.
-    expect(field('How many worlds?')).toHaveValue('3');
+    expect(field('Worlds')).toHaveValue('3');
   });
 
   it('gives the 25-student hint next to the worlds box', () => {
     setup();
     expect(
-      screen.getByText(/With 25 students, 3 worlds of 3 groups gives 9 groups of 2 or 3/),
+      screen.getByText(/With 25 students, 3 worlds gives 9 groups of 2 or 3/),
     ).toBeInTheDocument();
   });
 
@@ -163,7 +168,16 @@ describe('the setup screen', () => {
     }
   });
 
-  it('adds and removes a chat window', async () => {
+  it('has no chat mode and no demand event to set', async () => {
+    const { user } = setup();
+    await user.click(screen.getByText('Advanced settings'));
+
+    expect(screen.queryByLabelText(/When teams may send messages/)).toBeNull();
+    expect(screen.queryByLabelText(/Demand changes/)).toBeNull();
+    expect(screen.queryByLabelText(/What the news says/)).toBeNull();
+  });
+
+  it('adds and removes a messaging window', async () => {
     const { user } = setup();
     await user.click(screen.getByText('Advanced settings'));
 

@@ -36,12 +36,12 @@ What to ask after the last year, what classes usually do, and the numbers behind
 | 1 | Which world came closest to the cooperative maximum, and what did it do differently in Years 1 to 3? | LG1 | the world comparison |
 | 2 | In which year did your world's cooperation break, and what happened just before? | LG3 | this world year by year |
 | 3 | How did your first decision set the tone for the years that followed? | LG3 | Year 1 in this world |
-| 4 | What did your Envoy promise, and did your group keep it? | LG2 | the promises and what happened |
+| 4 | What did your Envoy promise in the messages, and did your group keep it? | LG2 | the messages and what each country did |
 | 5 | A new producer arrived in Year 9 with 15.0 million barrels and the price fell. Did that change how much you trusted the others? Did anyone use it as cover for producing more? | LG6 | the price and the new producer |
 | 6 | What happened after you were told Year 12 was the final year, and why? | LG6 | the final year |
 | 7 | If the other two countries each produce 38.3 million barrels, what is your best output? Why is everyone producing 38.3 not stable? | LG4 | the best response |
 | 8 | In which year did the price move most, and why did it move then? | LG5 | the price line |
-| 9 | Whose suggestion became the group's decision most often? Did the Operator have extra influence? | LG2 | the huddles |
+| 9 | How did your group agree on its number each year? Did whoever was at the keyboard have extra influence? | LG2 | this world year by year |
 | 10 | Where outside this classroom do people face this same dilemma? | Transfer | the dilemma in numbers |
 
 ## Patterns you will probably see
@@ -51,8 +51,7 @@ What to ask after the last year, what classes usually do, and the numbers behind
 - One country going to capacity once is often enough to end an agreement for good, even if it goes back down afterwards.
 - The new producer's barrels look exactly like cheating from inside a world. Expect at least one group to accuse another of something nobody did, and ask them how they would have told the difference.
 - After the final-year warning most worlds produce more. Ask why a promise is worth less when there is no next year.
-- Groups almost always guess that the others will produce less than they really do. The predictions export shows it.
-- The Operator's own suggestion wins more often than the others'. The huddle table shows whose number became the decision, which is usually a surprise to the group.
+- Groups almost always expect the others to produce less than they really do. Ask each world what it assumed, then show the table.
 
 ## Answer key
 

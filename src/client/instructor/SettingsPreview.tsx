@@ -35,9 +35,9 @@ export function SettingsPreview({ settings, year = 1 }: SettingsPreviewProps) {
   const preview = settingsPreview(settings, year);
 
   return (
-    <section className="panel preview" aria-labelledby="preview-heading">
+    <section className="box preview" aria-labelledby="preview-heading">
       <h3 id="preview-heading">What these settings play like</h3>
-      <p className="hint">
+      <p className="note">
         {`Year ${String(preview.year)}, with the countries in the order Ardonia, Borvia, Cendra. These are your numbers only - students never see them during play.`}
       </p>
 

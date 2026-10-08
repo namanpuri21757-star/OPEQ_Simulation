@@ -65,7 +65,7 @@ export default function CheckPage() {
 
   if (sessionId === null) {
     return (
-      <main className="page page-check">
+      <main className="sheet page-check">
         <h1>{APP_NAME}</h1>
         <h2>Network check</h2>
         <p role="status">{problem ?? 'Looking for the game...'}</p>
@@ -121,14 +121,14 @@ function Check({ label }: { label: string | null }) {
   };
 
   return (
-    <main className="page page-check">
+    <main className="sheet page-check">
       <h1>{APP_NAME}</h1>
       <h2>Network check</h2>
       <p>
         This measures how long this computer takes to reach the teacher&rsquo;s computer and back.
         It changes nothing in the game.
       </p>
-      <p className="hint">
+      <p className="note">
         {label === null
           ? 'This computer has not joined a country yet, so your teacher will see the result as "another computer". Join your country first if you want it next to your name on their screen.'
           : `Your teacher will see this result next to ${label}.`}
@@ -156,7 +156,7 @@ function Check({ label }: { label: string | null }) {
       )}
 
       {phase === 'done' && result !== null && (
-        <section className="panel check-result" aria-labelledby="result-heading">
+        <section className="box check-result" aria-labelledby="result-heading">
           <h3 id="result-heading">{result.ok ? 'OK' : 'This computer is slow'}</h3>
           <p role="status">
             {result.ok
@@ -173,7 +173,7 @@ function Check({ label }: { label: string | null }) {
               ['Measurements', String(times.length)],
             ]}
           />
-          <p className="hint">Your teacher&rsquo;s dashboard has been told the result.</p>
+          <p className="note">Your teacher&rsquo;s dashboard has been told the result.</p>
         </section>
       )}
     </main>

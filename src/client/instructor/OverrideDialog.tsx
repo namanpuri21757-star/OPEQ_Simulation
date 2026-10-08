@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MAX_HUDDLE_REASON_CHARS } from '@shared/protocol';
+import { MAX_REASON_CHARS } from '@shared/protocol';
 import { formatQuantity, parseQuantity } from '@shared/units';
 import type { InstructorTeamView, InstructorView } from '@shared/views';
 import type { SendCommand } from '../net';
@@ -88,7 +88,7 @@ export function OverrideDialog({ view, team, send, onSaid, onClose }: OverrideDi
             setProblem(null);
           }}
         />
-        <span className="hint">
+        <span className="note">
           {team.decision === null
             ? 'This country has not submitted yet.'
             : `It submitted ${formatQuantity(team.decision.tenths)}.`}
@@ -100,7 +100,7 @@ export function OverrideDialog({ view, team, send, onSaid, onClose }: OverrideDi
         <input
           id="override-reason"
           type="text"
-          maxLength={MAX_HUDDLE_REASON_CHARS}
+          maxLength={MAX_REASON_CHARS}
           autoComplete="off"
           value={reason}
           onChange={(event) => {
@@ -108,7 +108,7 @@ export function OverrideDialog({ view, team, send, onSaid, onClose }: OverrideDi
             setProblem(null);
           }}
         />
-        <span className="hint">Saved with the change, for the debrief. Required.</span>
+        <span className="note">Saved with the change, for the debrief. Required.</span>
       </p>
 
       {problem !== null && (

@@ -29,12 +29,12 @@ Pick the preset that fits your lesson. The dashboard then suggests every next st
 
 | Stage | Minutes | What to do |
 | --- | --- | --- |
-| Welcome and briefing | 6 | Hand out the briefing and the role cards. Step through the four screens, then the three-question check. |
+| Welcome and briefing | 6 | Hand out the briefing and the role cards, then step through the four screens. |
 | Practice year | 3 | Say clearly that this one does not count. Walk round and check every group has submitted something. |
 | Years 1 to 3 | 7 | Press the one big button and let the timers run. Say nothing about what a good number is. |
-| Chat window after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
+| Messaging on after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
 | Years 4 to 7 | 9 | Keep pressing the big button. Read out the price each year and let the room react. |
-| Final-year warning | 1 | Announce: "This is the final year." Then say nothing else and watch what happens. |
+| Final-year warning | 1 | Say out loud: "This is the final year." Press the final-year warning so every screen says so, then say nothing else and watch what happens. |
 | Year 8 | 3 | Keep pressing the big button. Read out the price each year and let the room react. |
 | Debrief | 12 | End the game, release the results, then work through the debrief screens in order. |
 
@@ -46,16 +46,16 @@ Pick the preset that fits your lesson. The dashboard then suggests every next st
 
 | Stage | Minutes | What to do |
 | --- | --- | --- |
-| Welcome and briefing | 6 | Hand out the briefing and the role cards. Step through the four screens, then the three-question check. |
+| Welcome and briefing | 6 | Hand out the briefing and the role cards, then step through the four screens. |
 | Practice year | 3 | Say clearly that this one does not count. Walk round and check every group has submitted something. |
 | Years 1 to 3 | 10 | Press the one big button and let the timers run. Say nothing about what a good number is. |
-| Chat window after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
+| Messaging on after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
 | Years 4 to 7 | 11 | Keep pressing the big button. Read out the price each year and let the room react. |
 | Summit after Year 7 | 5 | Send the Envoys to one table. Everyone else stays seated and keeps thinking. |
 | Years 8 to 10 | 9 | Keep pressing the big button. Read out the price each year and let the room react. |
-| Chat window after Year 10 | 3 | Remind them that a promise with a number in it is worth more than a friendly message. |
+| Messaging on after Year 10 | 3 | Remind them that a promise with a number in it is worth more than a friendly message. |
 | Year 11 | 3 | Keep pressing the big button. Read out the price each year and let the room react. |
-| Final-year warning | 1 | Announce: "This is the final year." Then say nothing else and watch what happens. |
+| Final-year warning | 1 | Say out loud: "This is the final year." Press the final-year warning so every screen says so, then say nothing else and watch what happens. |
 | Year 12 | 3 | Keep pressing the big button. Read out the price each year and let the room react. |
 | Debrief | 12 | End the game, release the results, then work through the debrief screens in order. |
 
@@ -67,16 +67,16 @@ Pick the preset that fits your lesson. The dashboard then suggests every next st
 
 | Stage | Minutes | What to do |
 | --- | --- | --- |
-| Welcome and briefing | 6 | Hand out the briefing and the role cards. Step through the four screens, then the three-question check. |
+| Welcome and briefing | 6 | Hand out the briefing and the role cards, then step through the four screens. |
 | Practice year | 3 | Say clearly that this one does not count. Walk round and check every group has submitted something. |
 | Years 1 to 3 | 10 | Press the one big button and let the timers run. Say nothing about what a good number is. |
-| Chat window after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
+| Messaging on after Year 3 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
 | Years 4 to 7 | 11 | Keep pressing the big button. Read out the price each year and let the room react. |
 | Summit after Year 7 | 5 | Send the Envoys to one table. Everyone else stays seated and keeps thinking. |
 | Years 8 to 12 | 14 | Keep pressing the big button. Read out the price each year and let the room react. |
-| Chat window after Year 12 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
+| Messaging on after Year 12 | 4 | Remind them that a promise with a number in it is worth more than a friendly message. |
 | Years 13 to 15 | 9 | Keep pressing the big button. Read out the price each year and let the room react. |
-| Final-year warning | 1 | Announce: "This is the final year." Then say nothing else and watch what happens. |
+| Final-year warning | 1 | Say out loud: "This is the final year." Press the final-year warning so every screen says so, then say nothing else and watch what happens. |
 | Year 16 | 3 | Keep pressing the big button. Read out the price each year and let the room react. |
 | Debrief | 12 | End the game, release the results, then work through the debrief screens in order. |
 
@@ -88,10 +88,10 @@ Pick the preset that fits your lesson. The dashboard then suggests every next st
 | --- | --- |
 | Welcome | You run a country that sells oil. Two other countries sell into the same market. Nobody sets the price: the three of you do, together, by how much you produce. |
 | The price rule | Read the rule off the screen with me. Every extra million barrels, from anyone, lowers the price for everyone. |
-| Roles | One person types. One person calculates. One person talks to the others. The jobs swap, so everyone does each one. |
+| Roles | One person types the number. One person writes the messages and goes to the summits. The jobs swap, so everyone does each one. |
 | Practice year | This one does not count. Get the typing wrong now rather than later. |
 | Year 1 opens | From here it counts. I am not going to tell you what a good number is. |
-| A chat window | You have the time on the screen. A promise with a number in it is worth more than a friendly message. |
+| Messaging on | You have the time on the screen. A promise with a number in it is worth more than a friendly message. |
 | The summit | Envoys only, at this table. The rest of your group stays seated and keeps thinking. |
 | Price falls sharply | Something changed in the market. I am not going to say what. Decide what you think it was. |
 | Final year | This is the final year. That is all I am going to say. |
@@ -105,10 +105,11 @@ Pick the preset that fits your lesson. The dashboard then suggests every next st
 - Point at the status line: "Submitted 38.3 - you can change it until the timer ends."
 - Say twice that the practice year is left out of every score.
 
-### A chat window
+### Messaging
 
+- It is off until you turn it on. The big switch on your dashboard asks how long and which worlds, and it turns itself off when the time runs out.
 - Only the Envoy types. Make that rule out loud, or three people will fight over one keyboard.
-- The chat is per world: a group only ever talks to the other two countries in its own world.
+- Messaging is per world: a group only ever writes to the other two countries in its own world, and you see every message.
 - If a group is unkind, mute it from the dashboard for one window and say why.
 
 ### The summit

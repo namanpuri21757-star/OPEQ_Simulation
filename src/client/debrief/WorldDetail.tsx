@@ -7,10 +7,9 @@ import { styleFor } from './series';
  * World Detail (SPEC 8.4): one world, year by year, with the moments that
  * mattered marked on it.
  *
- * Five things, in the order a teacher asks about them: what each country
- * produced and what that did to the price; what they promised each other and
- * whether they kept it; what they expected the others to do; and whose
- * suggestion became the decision.
+ * Three things, in the order a teacher asks about them: what each country
+ * produced and what that did to the price, every year as a table, and what the
+ * three of them said to each other along the way.
  */
 export interface WorldDetailProps {
   debrief: DebriefData;
@@ -70,9 +69,6 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
     );
   }
 
-  const hadHuddles = world.countries.some((country) => country.huddles.length > 0);
-  const hadPredictions = world.countries.some((country) => country.predictions.length > 0);
-
   return (
     <section className="debrief-screen" aria-labelledby="detail-heading">
       <h2 id="detail-heading">{world.title}</h2>
@@ -116,10 +112,10 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
       ) : (
         <ol className="debrief-timeline" aria-label="Message timeline">
           {world.messages.map((message) => (
-            <li key={message.messageId} className={`timeline-${message.kind}`}>
+            <li key={message.messageId}>
               <span className="timeline-who">
-                {message.countryName === null ? 'Your teacher' : message.countryName}
-                {message.letter !== null && <Badge letter={message.letter} />}
+                <Badge letter={message.letter} size="small" />
+                {message.countryName}
               </span>
               <span className="timeline-when">
                 {message.year === null
@@ -127,92 +123,21 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
                   : `before Year ${String(message.year)}`}
               </span>
               <span className="timeline-text">{message.text}</span>
-              {message.kept !== null && (
-                <span className={message.kept ? 'timeline-kept' : 'timeline-broken'}>
-                  {message.kept
-                    ? `kept it: produced ${formatQuantity(message.actualTenths ?? 0)}`
-                    : `did not: produced ${formatQuantity(message.actualTenths ?? 0)}`}
-                </span>
-              )}
             </li>
           ))}
         </ol>
       )}
 
       <DataTable
-        caption="Promises kept, by country"
-        columns={['Country', 'Promises made', 'Promises kept', 'Total profit']}
+        caption="Each country in this world"
+        columns={['Country', 'Messages sent', 'Total profit ($M)']}
         rows={world.countries.map((country) => [
           `${country.countryName} (${country.letter})`,
-          String(country.pledgesMade),
-          country.pledgesMade === 0 ? '-' : String(country.pledgesKept),
+          String(country.messagesSent),
           formatProfitK(country.cumulativeProfitK),
         ])}
       />
 
-      <h3>What they expected the others to do</h3>
-      {hadPredictions ? (
-        <DataTable
-          caption="Guesses against what really happened"
-          columns={[
-            'Country',
-            'Year',
-            'Guess for the other two',
-            'What they really produced',
-            'How far out',
-            'Trust (1 to 5)',
-          ]}
-          rows={world.countries.flatMap((country) =>
-            country.predictions.map((row) => [
-              `${country.countryName} (${country.letter})`,
-              `Year ${String(row.year)}`,
-              formatQuantity(row.predictedTenths),
-              formatQuantity(row.actualTenths),
-              formatQuantity(row.errorTenths),
-              String(row.trust),
-            ]),
-          )}
-        />
-      ) : (
-        <p>No group in this world filled in the waiting-time question.</p>
-      )}
-
-      <h3>Whose suggestion became the decision</h3>
-      {hadHuddles ? (
-        <>
-          <DataTable
-            caption="Huddle suggestions against the number the group sent"
-            columns={['Country', 'Year', 'Suggestions', 'Decision']}
-            rows={world.countries.flatMap((country) =>
-              country.huddles.map((huddle) => [
-                `${country.countryName} (${country.letter})`,
-                `Year ${String(huddle.year)}`,
-                huddle.suggestions
-                  .map(
-                    (suggestion) =>
-                      `${suggestion.name} ${formatQuantity(suggestion.tenths)}${suggestion.matched ? ' (this one)' : ''}`,
-                  )
-                  .join(', '),
-                formatQuantity(huddle.decisionTenths),
-              ]),
-            )}
-          />
-          <DataTable
-            caption="How often each member's number was the one sent"
-            columns={['Country', 'Member', 'Suggestions', 'Times it was the decision']}
-            rows={world.countries.flatMap((country) =>
-              country.memberMatches.map((match) => [
-                `${country.countryName} (${country.letter})`,
-                match.name,
-                String(match.suggestions),
-                String(match.matched),
-              ]),
-            )}
-          />
-        </>
-      ) : (
-        <p>No group in this world recorded a huddle.</p>
-      )}
     </section>
   );
 }

@@ -159,8 +159,9 @@ test.describe('O1 - offline guarantee', () => {
       opened.push(lesson.instructor);
       const dash = lesson.instructor.page;
 
-      // The lobby draws a QR code on this computer, with no internet (SPEC 8.4).
-      await expect(dash.getByRole('img', { name: /^QR code for/ })).toBeVisible();
+      // The start screen draws a QR code per team card on this computer, with
+      // no internet (SPEC 8.4). The projector's own join QR is checked below.
+      await expect(dash.getByRole('img', { name: /^Join link for/ }).first()).toBeVisible();
 
       // The printable pages, which are the ones most likely to want a web font.
       const cards = await openTab(lesson.instructor, `${server.url}/instructor/cards`);
@@ -176,6 +177,7 @@ test.describe('O1 - offline guarantee', () => {
         `${server.url}/projector/${lesson.sessionId}?k=${lesson.projectorKey}`,
       );
       opened.push(projector);
+      await expect(projector.page.getByRole('img', { name: /^QR code for/ })).toBeVisible();
 
       const check = await openScreen(browser, `${server.url}/check`);
       opened.push(check);
@@ -204,9 +206,9 @@ test.describe('O1 - offline guarantee', () => {
       for (const terminal of terminals) await submitDecision(terminal, '40.0');
       await pressUntil(dash, /^Close Year 1$/);
       await pressBigButton(dash);
-      await expect(first.page.locator('.reveal-price')).toBeVisible();
+      await expect(first.page.locator('.obs-value').first()).toBeVisible();
 
-      await pressUntil(dash, /^Open chat window/);
+      await pressUntil(dash, /^Turn messaging on/);
       await pressBigButton(dash);
       await first.page.getByLabel('Write to the other countries in your world').fill('Hello.');
       await first.page.getByRole('button', { name: 'Send', exact: true }).click();

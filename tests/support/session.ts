@@ -13,9 +13,6 @@ import { resolveWorldYear } from '../../src/shared/engine/engine.js';
 import { teamIdFor } from '../../src/shared/labels.js';
 import { DEFAULT_SETTINGS, type Settings } from '../../src/shared/settings.js';
 import type {
-  HuddleRecord,
-  MessageRecord,
-  PredictionRecord,
   SessionState,
   TeamState,
   WorldState,
@@ -110,8 +107,6 @@ function teamsFor(
         token: 'token-not-in-any-view',
         muted: false,
         pendingTakeover: null,
-        huddles: {},
-        predictions: {},
         reflection: null,
         lastMessageAt: null,
       };
@@ -160,7 +155,7 @@ export function makeSession(options: MakeSessionOptions): SessionState {
     worlds,
     teams: teamsFor(worlds, members),
     messages: [],
-    news: [],
+    messaging: {},
     overrides: [],
     firedEvents: [],
     networkChecks: {},
@@ -170,29 +165,7 @@ export function makeSession(options: MakeSessionOptions): SessionState {
   };
 }
 
-/** Adds a pledge to a world's channel, placed just before that year closed. */
-export function addPledge(
-  state: SessionState,
-  worldNumber: number,
-  letter: CountryLetter,
-  year: number,
-  tenths: number,
-): MessageRecord {
-  const message: MessageRecord = {
-    messageId: `pledge-${String(worldNumber)}-${letter}-${String(year)}`,
-    worldId: worldId(worldNumber - 1),
-    teamId: teamIdFor(worldId(worldNumber - 1), letter),
-    letter,
-    kind: 'pledge',
-    text: `We will produce ${String(tenths / 10)} million barrels.`,
-    tenths,
-    at: closedAt(year) - 2000,
-  };
-  state.messages.push(message);
-  return message;
-}
-
-/** Adds a plain chat message, placed just before that year closed. */
+/** Adds a message to a world's channel, placed just before that year closed. */
 export function addChat(
   state: SessionState,
   worldNumber: number,
@@ -205,32 +178,9 @@ export function addChat(
     worldId: worldId(worldNumber - 1),
     teamId: teamIdFor(worldId(worldNumber - 1), letter),
     letter,
-    kind: 'chat',
     text,
     at: closedAt(year) - 3000,
   });
-}
-
-export function setHuddle(
-  state: SessionState,
-  worldNumber: number,
-  letter: CountryLetter,
-  year: number,
-  record: HuddleRecord,
-): void {
-  const team = state.teams[teamIdFor(worldId(worldNumber - 1), letter)];
-  if (team) team.huddles[year] = record;
-}
-
-export function setPrediction(
-  state: SessionState,
-  worldNumber: number,
-  letter: CountryLetter,
-  year: number,
-  record: PredictionRecord,
-): void {
-  const team = state.teams[teamIdFor(worldId(worldNumber - 1), letter)];
-  if (team) team.predictions[year] = record;
 }
 
 export function setReflection(

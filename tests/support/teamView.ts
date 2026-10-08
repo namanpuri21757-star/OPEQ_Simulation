@@ -16,7 +16,7 @@ import type {
   CountryLineView,
   LeaderboardView,
   MessageView,
-  NewsView,
+  MessagingView,
   PublicSettingsView,
   RevealView,
   TeamView,
@@ -34,7 +34,6 @@ export function publicSettings(over: Partial<PublicSettingsView> = {}): PublicSe
     capacity: 75,
     startingOutput: 40,
     disclosure: 'full',
-    chatMode: 'windowsOnly',
     variancePct: 0,
     rotateEvery: 4,
     capacityTenths: 750,
@@ -66,7 +65,6 @@ export function countryLine(
     targetTenths: null,
     auto: false,
     profitK: null,
-    pledgeTenths: null,
     ...over,
   };
 }
@@ -112,7 +110,6 @@ export function reveal(over: Partial<RevealView> = {}): RevealView {
 export function message(over: Partial<MessageView> = {}): MessageView {
   return {
     messageId: 'm1',
-    kind: 'chat',
     letter: 'A',
     countryName: 'Ardonia',
     text: 'Shall we all produce 38.3?',
@@ -121,8 +118,9 @@ export function message(over: Partial<MessageView> = {}): MessageView {
   };
 }
 
-export function news(over: Partial<NewsView> = {}): NewsView {
-  return { newsId: 'n1', kind: 'note', year: 5, text: 'A quiet year.', at: NOW, ...over };
+/** Messaging off, which is how every world starts (SPEC 8.4). */
+export function messaging(over: Partial<MessagingView> = {}): MessagingView {
+  return { on: false, until: null, ...over };
 }
 
 export function leaderboard(over: Partial<LeaderboardView> = {}): LeaderboardView {
@@ -152,7 +150,7 @@ export function teamView(over: Partial<TeamView> = {}): TeamView {
     countryName: 'Borvia',
     label: teamLabel(2, 'B'),
     members: ['Maya', 'Leo', 'Sam'],
-    roles: { operator: 'Maya', analysts: ['Leo'], envoy: 'Sam', block: 1 },
+    roles: { operator: 'Maya', envoys: ['Leo', 'Sam'], block: 1 },
     phase: 'YEAR_OPEN',
     year: 5,
     yearLabel: 'Year 5',
@@ -167,11 +165,8 @@ export function teamView(over: Partial<TeamView> = {}): TeamView {
     history: [],
     reveal: null,
     messages: [],
-    news: [],
     muted: false,
-    chatOpen: false,
-    huddle: null,
-    prediction: null,
+    messaging: messaging(),
     reflection: null,
     finalYearAnnounced: false,
     resultsRevealed: false,

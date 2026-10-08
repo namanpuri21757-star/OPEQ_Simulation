@@ -12,12 +12,11 @@ import { cooperativeMax } from '../engine/engine.js';
 import { roundDiv } from '../engine/integers.js';
 import { yearLabel } from '../labels.js';
 import type { Settings } from '../settings.js';
-import type { MessageRecord, SessionState, WorldState, WorldYearRecord } from '../state.js';
+import type { SessionState, WorldState, WorldYearRecord } from '../state.js';
 import { formatQuantity } from '../units.js';
 import {
   COOPERATION_RUN,
   COOPERATION_SLACK_PCT,
-  PLEDGE_TOLERANCE_TENTHS,
   type DebriefBreak,
   type DebriefCountryYear,
   type DebriefMarker,
@@ -31,22 +30,6 @@ export function percentOf(value: number, base: number): number {
   return roundDiv(value * 100, base);
 }
 
-/** The latest pledge each country made in this world before a moment in time. */
-function pledgesBefore(
-  messages: readonly MessageRecord[],
-  worldId: string,
-  before: number,
-): Partial<Record<CountryLetter, number>> {
-  const out: Partial<Record<CountryLetter, number>> = {};
-  for (const message of messages) {
-    if (message.kind !== 'pledge' || message.worldId !== worldId) continue;
-    if (message.at > before) continue;
-    if (message.letter === null || message.tenths === undefined) continue;
-    out[message.letter] = message.tenths;
-  }
-  return out;
-}
-
 /**
  * Whether one country's output counts as cooperating.
  *
@@ -57,11 +40,6 @@ function pledgesBefore(
  */
 export function withinSlack(actualTenths: number, shareTenths: number): boolean {
   return actualTenths * 100 <= shareTenths * (100 + COOPERATION_SLACK_PCT);
-}
-
-/** A pledge is kept when the actual output lands within half a million barrels. */
-export function pledgeKept(pledgeTenths: number, actualTenths: number): boolean {
-  return Math.abs(actualTenths - pledgeTenths) <= PLEDGE_TOLERANCE_TENTHS;
 }
 
 /**
@@ -79,12 +57,10 @@ export function yearsFor(state: SessionState, world: WorldState): DebriefYear[] 
 
   return world.years.map((record) => {
     const benchmark = cooperativeMax(settings, record.year);
-    const pledges = pledgesBefore(state.messages, world.worldId, record.closedAt);
 
     const countries: DebriefCountryYear[] = COUNTRY_LETTERS.map((letter) => {
       const outcome = record.outcome.countries[letter];
       cumulativeOwn[letter] += outcome.profitK;
-      const pledge = pledges[letter] ?? null;
       return {
         letter,
         countryName: COUNTRY_NAMES[letter],
@@ -98,8 +74,6 @@ export function yearsFor(state: SessionState, world: WorldState): DebriefYear[] 
           outcome.actualTenths - benchmark.shareTenths,
           benchmark.shareTenths,
         ),
-        pledgeTenths: pledge,
-        pledgeKept: pledge === null ? null : pledgeKept(pledge, outcome.actualTenths),
       };
     });
 
@@ -188,9 +162,8 @@ export function breakFor(years: readonly DebriefYear[]): DebriefBreak {
  * The moments worth labelling on the chart (SPEC 8.4).
  *
  * An activity happens after a year, so its marker sits on that year. The new
- * producer and a demand event bite from the start of their year, so they sit on
- * theirs. A fired event moved the year in the settings, so reading the settings
- * is enough for both.
+ * producer bites from the start of its year, so it sits on that one. Bringing it
+ * in early moved the year in the settings, so reading the settings is enough.
  */
 export function markersFor(state: SessionState, world: WorldState): DebriefMarker[] {
   const settings: Settings = state.settings;
@@ -205,7 +178,10 @@ export function markersFor(state: SessionState, world: WorldState): DebriefMarke
     markers.push({
       kind,
       year,
-      label: kind === 'chat' ? `Chat after ${yearLabel(year)}` : `Summit after ${yearLabel(year)}`,
+      label:
+        kind === 'chat'
+          ? `Messaging on after ${yearLabel(year)}`
+          : `Summit after ${yearLabel(year)}`,
     });
   }
 
@@ -218,11 +194,6 @@ export function markersFor(state: SessionState, world: WorldState): DebriefMarke
       year: np.year,
       label: `New producer arrives${barrels === undefined ? '' : ` (${formatQuantity(barrels)} million barrels)`}`,
     });
-  }
-
-  const demand = settings.demandEvent;
-  if (demand.enabled && played.has(demand.year)) {
-    markers.push({ kind: 'demand', year: demand.year, label: 'Demand changes' });
   }
 
   if (state.finalYearAnnounced && played.has(settings.years)) {
@@ -238,38 +209,24 @@ function yearAfter(records: readonly WorldYearRecord[], at: number): WorldYearRe
 }
 
 /**
- * This world's message timeline, with every pledge marked kept or broken.
+ * This world's message timeline.
  *
- * A pledge is judged against the next year to close after it was posted, which
- * is the year the group was promising about. A pledge made after the last year
- * has nothing to judge it by and is left unmarked rather than called broken.
+ * Each message is tagged with the next scored year to close after it, so the
+ * teacher can read what was said and then what each country actually did. A
+ * message sent after the last year has no year to pair with.
  */
 export function messagesFor(state: SessionState, world: WorldState): DebriefMessage[] {
   return state.messages
-    .filter((message) => message.worldId === world.worldId || message.worldId === null)
+    .filter((message) => message.worldId === world.worldId)
     .map((message): DebriefMessage => {
       const record = yearAfter(world.years, message.at);
-      const isPledge =
-        message.kind === 'pledge' && message.letter !== null && message.tenths !== undefined;
-      const actual =
-        isPledge && record && message.letter !== null
-          ? record.outcome.countries[message.letter].actualTenths
-          : null;
-
       return {
         messageId: message.messageId,
-        kind: message.kind,
         letter: message.letter,
-        countryName: message.letter === null ? null : COUNTRY_NAMES[message.letter],
+        countryName: COUNTRY_NAMES[message.letter],
         text: message.text,
         at: message.at,
-        ...(message.tenths === undefined ? {} : { tenths: message.tenths }),
         year: record?.year ?? null,
-        kept:
-          actual === null || message.tenths === undefined
-            ? null
-            : pledgeKept(message.tenths, actual),
-        actualTenths: actual,
       };
     });
 }

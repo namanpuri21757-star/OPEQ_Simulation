@@ -23,6 +23,7 @@ import { teamLabel } from '../../shared/labels.js';
 import type { AckCode, Command, CommandType } from '../../shared/protocol.js';
 import { COMMAND_META } from '../../shared/protocol.js';
 import {
+  activitiesAfterYear,
   economicUnits,
   parseSettings,
   PRESETS,
@@ -39,7 +40,7 @@ import type {
   WorldState,
   WorldYearRecord,
 } from '../../shared/state.js';
-import { chatIsOpen, teamIdFor } from '../../shared/views.js';
+import { messagingFor, teamIdFor } from '../../shared/views.js';
 import { staleMessage, transitionFor, wrongPhaseMessage } from './transitions.js';
 
 /** 1 message per 3 seconds per team (SPEC section 6). */
@@ -60,7 +61,7 @@ export interface Issued {
   projectorKey?: string;
   /** Fresh join codes, taken in order by the teams that need one. */
   codes?: string[];
-  /** Fresh ids for messages and news items, taken in order. */
+  /** Fresh ids for messages, taken in order. */
   ids?: string[];
   token?: string;
   requestId?: string;
@@ -142,8 +143,6 @@ function newTeam(world: WorldState, letter: CountryLetter, joinCode: string): Te
     token: null,
     muted: false,
     pendingTakeover: null,
-    huddles: {},
-    predictions: {},
     reflection: null,
     lastMessageAt: null,
   };
@@ -196,15 +195,13 @@ function clearPlay(state: SessionState): void {
     world.years = [];
   }
   for (const team of Object.values(state.teams)) {
-    team.huddles = {};
-    team.predictions = {};
     team.reflection = null;
     team.muted = false;
     team.lastMessageAt = null;
     team.pendingTakeover = null;
   }
   state.messages = [];
-  state.news = [];
+  state.messaging = {};
   state.overrides = [];
   state.firedEvents = [];
   state.activitiesDone = [];
@@ -276,7 +273,7 @@ export function createInitialState(event: SessionEvent): ApplyResult {
     worlds: [],
     teams: {},
     messages: [],
-    news: [],
+    messaging: {},
     overrides: [],
     firedEvents: [],
     networkChecks: {},
@@ -488,22 +485,8 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
       return { ok: true, state };
     }
 
-    case 'announce': {
-      const worldId = command.payload.worldId ?? null;
-      if (worldId !== null && worldOf(state, worldId) === undefined) {
-        return fail('NOT_FOUND', 'That world is not part of this session.');
-      }
-      state.messages.push({
-        messageId: takeId(event, 0),
-        worldId,
-        teamId: null,
-        letter: null,
-        kind: 'announcement',
-        text: filterText(command.payload.text).text,
-        at,
-      });
-      return { ok: true, state };
-    }
+    case 'setMessaging':
+      return setMessaging(state, event);
 
     case 'fireEvent':
       return fireEvent(state, event, command.payload.kind);
@@ -521,15 +504,8 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
       if (state.finalYearAnnounced) {
         return fail('NOT_ALLOWED', 'The final year has already been announced.');
       }
+      // Every screen reads finalYearAnnounced, so setting it is the whole job.
       state.finalYearAnnounced = true;
-      state.news.push({
-        newsId: takeId(event, 0),
-        kind: 'finalYear',
-        worldId: null,
-        year: state.settings.years,
-        text: 'This is the final year.',
-        at,
-      });
       return { ok: true, state };
     }
 
@@ -653,35 +629,6 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
       return { ok: true, state, result: { tenths: command.payload.tenths } };
     }
 
-    case 'recordHuddle': {
-      const team = teamOf(state, event.actorId);
-      if (!team) return fail('NOT_FOUND', 'This computer has not taken a country yet.');
-      team.huddles[state.year] = {
-        suggestions: command.payload.suggestions.map((s, i) => ({
-          name: cleanMemberName(s.name, i),
-          tenths: s.tenths,
-        })),
-        reason: filterText(command.payload.reason).text,
-        at,
-      };
-      return { ok: true, state };
-    }
-
-    case 'submitPrediction': {
-      const team = teamOf(state, event.actorId);
-      if (!team) return fail('NOT_FOUND', 'This computer has not taken a country yet.');
-      const world = worldOf(state, team.worldId);
-      if (!world?.open?.decisions[team.letter]) {
-        return fail('NOT_ALLOWED', 'Submit your own number first, then make your guess.');
-      }
-      team.predictions[state.year] = {
-        othersTenths: [...command.payload.othersTenths],
-        trust: command.payload.trust,
-        at,
-      };
-      return { ok: true, state };
-    }
-
     case 'submitReflection': {
       const team = teamOf(state, event.actorId);
       if (!team) return fail('NOT_FOUND', 'This computer has not taken a country yet.');
@@ -693,17 +640,7 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
     }
 
     case 'sendMessage':
-      return sendMessage(state, event, filterText(command.payload.text).text, 'chat');
-
-    case 'sendPledge': {
-      const tenths = command.payload.tenths;
-      const { capacityTenths } = economicUnits(state.settings);
-      if (tenths > capacityTenths) {
-        return fail('INVALID', 'You cannot promise more than your capacity.');
-      }
-      const text = `We will produce ${(tenths / 10).toFixed(1)} million barrels.`;
-      return sendMessage(state, event, text, 'pledge', tenths);
-    }
+      return sendMessage(state, event, filterText(command.payload.text).text);
 
     case 'ping':
       return { ok: true, state, result: { serverNow: at } };
@@ -800,9 +737,6 @@ function openYear(state: SessionState, event: SessionEvent, year: number): Apply
   }
 
   const settings = state.settings;
-  const arrivedNow =
-    newProducerTenths(year, settings) > 0 && newProducerTenths(year - 1, settings) === 0;
-  const demandNow = settings.demandEvent.enabled && settings.demandEvent.year === year;
 
   state.phase = 'YEAR_OPEN';
   state.year = year;
@@ -810,38 +744,50 @@ function openYear(state: SessionState, event: SessionEvent, year: number): Apply
   for (const world of state.worlds) world.open = { year, isPractice: false, decisions: {} };
   startTimer(state, secondsForYear(year, settings), event.at);
 
-  // News is public, so it is only written when the event was announced.
-  let idIndex = 0;
-  if (arrivedNow && settings.newProducer.announced) {
-    state.news.push({
-      newsId: takeId(event, idIndex),
-      kind: 'newProducer',
-      worldId: null,
-      year,
-      text: `Another producer has started selling ${settings.newProducer.output.toFixed(1)} million barrels a year.`,
-      at: event.at,
-    });
-    idIndex += 1;
+  return { ok: true, state };
+}
+
+/**
+ * The messaging switch (SPEC 8.4).
+ *
+ * One command does both directions and any set of worlds, because the switch on
+ * the dashboard and the suggested next step have to end in exactly the same
+ * state: the step is this command with its worlds and seconds filled in.
+ */
+function setMessaging(state: SessionState, event: SessionEvent): ApplyResult {
+  if (event.command.type !== 'setMessaging') return fail('INVALID', 'Wrong command.');
+  const { on, worldIds, seconds } = event.command.payload;
+
+  const targets = worldIds ?? state.worlds.map((world) => world.worldId);
+  const unknown = targets.find((worldId) => worldOf(state, worldId) === undefined);
+  if (unknown !== undefined) return fail('NOT_FOUND', 'That world is not part of this session.');
+
+  for (const worldId of targets) {
+    if (!on) {
+      delete state.messaging[worldId];
+      continue;
+    }
+    state.messaging[worldId] = {
+      until: seconds === null || seconds === undefined ? null : event.at + seconds * 1000,
+      startedAt: event.at,
+    };
   }
-  if (demandNow && settings.demandEvent.announced) {
-    state.news.push({
-      newsId: takeId(event, idIndex),
-      kind: 'demand',
-      worldId: null,
-      year,
-      text: filterText(settings.demandEvent.message).text,
-      at: event.at,
-    });
+
+  // Turning messaging on between years IS the chat window the plan asked for,
+  // however the teacher got there. Marking it done here is what makes the big
+  // button and the switch end in the same state (SPEC 8.4).
+  const key = `${String(state.year)}:chat`;
+  if (on && state.phase === 'YEAR_REVEAL' && !state.activitiesDone.includes(key)) {
+    const due = activitiesAfterYear(state.year, state.settings).some(
+      (item) => item.kind === 'chat',
+    );
+    if (due) state.activitiesDone.push(key);
   }
 
   return { ok: true, state };
 }
 
-function fireEvent(
-  state: SessionState,
-  event: SessionEvent,
-  kind: 'newProducer' | 'demand',
-): ApplyResult {
+function fireEvent(state: SessionState, event: SessionEvent, kind: 'newProducer'): ApplyResult {
   const nextYear = state.year + 1;
   if (nextYear > state.settings.years) {
     return fail('CLOSED', 'There are no more years, so an event would never happen.');
@@ -849,7 +795,7 @@ function fireEvent(
 
   // A second press on the same button for the same year. The settings would end
   // up identical, but the record of the lesson would show the event twice, so
-  // the debrief and the news would both be wrong. Refusing is the honest answer
+  // the debrief would be wrong. Refusing is the honest answer
   // and it makes a double-click safe (acceptance K4).
   if (state.firedEvents.some((fired) => fired.kind === kind && fired.year === nextYear)) {
     return fail(
@@ -858,24 +804,13 @@ function fireEvent(
     );
   }
 
-  if (kind === 'newProducer') {
-    if (newProducerTenths(state.year, state.settings) > 0) {
-      return fail('NOT_ALLOWED', 'The new producer is already in the market.');
-    }
-    state.settings = parseSettings({
-      ...state.settings,
-      newProducer: { ...state.settings.newProducer, enabled: true, year: nextYear },
-    });
-  } else {
-    const demand = state.settings.demandEvent;
-    if (demand.enabled && state.year >= demand.year) {
-      return fail('NOT_ALLOWED', 'That demand change has already happened.');
-    }
-    state.settings = parseSettings({
-      ...state.settings,
-      demandEvent: { ...demand, enabled: true, year: nextYear },
-    });
+  if (newProducerTenths(state.year, state.settings) > 0) {
+    return fail('NOT_ALLOWED', 'The new producer is already in the market.');
   }
+  state.settings = parseSettings({
+    ...state.settings,
+    newProducer: { ...state.settings.newProducer, enabled: true, year: nextYear },
+  });
 
   state.firedEvents.push({ kind, year: nextYear, at: event.at });
   return { ok: true, state };
@@ -925,41 +860,28 @@ function claimTeam(state: SessionState, event: SessionEvent, joinCode: string): 
   };
 }
 
-function sendMessage(
-  state: SessionState,
-  event: SessionEvent,
-  text: string,
-  kind: 'chat' | 'pledge',
-  tenths?: number,
-): ApplyResult {
+function sendMessage(state: SessionState, event: SessionEvent, text: string): ApplyResult {
   const team = teamOf(state, event.actorId);
   if (!team) return fail('NOT_FOUND', 'This computer has not taken a country yet.');
   if (team.muted) {
     return fail('MUTED', 'Your teacher has paused messages from this team for now.');
   }
-  if (!chatIsOpen(state)) {
-    return fail(
-      'CLOSED',
-      state.settings.chatMode === 'off'
-        ? 'Messages are turned off in this game.'
-        : 'The message window is closed right now. Wait for the next one.',
-    );
+  if (!messagingFor(state, team.worldId, event.at).on) {
+    return fail('CLOSED', 'Messaging is off right now. Your teacher turns it on.');
   }
   if (team.lastMessageAt !== null && event.at - team.lastMessageAt < MESSAGE_GAP_MS) {
     return fail('RATE_LIMITED', 'That was quick. Wait a moment before sending another message.');
   }
 
   team.lastMessageAt = event.at;
-  const message = {
+  state.messages.push({
     messageId: takeId(event, 0),
     worldId: team.worldId,
     teamId: team.teamId,
     letter: team.letter,
-    kind,
     text,
     at: event.at,
-  };
-  state.messages.push(tenths === undefined ? message : { ...message, tenths });
+  });
   return { ok: true, state };
 }
 

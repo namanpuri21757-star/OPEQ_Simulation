@@ -58,12 +58,12 @@ dollars.
 | `startPractice`                    | instructor         | yes     | Opens the practice year (year 0).                                |
 | `closeYear`                        | instructor, system | yes     | Locks the year, fills missing decisions, resolves every world.   |
 | `openYear`                         | instructor         | yes     | Opens the next scored year.                                      |
-| `startBetween`                     | instructor         | yes     | Opens a chat window or a summit on a timer.                      |
+| `startBetween`                     | instructor         | yes     | Opens a face-to-face summit on a timer.                          |
 | `endBetween`                       | instructor, system | yes     | Ends it.                                                         |
 | `pause` / `resume`                 | instructor         |         | Keeps and restores the remaining time.                           |
 | `extend`                           | instructor         |         | Adds 1 to 600 seconds.                                           |
-| `announce`                         | instructor         |         | A message to every world, or to one.                             |
-| `fireEvent`                        | instructor         | yes     | Brings the new producer or the demand change into the next year. |
+| `setMessaging`                     | instructor, system | | Turns messaging on or off, for every world or for some. `seconds` left out means until it is turned off. |
+| `fireEvent`                        | instructor         | yes     | Brings the new producer into the next year.                      |
 | `announceFinalYear`                | instructor         | yes     | Only when the next year is the last one.                         |
 | `overrideDecision`                 | instructor         | yes     | Replaces a team's number. A reason is required and is logged.    |
 | `muteTeam` / `unmuteTeam`          | instructor         |         | Stops or restarts that team's messages.                          |
@@ -77,10 +77,7 @@ dollars.
 | `claimTeam`                        | team               |         | Takes a country with its join code.                              |
 | `setMembers`                       | team               |         | 1 to 4 first names, trimmed and filtered.                        |
 | `submitDecision`                   | team               | yes     | The year's number. Can be changed until the year closes.         |
-| `recordHuddle`                     | team               | yes     | Each member's suggestion and a reason, up to 140 characters.     |
-| `submitPrediction`                 | team               | yes     | Two guesses and a trust score of 1 to 5, after submitting.       |
-| `sendMessage`                      | team               |         | Up to 280 characters, to its own world.                          |
-| `sendPledge`                       | team               |         | "We will produce X million barrels."                             |
+| `sendMessage`                      | team               |         | Up to 280 characters, to its own world, while messaging is on.   |
 | `submitReflection`                 | team               |         | Three answers of up to 500 characters. ENDED only.               |
 | `ping`                             | anyone             |         | Returns `serverNow`. Never saved.                                |
 | `report`                           | anyone             |         | A network-check result for the dashboard.                        |
@@ -127,17 +124,19 @@ four shapes, chosen by the socket's role:
 
 - **team** (`kind: "team"`) - its own world only: phase, year, timing, the public
   settings, its own decision, its history as far as the disclosure mode allows,
-  the current reveal, its world's messages and news, its own huddle, prediction
-  and reflection, and the leaderboard only once the instructor releases it.
-- **projector** (`kind: "projector"`) - phase, year, timing, announcements, news,
-  the table cards, and a price per world after a reveal when
+  the current reveal, its world's messages, whether its own messaging window is
+  open and when it closes, its own reflection, and the leaderboard only once the
+  instructor releases it.
+- **projector** (`kind: "projector"`) - phase, year, timing, whether messaging is
+  on and how long is left, whether the final year has been announced, the table
+  cards, and a price and results table per world after a reveal when
   `projectorShowsPrices` is on. Once the game has ended, and only while the
   instructor has sent one of the five debrief screens, it also carries the
-  debrief. Never chat, never team-private data, never a key.
+  debrief. Never a message, never team-private data, never a key.
 - **instructor** (`kind: "instructor"`) - everything, including the keys, every
-  world's records, every team's private writing, the chat feed per world, who is
-  connected, the one suggested next action, and - once the game has ended - the
-  whole debrief.
+  world's records, every team's reflection, the message feed per world, the
+  messaging state per world, who is connected, the one suggested next action,
+  and - once the game has ended - the whole debrief.
 - **lobby** (`kind: "lobby"`) - what a terminal sees before it has claimed a
   country, and what the /check page gets. Almost nothing.
 
@@ -173,8 +172,8 @@ beside it, all read-only.
 
 The export route needs the instructor key and answers 403 to anything else, the
 projector key included. `:name` is one of `decisions`, `outcomes`, `messages`,
-`predictions`, `huddles`, `reflections` (CSV) or `session` (JSON); anything else
-is a 404 that lists the real names.
+`reflections` (CSV) or `session` (JSON); anything else is a 404 that lists the
+real names.
 
 The files are built by the pure functions in `src/shared/exports.ts`. CSV rows
 end with CRLF, the body starts with a UTF-8 byte-order mark so a spreadsheet

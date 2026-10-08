@@ -14,11 +14,9 @@ import { MAX_WORLDS, MIN_WORLDS } from './constants.js';
 import { decimalPlaces, toCents, toHundredths, toTenths } from './engine/integers.js';
 
 export const DISCLOSURE_MODES = ['full', 'totalOnly', 'priceOnly'] as const;
-export const CHAT_MODES = ['off', 'windowsOnly', 'always'] as const;
 export const ACTIVITY_KINDS = ['chat', 'summit'] as const;
 
 export type DisclosureMode = (typeof DISCLOSURE_MODES)[number];
-export type ChatMode = (typeof CHAT_MODES)[number];
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
 /** Timers never go below 5 s, because test-fast uses exactly 5 s. */
@@ -99,8 +97,12 @@ export const settingsShape = z.strictObject({
   disclosure: z.enum(DISCLOSURE_MODES).default('full'),
   /** 0 means production variance is off. */
   variancePct: z.number().int().min(0).max(50).default(0),
-  chatMode: z.enum(CHAT_MODES).default('windowsOnly'),
 
+  /**
+   * The plan. A `chat` entry no longer opens a phase of its own: it becomes the
+   * suggested next step "Turn messaging on for 4 minutes", which the teacher
+   * presses (SPEC 8.4). A `summit` is still a phase, because the room moves.
+   */
   schedule: z.array(activitySchema).default([
     { afterYear: 3, kind: 'chat', seconds: 240 },
     { afterYear: 7, kind: 'summit', seconds: 300 },
@@ -114,21 +116,6 @@ export const settingsShape = z.strictObject({
       /** Millions of barrels a year. */
       output: quantity("The new producer's output").default(15),
       announced: z.boolean().default(false),
-    })
-    .prefault({}),
-
-  demandEvent: z
-    .strictObject({
-      enabled: z.boolean().default(false),
-      year: yearNumber.default(6),
-      /** How much the highest price (a) moves, up or down. */
-      deltaA: money('The demand change').default(-10),
-      message: z.string().max(280).default('Demand has changed. Watch the price.'),
-      /**
-       * SPEC section 4 announces demand events in the news, so this is on by
-       * default; it exists so the explanation can stay silent when it is off.
-       */
-      announced: z.boolean().default(true),
     })
     .prefault({}),
 
@@ -205,13 +192,6 @@ export const settingsSchema = settingsShape.superRefine((s, ctx) => {
     add(
       ['newProducer', 'year'],
       `The new producer has to arrive in a year that is played. This game has ${s.years} years, so choose a year from 1 to ${s.years}.`,
-    );
-  }
-
-  if (s.demandEvent.enabled && s.demandEvent.year > s.years) {
-    add(
-      ['demandEvent', 'year'],
-      `The demand change has to happen in a year that is played. This game has ${s.years} years, so choose a year from 1 to ${s.years}.`,
     );
   }
 

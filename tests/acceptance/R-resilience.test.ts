@@ -63,8 +63,8 @@ describe('R2 - a terminal offline for two minutes', () => {
 
     harness.clock.advance(2 * 60 * 1000);
 
-    // Two years are played without it, with a chat window and an announcement
-    // in the middle, so there is plenty to catch up on. The waiting is done on
+    // Two years are played without it, with a messaging window in the middle,
+    // so there is plenty to catch up on. The waiting is done on
     // the terminals that are still here: game.sync() waits for all nine, and
     // one of them is deliberately gone.
     const settle = () => syncClients(game.instructor, stayed);
@@ -72,12 +72,11 @@ describe('R2 - a terminal offline for two minutes', () => {
     for (const team of stayed) await team.must('submitDecision', { tenths: 400 });
     await game.instructor.must('closeYear');
     await settle();
-    await game.instructor.must('startBetween', { kind: 'chat', seconds: 60 });
+    await game.instructor.must('setMessaging', { on: true, seconds: 60 });
     await settle();
     for (const team of stayed) await team.must('sendMessage', { text: 'Where did they go?' });
-    await game.instructor.must('endBetween');
+    await game.instructor.must('setMessaging', { on: false });
     await settle();
-    await game.instructor.must('announce', { text: 'Two minutes left in this lesson.' });
     await game.instructor.must('openYear', { year: 2 });
     await settle();
     for (const team of stayed) await team.must('submitDecision', { tenths: 420 });
@@ -108,10 +107,10 @@ describe('R2 - a terminal offline for two minutes', () => {
     // ...every year it missed, including the two it was auto-filled for...
     const history = view['history'] as Array<{ year: number; isPractice: boolean }>;
     expect(history.filter((row) => !row.isPractice).map((row) => row.year)).toEqual([1, 2]);
-    // ...the messages and the announcement it never saw...
+    // ...the messages it never saw, and the messaging switch as it stands now...
     const messages = view['messages'] as Array<{ text: string }>;
     expect(messages.map((row) => row.text)).toContain('Where did they go?');
-    expect(messages.map((row) => row.text)).toContain('Two minutes left in this lesson.');
+    expect(view['messaging']).toEqual({ on: false, until: null });
     // ...and its own two auto decisions, marked as auto.
     const state = harness.server.store.get(game.session.sessionId);
     for (const year of [1, 2]) {

@@ -17,8 +17,6 @@ function snapshot(partial: Partial<PriceSnapshot>): PriceSnapshot {
     priceCents: 3553,
     totalTenths: 1149,
     newProducerTenths: 0,
-    demandEventApplied: false,
-    demandEventAnnounced: true,
     newProducerAnnounced: false,
     ...partial,
   };
@@ -51,13 +49,10 @@ describe('the direction of the change', () => {
   });
 
   it('leaves out the reason when the price moved but supply did not', () => {
-    // Only a demand event could do this, and here it was not announced.
+    // Only a settings change mid-game could do this, and nothing on screen
+    // claims to know why, so the sentence stops at the movement.
     const previous = snapshot({ priceCents: 3553 });
-    const current = snapshot({
-      priceCents: 2553,
-      demandEventApplied: true,
-      demandEventAnnounced: false,
-    });
+    const current = snapshot({ priceCents: 2553 });
     expect(explainChange(previous, current, 'full')).toBe('Price fell $10.00.');
   });
 
@@ -73,7 +68,6 @@ describe('the direction of the change', () => {
           totalTenths: 1800,
           newProducerTenths: 150,
           newProducerAnnounced: true,
-          demandEventApplied: true,
         }),
       ],
     ];
@@ -111,42 +105,7 @@ describe('disclosure modes', () => {
   });
 });
 
-describe('events stay secret unless they were announced', () => {
-  it('names an announced demand event', () => {
-    const previous = snapshot({ priceCents: 3553, totalTenths: 1149 });
-    const current = snapshot({
-      priceCents: 2553,
-      totalTenths: 1149,
-      demandEventApplied: true,
-      demandEventAnnounced: true,
-    });
-    expect(explainChange(previous, current, 'full')).toBe(
-      'Price fell $10.00 because the news changed how much the world wants to buy.',
-    );
-  });
-
-  it('never names an unannounced demand event', () => {
-    const previous = snapshot({ priceCents: 3553, totalTenths: 1149 });
-    const current = snapshot({
-      priceCents: 2553,
-      totalTenths: 1249,
-      demandEventApplied: true,
-      demandEventAnnounced: false,
-    });
-    const sentence = explainChange(previous, current, 'full');
-    expect(sentence).toBe('Price fell $10.00 because world supply rose 10.0 million barrels.');
-    expect(sentence).not.toContain('news');
-    expect(sentence).not.toContain('demand');
-  });
-
-  it('mentions an announced demand event only in the year it arrives', () => {
-    const during = snapshot({ priceCents: 2553, totalTenths: 1149, demandEventApplied: true });
-    const after = snapshot({ priceCents: 2403, totalTenths: 1199, demandEventApplied: true });
-    expect(explainChange(during, after, 'full')).toBe(
-      'Price fell $1.50 because world supply rose 5.0 million barrels.',
-    );
-  });
-
+describe('the new producer stays secret unless it was announced', () => {
   it('names an announced new producer', () => {
     const previous = snapshot({ priceCents: 3553, totalTenths: 1149, newProducerAnnounced: true });
     const current = snapshot({
@@ -180,7 +139,6 @@ describe('snapshotOf', () => {
   it('takes the explanation inputs straight off a settled year', () => {
     const settings = parseSettings({
       newProducer: { enabled: true, year: 2, output: 15, announced: true },
-      demandEvent: { enabled: true, year: 2, deltaA: -5 },
     });
     const year = (n: number) =>
       snapshotOf(
@@ -204,22 +162,17 @@ describe('snapshotOf', () => {
       priceCents: 3553,
       totalTenths: 1149,
       newProducerTenths: 0,
-      demandEventApplied: false,
-      demandEventAnnounced: true,
       newProducerAnnounced: true,
     });
     expect(two.newProducerTenths).toBe(150);
-    expect(two.demandEventApplied).toBe(true);
-    // Both events land in the same year, so both are named.
     expect(explainChange(one, two, 'full')).toBe(
-      'Price fell $9.50 because world supply rose 15.0 million barrels, the news changed how much the world wants to buy and another producer joined the market.',
+      'Price fell $4.50 because world supply rose 15.0 million barrels and another producer joined the market.',
     );
   });
 
-  it('keeps both events out of the practice year', () => {
+  it('keeps the new producer out of the practice year', () => {
     const settings = parseSettings({
       newProducer: { enabled: true, year: 1, output: 15, announced: true },
-      demandEvent: { enabled: true, year: 1, deltaA: -5 },
     });
     const practice = resolveWorldYear({
       settings,
@@ -235,7 +188,6 @@ describe('snapshotOf', () => {
     });
     expect(practice.year).toBe(0);
     expect(practice.newProducerTenths).toBe(0);
-    expect(practice.inputs.demandEventApplied).toBe(false);
     expect(practice.priceCents).toBe(3553);
   });
 });

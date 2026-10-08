@@ -103,12 +103,7 @@ describe('C4 - polling only', () => {
 
     for (const [index, team] of game.teams.entries()) {
       expect(team.socket.io.engine.transport.name).toBe('polling');
-      await team.must('recordHuddle', {
-        suggestions: [{ name: 'Ada', tenths: 380 + index }],
-        reason: 'Over polling, same as always.',
-      });
       await team.must('submitDecision', { tenths: 380 + index });
-      await team.must('submitPrediction', { othersTenths: [383, 383], trust: 4 });
     }
 
     await closeYear(game);

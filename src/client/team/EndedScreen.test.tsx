@@ -22,10 +22,11 @@ function ok() {
 describe('before the teacher releases the results', () => {
   const view = teamView({ phase: 'ENDED', history, resultsRevealed: false, leaderboard: null });
 
-  it('shows the group its own total and the three questions', () => {
+  it('shows the group its own total as the headline, and the three questions', () => {
     render(<EndedScreen view={view} send={ok()} />);
-    expect(screen.getByRole('heading', { name: 'The game has finished' })).toBeInTheDocument();
-    expect(screen.getByText(/Borvia earned/)).toBeInTheDocument();
+    expect(screen.getByText('Borvia, total over every scored year')).toBeInTheDocument();
+    // yearRow(3) carries a cumulative total of 3 x $1,320.00M.
+    expect(screen.getByText('$3,960.00M')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Three questions' })).toBeInTheDocument();
   });
 

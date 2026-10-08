@@ -1,9 +1,9 @@
 /**
- * The two scheduled events, and how the benchmarks move once they land.
+ * The one scheduled event, and how the benchmarks move once it lands.
  *
- * SPEC section 4: the new producer enters at the start of its year and stays;
- * a demand event changes a from its year onwards. Neither appears in the practice
- * year, which is year 0.
+ * SPEC section 4: the new producer enters at the start of its year and stays,
+ * and never appears in the practice year, which is year 0. The demand event v1
+ * had is gone, so `a` no longer moves during a game at all.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -13,7 +13,6 @@ import {
   bestResponseTenths,
   competitiveOutcome,
   cooperativeMax,
-  effectiveA,
   newProducerTenths,
 } from '@shared/engine/engine.js';
 
@@ -49,44 +48,8 @@ describe('the new producer', () => {
 
   it('is counted as other supply by the best response', () => {
     // Two rivals at 38.3 each plus a newcomer at 15.
-    expect(bestResponseTenths(766 + 150, standard, 9)).toBeLessThan(
-      bestResponseTenths(766, standard, 8),
-    );
-  });
-});
-
-describe('a demand event', () => {
-  const settings = parseSettings({
-    demandEvent: { enabled: true, year: 6, deltaA: -10, message: 'Buyers are cutting back.' },
-  });
-
-  it('does nothing before its year', () => {
-    expect(effectiveA(0, settings)).toBe(7000);
-    expect(effectiveA(5, settings)).toBe(7000);
-  });
-
-  it('shifts a from its year onwards', () => {
-    expect(effectiveA(6, settings)).toBe(6000);
-    expect(effectiveA(12, settings)).toBe(6000);
-  });
-
-  it('can be positive as well as negative', () => {
-    const better = parseSettings({ demandEvent: { enabled: true, year: 2, deltaA: 12.5 } });
-    expect(effectiveA(2, better)).toBe(8250);
-    const coop = cooperativeMax(better, 2);
-    expect(coop.totalTenths).toBeGreaterThan(cooperativeMax(better, 1).totalTenths);
-  });
-
-  it('does nothing at all while it is switched off', () => {
-    expect(effectiveA(6, standard)).toBe(7000);
-  });
-
-  it('lowers the benchmarks when demand falls', () => {
-    expect(cooperativeMax(settings, 6).jointMaxK).toBeLessThan(
-      cooperativeMax(settings, 5).jointMaxK,
-    );
-    expect(competitiveOutcome(settings, 6).eachTenths).toBeLessThan(
-      competitiveOutcome(settings, 5).eachTenths,
+    expect(bestResponseTenths(766 + 150, standard)).toBeLessThan(
+      bestResponseTenths(766, standard),
     );
   });
 });
@@ -95,8 +58,8 @@ describe('the benchmarks at the edges', () => {
   it('asks for 0 when the others have already pushed the price under cost', () => {
     const { capacityTenths } = economicUnits(standard);
     const flooded = capacityTenths * 10;
-    expect(bestResponseRawTenths(flooded, standard, 1)).toBeLessThan(0);
-    expect(bestResponseTenths(flooded, standard, 1)).toBe(0);
+    expect(bestResponseRawTenths(flooded, standard)).toBeLessThan(0);
+    expect(bestResponseTenths(flooded, standard)).toBe(0);
   });
 
   it('caps the cooperative total at three capacities when demand is huge', () => {

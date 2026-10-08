@@ -44,8 +44,8 @@ describe('the debrief panel', () => {
 
   it('sends the chosen world with the world detail screen', async () => {
     const { send, user } = renderPanel();
-    await user.click(screen.getByRole('button', { name: 'World detail' }));
-    await user.click(screen.getByRole('button', { name: 'World 2' }));
+    await user.click(screen.getByRole('tab', { name: 'World detail' }));
+    await user.click(screen.getByRole('tab', { name: 'World 2' }));
     await user.click(screen.getByRole('button', { name: 'Show on projector' }));
     expect(send).toHaveBeenCalledWith('setProjectorScreen', {
       screen: 'worldDetail',
@@ -94,7 +94,7 @@ describe('the debrief panel', () => {
 
   it('moves to the evidence when a question asks for it', async () => {
     const { user } = renderPanel();
-    await user.click(screen.getByRole('button', { name: 'Questions' }));
+    await user.click(screen.getByRole('tab', { name: 'Questions' }));
     await user.click(screen.getByRole('button', { name: /Show evidence: the best response/ }));
     expect(
       screen.getByRole('heading', { level: 2, name: debrief.titles.gameTheory }),

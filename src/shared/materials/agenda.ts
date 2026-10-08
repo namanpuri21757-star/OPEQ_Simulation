@@ -10,7 +10,7 @@
 import { activitiesAfterYear, secondsForYear, type Settings } from '../settings.js';
 import { yearLabel } from '../labels.js';
 
-/** How long the four briefing screens and the quick check take out loud. */
+/** How long the four briefing screens take out loud. */
 const BRIEFING_SECONDS = 360;
 /** How long a reveal takes: read the price, hear the groans, move on. */
 const REVEAL_SECONDS = 45;
@@ -42,7 +42,7 @@ export function agendaRows(settings: Settings): AgendaRow[] {
     {
       stage: 'Welcome and briefing',
       minutes: minutes(BRIEFING_SECONDS),
-      say: 'Hand out the briefing and the role cards. Step through the four screens, then the three-question check.',
+      say: 'Hand out the briefing and the role cards, then step through the four screens.',
     },
     {
       stage: 'Practice year',
@@ -73,7 +73,7 @@ export function agendaRows(settings: Settings): AgendaRow[] {
       rows.push({
         stage: 'Final-year warning',
         minutes: minutes(FINAL_YEAR_SECONDS),
-        say: 'Announce: "This is the final year." Then say nothing else and watch what happens.',
+        say: 'Say out loud: "This is the final year." Press the final-year warning so every screen says so, then say nothing else and watch what happens.',
       });
       blockStart = year;
     }
@@ -87,7 +87,7 @@ export function agendaRows(settings: Settings): AgendaRow[] {
         rows.push({
           stage:
             activity.kind === 'chat'
-              ? `Chat window after ${yearLabel(year)}`
+              ? `Messaging on after ${yearLabel(year)}`
               : `Summit after ${yearLabel(year)}`,
           minutes: minutes(activity.seconds),
           say:
@@ -112,4 +112,61 @@ export function agendaRows(settings: Settings): AgendaRow[] {
 
 export function agendaMinutes(settings: Settings): number {
   return agendaRows(settings).reduce((sum, row) => sum + row.minutes, 0);
+}
+
+/**
+ * The same lesson in six lines, for the teacher's start screen (SPEC 8.4).
+ *
+ * agendaRows is the runbook's version: a row per block of years, so a teacher
+ * can follow it with a watch. This one is the shape of the lesson, which is what
+ * someone reading the screen before the bell actually needs. Both come out of
+ * the same settings, so they can never describe different lessons.
+ */
+export function classPlan(settings: Settings): AgendaRow[] {
+  const chats = settings.schedule.filter((item) => item.kind === 'chat');
+  const summits = settings.schedule.filter((item) => item.kind === 'summit');
+  const yearSeconds = Array.from({ length: settings.years }, (_, i) =>
+    secondsForYear(i + 1, settings),
+  ).reduce((sum, seconds) => sum + seconds + REVEAL_SECONDS, 0);
+
+  const rows: AgendaRow[] = [
+    {
+      stage: 'Briefing: four screens, you move them on',
+      minutes: minutes(BRIEFING_SECONDS),
+      say: 'Hand out the briefing and the role cards.',
+    },
+    {
+      stage: 'Practice year, which does not count',
+      minutes: minutes(secondsForYear(0, settings) + REVEAL_SECONDS),
+      say: 'Check every group has submitted something.',
+    },
+    {
+      stage: `${String(settings.years)} scored years, one decision each`,
+      minutes: minutes(yearSeconds),
+      say: 'Press the one big button between years.',
+    },
+  ];
+
+  if (chats.length > 0) {
+    rows.push({
+      stage: `Messaging windows (${String(chats.length)})`,
+      minutes: minutes(chats.reduce((sum, item) => sum + item.seconds, 0)),
+      say: 'You turn messaging on and off. It is off by default.',
+    });
+  }
+  if (summits.length > 0) {
+    rows.push({
+      stage: `Summits, where the Envoys meet (${String(summits.length)})`,
+      minutes: minutes(summits.reduce((sum, item) => sum + item.seconds, 0)),
+      say: 'Send the Envoys to one table per world.',
+    });
+  }
+
+  rows.push({
+    stage: 'Debrief: the charts and the questions',
+    minutes: minutes(DEBRIEF_SECONDS),
+    say: 'End the game, release the results, then work through the screens.',
+  });
+
+  return rows;
 }

@@ -10,7 +10,7 @@ function sender(ack: Ack = ackOk('cmd-1', 8)) {
   return vi.fn(() => Promise.resolve(ack));
 }
 
-const field = () => screen.getByLabelText('How many million barrels will Borvia produce?');
+const field = () => screen.getByLabelText('Million barrels');
 
 describe('DecisionPanel', () => {
   it('names the problem when the number has too many decimals', async () => {
@@ -80,10 +80,11 @@ describe('DecisionPanel', () => {
       />,
     );
 
+    expect(screen.getByText('Submitted: 38.3 million barrels.')).toBeInTheDocument();
     expect(
-      screen.getByText('Submitted 38.3 million barrels - you can change it until the timer ends.'),
+      screen.getByText('You can change this until the timer ends.'),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText(/How many million barrels/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Million barrels')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Change' }));
     expect(field()).toHaveValue('38.3');
@@ -118,10 +119,33 @@ describe('DecisionPanel', () => {
     render(<DecisionPanel view={teamView({ phase: 'YEAR_REVEAL' })} send={sender()} />);
 
     expect(field()).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Submit/ })).toBeDisabled();
     expect(
       screen.getByText('This year is closed. Your teacher will start the next year.'),
     ).toBeInTheDocument();
+  });
+
+  it('asks the question with the year and the country in it', () => {
+    render(<DecisionPanel view={teamView()} send={sender()} />);
+    expect(
+      screen.getByRole('heading', {
+        name: 'Year 5 - how many million barrels will Borvia produce?',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('says how many countries in the world have submitted', () => {
+    render(<DecisionPanel view={teamView({ submittedCount: 2 })} send={sender()} />);
+    expect(
+      screen.getByText('2 of 3 countries in your world have submitted.'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no stepper and no slider: one control sets the number', () => {
+    render(<DecisionPanel view={teamView()} send={sender()} />);
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '+0.1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '-1' })).not.toBeInTheDocument();
   });
 
   it('tells a group what will happen if it sends nothing', () => {
@@ -166,7 +190,7 @@ describe('the number a group has typed but not sent (acceptance R1)', () => {
       decision: { tenths: 383, auto: false, at: 5, byInstructor: false },
     });
     render(<DecisionPanel view={submitted} send={sender()} store={store} />);
-    expect(screen.getByText(/Submitted 38.3 million barrels/)).toBeInTheDocument();
+    expect(screen.getByText(/Submitted: 38.3 million barrels/)).toBeInTheDocument();
     expect(readDraft(store, view.sessionId, view.year)).toBeNull();
   });
 

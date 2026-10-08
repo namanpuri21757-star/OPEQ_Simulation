@@ -94,7 +94,9 @@ describe('routes', () => {
 
   it('has a page for an address that does not exist', () => {
     renderAt('/nowhere');
-    expect(screen.getByRole('heading', { level: 2, name: 'Page not found' })).toBeInTheDocument();
+    expect(
+      screen.getByText('That page does not exist. Try the address your teacher gave you.'),
+    ).toBeInTheDocument();
   });
 
   it('says plainly when no game is open yet', async () => {

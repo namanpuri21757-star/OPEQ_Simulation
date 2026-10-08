@@ -16,7 +16,6 @@ import {
 } from '../net';
 import { Banner, Button } from '../ui';
 import { Dashboard } from './Dashboard';
-import { instructorLink } from './links';
 
 /**
  * The instructor's way in (SPEC 8.4): resume the saved game, or start one.
@@ -106,9 +105,9 @@ function CreateSession({ onCreated }: { onCreated(result: CreateSessionResult): 
   const offline = statusMessage(status);
 
   return (
-    <main className="page page-instructor-start">
+    <main className="sheet">
       <h1>{APP_NAME}</h1>
-      <p className="tagline">You are the instructor. Nothing is running on this computer yet.</p>
+      <p className="lede">You are the instructor. Nothing is running on this computer yet.</p>
 
       {offline !== null && (
         <Banner tone="warning" title="Offline">
@@ -116,7 +115,7 @@ function CreateSession({ onCreated }: { onCreated(result: CreateSessionResult): 
         </Banner>
       )}
 
-      <section className="panel" aria-labelledby="create-heading">
+      <section className="box" aria-labelledby="create-heading">
         <h2 id="create-heading">Start a new game</h2>
         <p>
           This makes a game with three worlds of three countries, which suits about 25 students. You
@@ -148,9 +147,9 @@ function LiveDashboard({ onForget }: { onForget(): void }) {
   // the data was deleted. There is one thing to do about it.
   if (status === 'refused' || gone !== null) {
     return (
-      <main className="page page-instructor-start">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
-        <section className="panel" aria-labelledby="lost-heading">
+        <section className="box" aria-labelledby="lost-heading">
           <h2 id="lost-heading">That game is not open on this computer</h2>
           <p role="status">{gone?.message ?? problem}</p>
           <Button tone="primary" size="large" onClick={onForget}>
@@ -163,33 +162,21 @@ function LiveDashboard({ onForget }: { onForget(): void }) {
 
   if (view === null || view.kind !== 'instructor') {
     return (
-      <main className="page page-instructor-start">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">Opening your dashboard...</p>
       </main>
     );
   }
 
+  // The dashboard draws its own link at the foot of whichever screen is up.
   return (
-    <>
-      <Dashboard
-        view={view}
-        send={send}
-        status={status}
-        serverNow={serverNow}
-        onDeleted={onForget}
-      />
-      {/* Kept to the bottom of the page and out of the way: the only reason to
-          read the link is to reopen this screen later or move it to another
-          laptop, and it must never be shown to the room. */}
-      <details className="page page-instructor own-link">
-        <summary>This dashboard&rsquo;s own link (keep it to yourself)</summary>
-        <p className="hint">
-          It has your instructor key in it. Anyone who opens it can run the game. The projector link
-          is a different link and cannot change anything.
-        </p>
-        <p className="own-link-url">{instructorLink(view)}</p>
-      </details>
-    </>
+    <Dashboard
+      view={view}
+      send={send}
+      status={status}
+      serverNow={serverNow}
+      onDeleted={onForget}
+    />
   );
 }

@@ -14,20 +14,20 @@ export default function Landing() {
   if (saved !== null) return <Navigate to="/team" replace />;
 
   return (
-    <main className="page page-landing">
+    <main className="sheet page-landing">
       <h1>{APP_NAME}</h1>
-      <p className="tagline">{APP_TAGLINE}</p>
+      <p className="lede">{APP_TAGLINE}</p>
 
       <div className="landing-choices">
-        <Link className="button button-primary button-large" to="/join">
+        <Link className="btn btn-primary btn-large" to="/join">
           This is a team computer
         </Link>
-        <Link className="button button-large" to="/instructor">
+        <Link className="btn btn-large" to="/instructor">
           I am the instructor
         </Link>
       </div>
 
-      <p className="hint">
+      <p className="note">
         Teams: your teacher will give you a card with a six-character code. Everything else happens
         on this computer.
       </p>

@@ -126,8 +126,8 @@ function bestResponseTable(settings: Settings, year: number): string[] {
     '| --- | --- | --- |',
   ];
   for (const others of [...new Set(totals)].sort((x, y) => x - y)) {
-    const raw = bestResponseRawTenths(others, settings, year);
-    const capped = bestResponseTenths(others, settings, year);
+    const raw = bestResponseRawTenths(others, settings);
+    const capped = bestResponseTenths(others, settings);
     lines.push(
       `| ${formatQuantity(others)} | ${formatQuantity(capped)} | ${raw === capped ? 'no' : `yes, the formula asks for ${formatQuantity(raw)}`} |`,
     );

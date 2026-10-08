@@ -30,7 +30,7 @@ export function DebriefPanel({ view, send, onSaid }: DebriefPanelProps) {
 
   if (debrief === null) {
     return (
-      <section className="panel" aria-labelledby="debrief-heading">
+      <section className="box" aria-labelledby="debrief-heading">
         <h2 id="debrief-heading">Debrief</h2>
         <p>The debrief opens when the game ends. Press the big button to get there.</p>
       </section>
@@ -69,7 +69,7 @@ export function DebriefPanel({ view, send, onSaid }: DebriefPanelProps) {
   };
 
   return (
-    <section className="panel" aria-labelledby="debrief-heading">
+    <section className="box" aria-labelledby="debrief-heading">
       <h2 id="debrief-heading">Debrief</h2>
 
       {debrief.empty && (
@@ -79,32 +79,39 @@ export function DebriefPanel({ view, send, onSaid }: DebriefPanelProps) {
         </p>
       )}
 
-      <nav className="debrief-tabs" aria-label="Debrief screens">
+      {/* Which screen is showing is a state, not an action, so these are tabs
+          rather than a row of buttons: one solid primary per screen (SPEC 8.2)
+          and the chosen one reads as selected. */}
+      <div className="debrief-tabs tabs" role="tablist" aria-label="Debrief screens">
         {DEBRIEF_SCREENS.map((name) => (
-          <Button
+          <button
             key={name}
-            tone={name === screen ? 'primary' : 'secondary'}
+            type="button"
+            role="tab"
+            className="tab"
+            aria-selected={name === screen}
             onClick={() => setScreen(name)}
-            aria-current={name === screen ? 'page' : undefined}
           >
             {DEBRIEF_TITLES[name]}
-          </Button>
+          </button>
         ))}
-      </nav>
+      </div>
 
       {screen === 'worldDetail' && view.worlds.length > 1 && (
         <div className="debrief-world-pick">
           <span id="world-pick-label">Which world?</span>
-          <div role="group" aria-labelledby="world-pick-label">
+          <div className="tabs" role="tablist" aria-labelledby="world-pick-label">
             {worldNumbers.map((number) => (
-              <Button
+              <button
                 key={number}
-                tone={number === worldNumber ? 'primary' : 'secondary'}
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={number === worldNumber}
                 onClick={() => setWorldNumber(number)}
-                aria-current={number === worldNumber ? 'true' : undefined}
               >
                 {`World ${String(number)}`}
-              </Button>
+              </button>
             ))}
           </div>
         </div>
@@ -120,7 +127,7 @@ export function DebriefPanel({ view, send, onSaid }: DebriefPanelProps) {
         )}
         {/* A plain link, not a router one: it opens its own tab, so there is
             no in-app navigation to take part in. */}
-        <a className="button" href="/instructor/summary" target="_blank" rel="noreferrer">
+        <a className="btn" href="/instructor/summary" target="_blank" rel="noreferrer">
           Print-friendly summary
         </a>
       </div>

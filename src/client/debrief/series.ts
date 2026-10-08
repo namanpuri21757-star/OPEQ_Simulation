@@ -28,9 +28,8 @@ export function styleFor(index: number): { marker: ChartMarker; dash?: string } 
 
 /** A word for each kind of labelled moment, used in the chart's own list. */
 export const MARKER_WORDS: Record<DebriefMarkerKind, string> = {
-  chat: 'Chat window',
+  chat: 'Messaging on',
   summit: 'Summit',
   newProducer: 'New producer',
-  demand: 'Demand change',
   finalYear: 'Final year',
 };

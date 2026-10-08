@@ -32,7 +32,7 @@ describe('a team screen', () => {
       await team?.send('openYear', { year: 1 }),
       await team?.send('pause'),
       await team?.send('extend', { seconds: 30 }),
-      await team?.send('announce', { text: 'Everyone stop.' }),
+      await team?.send('setMessaging', { on: true }),
       await team?.send('muteTeam', { teamId: game.teams[1]?.teamId ?? '' }),
       await team?.send('endGame'),
       await team?.send('revealResultsToTeams'),

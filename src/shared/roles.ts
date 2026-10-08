@@ -4,18 +4,25 @@
  * Roles rotate every rotateEvery years so the same student does not hold the
  * keyboard all lesson. The rotation is a pure function of the year, so the
  * terminal, the dashboard and a reprinted role card always agree.
+ *
+ * v2 has two roles. The Analyst only existed to run the What-if calculator and
+ * the forecasts of the other countries, and both of those are gone, so a group
+ * that still had one would have nothing to give them to do.
  */
 
-export const ROLE_NAMES = ['Operator', 'Analyst', 'Envoy'] as const;
+export const ROLE_NAMES = ['Operator', 'Envoy'] as const;
 export type RoleName = (typeof ROLE_NAMES)[number];
 
 export interface RoleAssignment {
   /** Sits at the keyboard and enters the decision. */
   operator: string;
-  /** Runs the What-if calculator. Two of them when the group has four members. */
-  analysts: string[];
-  /** Writes messages and goes to summits. */
-  envoy: string;
+  /**
+   * Writes the messages and goes to the summits.
+   *
+   * Usually one person. A group of three or four shares the job, because two
+   * roles between four students would leave two of them watching.
+   */
+  envoys: string[];
   /** Which rotation block this is, counting from 0. */
   block: number;
 }
@@ -37,11 +44,11 @@ export function defaultMembers(count: number): string[] {
 }
 
 /**
- * Hands out the three roles for one year.
+ * Hands out the roles for one year.
  *
- * With 1 member one person does everything; with 2 the Operator is also the
- * Analyst; with 4 the extra member is a second Analyst. The list is rotated by
- * the block, so everyone takes a turn at the keyboard.
+ * With 1 member one person does both jobs; with 2 it is one each; with 3 or 4
+ * everyone after the Operator is an Envoy. The list is rotated by the block, so
+ * everyone takes a turn at the keyboard.
  */
 export function rolesForYear(
   members: readonly string[],
@@ -54,16 +61,13 @@ export function rolesForYear(
   const order = [...people.slice(shift), ...people.slice(0, shift)];
 
   const first = order[0] ?? 'Member 1';
-  if (order.length === 1) {
-    return { operator: first, analysts: [first], envoy: first, block };
-  }
-  if (order.length === 2) {
-    const second = order[1] ?? first;
-    return { operator: first, analysts: [first], envoy: second, block };
-  }
+  if (order.length === 1) return { operator: first, envoys: [first], block };
+  return { operator: first, envoys: order.slice(1), block };
+}
 
-  const second = order[1] ?? first;
-  const third = order[2] ?? first;
-  const analysts = order.length >= 4 ? [second, order[3] ?? second] : [second];
-  return { operator: first, analysts, envoy: third, block };
+/** "Jared", or "Jared and Mia" when a group shares the job. */
+export function envoyNames(roles: RoleAssignment): string {
+  const names = roles.envoys;
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1] ?? ''}`;
 }

@@ -15,9 +15,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, open, readFile, rename, rm, writeFile, readdir } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
-import { commandSchema } from '../../shared/protocol.js';
+import { commandSchema, removedCommandMessage } from '../../shared/protocol.js';
 import type { SessionState } from '../../shared/state.js';
 import type { SessionEvent } from '../session/apply.js';
+import { upgradeSnapshot } from './migrate.js';
 
 export const EVENTS_FILE = 'events.jsonl';
 export const SNAPSHOT_FILE = 'snapshot.json';
@@ -122,6 +123,9 @@ export async function readEvents(
       events.push(parsed);
       continue;
     }
+    // A v1 command for a feature that no longer exists is not damage, so it is
+    // left out without a warning that would worry a teacher.
+    if (isRemovedLine(line)) continue;
     skipped += 1;
     const where = index === lines.length - 1 ? 'last' : `line ${String(index + 1)} of the`;
     logger(
@@ -130,6 +134,20 @@ export async function readEvents(
   }
 
   return { events, skipped };
+}
+
+/** A line that is a command v2 removed: skipped quietly, not reported as damage. */
+function isRemovedLine(line: string): boolean {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(line);
+  } catch {
+    return false;
+  }
+  if (typeof raw !== 'object' || raw === null) return false;
+  const command = (raw as Record<string, unknown>)['command'];
+  if (typeof command !== 'object' || command === null) return false;
+  return removedCommandMessage((command as Record<string, unknown>)['type']) !== null;
 }
 
 function parseEventLine(line: string): SessionEvent | null {
@@ -182,10 +200,9 @@ export async function readSnapshot(dir: string, logger: Logger): Promise<Session
   try {
     const raw = await readFile(join(dir, SNAPSHOT_FILE), 'utf8');
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const state = parsed as SessionState;
-    if (state.schema !== 1 || typeof state.sessionId !== 'string') return null;
-    return state;
+    // Everything a v1 session saved that v2 has no field for is dropped here,
+    // so a lesson from before the update still opens (see migrate.ts).
+    return upgradeSnapshot(parsed);
   } catch {
     // Deliberately not logging the error: a JSON parse error quotes the text
     // around the problem, and a snapshot's text holds the instructor key

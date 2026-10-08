@@ -14,7 +14,13 @@ import type { SessionState } from '../../src/shared/state.js';
 import { priceNumber, profitNumber, quantityNumber } from '../../src/shared/units.js';
 import type { InstructorView, ProjectorView, TeamView } from '../../src/shared/views.js';
 import type { GameClient } from '../support/client.js';
-import { openGame, playYears, startBetween, endBetween, type OpenGame } from '../support/game.js';
+import {
+  messagingOff,
+  messagingOn,
+  openGame,
+  playYears,
+  type OpenGame,
+} from '../support/game.js';
 import { startServer, type Harness } from '../support/harness.js';
 
 let harness: Harness;
@@ -42,34 +48,26 @@ async function playedGame(): Promise<OpenGame> {
   // Practice and Year 1.
   await playYears(game, 1, 383);
 
-  // The chat window after Year 1: one promise, one message, then the rest.
-  // The test clock is frozen unless a test moves it, and a promise posted at the
+  // The messaging window after Year 1: two messages, then the rest.
+  // The test clock is frozen unless a test moves it, and a message posted at the
   // same millisecond a year closed would belong to that year rather than the
   // next one, so time passes here the way it would in a classroom.
   harness.clock.advance(1000);
-  await startBetween(game, 'chat', 60);
+  await messagingOn(game, { seconds: 60 });
   const first = game.teams[0];
   if (!first) throw new Error('No terminal claimed.');
-  await first.must('sendPledge', { tenths: 383 });
+  await first.must('sendMessage', { text: 'We will produce 38.3 million barrels.' });
   // One message per team every three seconds (SPEC section 6); the test clock
   // is the test's to move.
   harness.clock.advance(4000);
   await first.must('sendMessage', { text: 'Shall we all keep to 38.3?' });
-  await endBetween(game);
+  await messagingOff(game);
 
-  // Year 2: huddles and guesses, and Ardonia in world 1 breaks its promise.
+  // Year 2: Ardonia in world 1 goes back on what it said.
   await game.instructor.must('openYear', { year: 2 });
   await game.sync();
-  await first.must('recordHuddle', {
-    suggestions: [
-      { name: 'Ada', tenths: 750 },
-      { name: 'Ben', tenths: 383 },
-    ],
-    reason: 'Nobody can stop us.',
-  });
   await first.must('submitDecision', { tenths: 750 });
   for (const team of game.teams.slice(1)) await team.must('submitDecision', { tenths: 383 });
-  await first.must('submitPrediction', { othersTenths: [383, 383], trust: 2 });
   await game.instructor.must('closeYear');
   await game.sync();
 
@@ -297,22 +295,15 @@ describe('the exports', () => {
     }
   });
 
-  it('hold the messages, promises, guesses, huddles and reflections', async () => {
+  it('hold the messages and the reflections', async () => {
     const game = await playedGame();
 
     const messages = await (await download(game, 'messages')).text();
     expect(messages).toContain('Shall we all keep to 38.3?');
-    // The promise was 38.3 and Ardonia produced 75.0, so it is marked broken.
-    expect(messages).toContain('pledge');
-    expect(messages).toMatch(/38\.3,75\.0,no/);
-
-    const predictions = await (await download(game, 'predictions')).text();
-    expect(predictions.trim().split('\r\n')).toHaveLength(2);
-    expect(predictions).toContain('Trust (1 to 5)');
-
-    const huddles = await (await download(game, 'huddles')).text();
-    expect(huddles).toContain('Ada');
-    expect(huddles).toContain('Nobody can stop us.');
+    // Both messages came before Year 2, which is the year they were about.
+    expect(messages).toContain('We will produce 38.3 million barrels.');
+    expect(messages).toContain('Year it came before');
+    expect(messages).toContain('Ardonia');
 
     const reflections = await (await download(game, 'reflections')).text();
     expect(reflections).toContain('When did your world cooperate best, and why?');

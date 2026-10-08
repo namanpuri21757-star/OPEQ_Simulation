@@ -26,7 +26,7 @@ import { readEvents, sessionDir } from '../src/server/store/files.js';
 import { debriefFor } from '../src/shared/debrief.js';
 import { cooperativeMax } from '../src/shared/engine/engine.js';
 import { COUNTRY_LETTERS, COUNTRY_NAMES } from '../src/shared/constants.js';
-import { effectiveA, priceCents } from '../src/shared/engine/engine.js';
+import { priceCents } from '../src/shared/engine/engine.js';
 import { economicUnits, PRESET_NAMES, type PresetName } from '../src/shared/settings.js';
 import type { SessionState } from '../src/shared/state.js';
 import { formatPrice, formatProfitK, formatQuantity } from '../src/shared/units.js';
@@ -180,6 +180,22 @@ async function playGame(instructor: InstructorBot, bots: TeamBot[]): Promise<voi
       (view) => (view['version'] as number) >= ack.version,
       'the dashboard to catch up',
     );
+
+    // A messaging window is no longer a phase of its own (SPEC section 6): the
+    // teacher turns the switch on between years and the room keeps looking at
+    // the results. The press after that turns it off again, so the bots have to
+    // have seen the press that turned it on before the loop comes round.
+    await Promise.all(
+      bots.map((bot) =>
+        bot.client.waitForView(
+          (view) => (view['version'] as number) >= ack.version,
+          `${bot.client.name} to catch up`,
+        ),
+      ),
+    );
+    for (const bot of bots) {
+      if (bot.canSendMessage()) await bot.talk();
+    }
   }
   throw new Error('The game did not finish in a sensible number of steps.');
 }
@@ -284,7 +300,7 @@ function checkOutcomes(state: SessionState): void {
         `World ${String(world.worldNumber)} Year ${String(record.year)} total is ${String(record.outcome.totalTenths)} but the countries add up to ${String(total)}.`,
       );
 
-      const fresh = priceCents(total, effectiveA(record.year, state.settings), units.bHundredths);
+      const fresh = priceCents(total, units.aCents, units.bHundredths);
       check(
         fresh === record.outcome.priceCents,
         `World ${String(world.worldNumber)} Year ${String(record.year)} stored ${formatPrice(record.outcome.priceCents)} but the engine says ${formatPrice(fresh)}.`,
@@ -339,6 +355,14 @@ function checkCoverage(state: SessionState, instructor: InstructorBot): void {
     'The schedule had activities in it and none of them happened.',
   );
   check(state.finalYearAnnounced, 'The final year was never announced.');
+  check(
+    state.settings.schedule.every((item) => item.kind !== 'chat') || state.messages.length > 0,
+    'The plan had a messaging window in it and nobody ever sent a message.',
+  );
+  check(
+    Object.keys(state.messaging).length === 0,
+    'The game ended with a messaging window still open.',
+  );
   check(
     state.worlds.every((world) =>
       world.years.some((record) => record.outcome.newProducerTenths > 0),

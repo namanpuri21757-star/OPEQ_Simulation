@@ -138,8 +138,7 @@ export function debriefGuideDoc(settings: Settings): MaterialDoc {
           'One country going to capacity once is often enough to end an agreement for good, even if it goes back down afterwards.',
           `The new producer's barrels look exactly like cheating from inside a world. Expect at least one group to accuse another of something nobody did, and ask them how they would have told the difference.`,
           'After the final-year warning most worlds produce more. Ask why a promise is worth less when there is no next year.',
-          'Groups almost always guess that the others will produce less than they really do. The predictions export shows it.',
-          `The Operator's own suggestion wins more often than the others'. The huddle table shows whose number became the decision, which is usually a surprise to the group.`,
+          'Groups almost always expect the others to produce less than they really do. Ask each world what it assumed, then show the table.',
         ],
       },
 

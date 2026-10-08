@@ -1,4 +1,4 @@
-# Crude Accord - Specification v1.0
+# Crude Accord - Specification v2.0
 
 ## 0. About this project
 Crude Accord is an original classroom simulation of an oil producers' cartel. Groups of students each run one country's Oil Production Board. Three countries share one world market. Every simulated year, each group decides how many million barrels to produce. The world price falls as total production rises. Each group tries to maximize its own country's cumulative profit. The game teaches cooperation and competition, negotiation, trust, and basic oligopoly game theory.
@@ -53,54 +53,56 @@ Phases: LOBBY, BRIEFING, PRACTICE (open, then reveal), YEAR n (open, then reveal
 - Submitting: the terminal enters Q, clicks Submit and sees an in-app confirmation (Submit 38.3 million barrels for Year 5?). After submitting, the group can change its decision until the year closes. The last submission before closing counts.
 - Missing decision at close: the country repeats its previous year's target; in Year 1 and the practice year it uses the starting output (default 40). Auto-filled decisions are marked auto everywhere.
 - After closing, the server computes every world at once and then shows the reveal.
-- Default between-years schedule: chat window after Year 3 (4 min); face-to-face summit after Year 7 (5 min); chat window after Year 10 (3 min). The instructor can add or skip an activity live.
-- Default event: a new producer enters at the start of Year 9 producing 15 million barrels a year, unannounced. Under full disclosure its output appears as Other suppliers; teams are not told when it entered. Optional demand event (default off): in a chosen year a changes by a chosen amount, announced in the news.
+- Default between-years schedule: messaging window after Year 3 (4 min); face-to-face summit after Year 7 (5 min); messaging window after Year 10 (3 min). The instructor can add or skip an activity live. A messaging window is not a phase: it is a suggested next step that turns the messaging switch on (section 6). A summit is a phase, because the room moves.
+- Default event: a new producer enters at the start of Year 9 producing 15 million barrels a year, unannounced. Under full disclosure its output appears as Other suppliers; teams are not told when it entered.
 - Final-year warning (default on): before the last year opens, the instructor is prompted to announce This is the final year. It can be turned off to keep the end secret.
 - Disclosure mode (default full): full = everyone in a world sees each country's actual output; totalOnly = world total and price only; priceOnly = price only. A team always sees its own output and profit.
 - Practice year: identical to a normal year, labeled PRACTICE everywhere, and excluded from all scores and debrief totals.
-- Presets: standard-75 (the defaults above); short-50 (8 years, 90 s years, chat after Year 3, new producer in Year 6, no summit); long-90 (16 years, chats after Years 3 and 12, summit after Year 7, new producer in Year 11); test-fast (all timers 5 s, for automated tests and demos).
+- Presets: standard-75 (the defaults above); short-50 (8 years, 90 s years, messaging after Year 3, new producer in Year 6, no summit); long-90 (16 years, messaging after Years 3 and 12, summit after Year 7, new producer in Year 11); test-fast (all timers 5 s, for automated tests and demos).
 
 ## 5. Roles on the shared Team Terminal
 - When a terminal claims its team, the group may type its members' first names (1 to 4; optional; default Member 1, Member 2, ...). No other personal data.
-- The terminal shows rotating roles, rotating every 4 years (configurable): Operator sits at the keyboard and enters the decision; Analyst runs the What-if calculator and forecasts the others; Envoy writes messages and goes to summits. With 2 members the Operator is also the Analyst; with 4, the extra member is a second Analyst.
-- Huddle (optional): before submitting, the group can record each member's suggested number and a one-line reason. Private to the team and the instructor; used in the debrief.
-- While waiting after submitting, an optional prompt asks what the other two countries will produce (two numbers) and how much the group trusts any agreement in its world (1 to 5).
+- The terminal shows two rotating roles, rotating every 4 years (configurable): Operator sits at the keyboard and enters the decision; Envoy writes messages and goes to summits. With 1 member one person does both; with 2 it is one each; with 3 or 4 everyone after the Operator is an Envoy. The terminal shows one line: "At the keyboard: Jack - Envoy: Jared".
 
 ## 6. Communication
-- Messages go to a world channel shared only by that world's 3 countries. Messages show the country name, never student names.
-- Chat mode (default windowsOnly): messages only during chat windows and summits. Other modes: off and always.
-- Pledge: during communication a team can post a structured pledge: We will produce X million barrels. The reveal compares each country's latest pledge with its actual output.
-- Limits: 280 characters; 1 message per 3 seconds per team; a built-in word filter masks offensive words; the instructor can mute a team and post announcements to all worlds or one world.
-- Summit: terminals show Envoys: go to the meeting point, with a timer.
+- Messages go to a world channel shared only by that world's 3 countries. Messages show the country name, never student names. A message is plain text; there is no structured pledge and no announcement.
+- Messaging switch: one control, held per world, off by default. Turning it on names how long (2, 3, 4 or 5 minutes, or "until I turn it off") and which worlds (all by default). A window closes by itself when its time runs out, checked by the 1-second tick in every phase. Nothing else ever opens or closes it: no phase, no setting, no schedule.
+- Limits: 280 characters; 1 message per 3 seconds per team; a built-in word filter masks offensive words; the instructor can mute a team.
+- Summit: terminals show Envoys: go to the meeting point, with a timer. A summit does not turn messaging on; the teacher does, if they want to.
 
 ## 7. Who sees what (enforced on the server)
-- Team Terminal: only its own world, never another world's data, never another team's huddle notes, reasons, predictions or reflections. Under totalOnly no per-country outputs of other countries; under priceOnly no world total either.
-- Projector: phase, year, timer, announcements, public news, and after each reveal optionally each world's price (projectorShowsPrices, default on). Never chat, never team-private data, never controls. In LOBBY it shows the join QR code and URL.
+- Team Terminal: only its own world, never another world's data, never another team's reflections. Under totalOnly no per-country outputs of other countries; under priceOnly no world total either.
+- Projector: phase, year, timer, whether messaging is on and how long is left, and after each reveal optionally each world's price and results table (projectorShowsPrices, default on). Never a message, never team-private data, never controls. In LOBBY it shows the join QR code and URL.
 - Instructor: everything, live.
 - Other worlds and the leaderboard become visible to teams only after the instructor clicks Reveal results to teams at the end.
 - Implementation rule: the server builds a separate view for each recipient (viewForTeam, viewForProjector, viewForInstructor). Raw session state is never sent to any client.
 
 ## 8. Screens
+8.0 The clarity rule, which outranks everything else in this section: every element on a screen must answer a question the user has at that moment. If it does not, it is not on the screen. Three things follow. One primary action per screen, a solid ink button with an arrow; everything else is outlined. An action that cannot be used right now is not drawn at all, rather than drawn greyed out. Units are always written next to the number ("million barrels", "$ per barrel", "$M"), the same words are used on every screen (year, produce, price, profit), and no paragraph runs longer than two lines.
 8.1 Landing (/): two large buttons, This is a team computer and I am the instructor, plus the app name and a one-line description.
 8.2 Join (/join and /join/:code): type or scan a 6-character team join code (no look-alike characters such as 0, O, 1, I, L). Show You are World 2 - Borvia (B). Is that right? before confirming, then ask for member names.
 8.3 Team Terminal (/team):
-- Header: country name, letter badge with its own shape and color (never color alone), world, Year N or PRACTICE, phase, countdown, connection status.
-- Briefing: 4 short screens in sync with the instructor: the story; how price works with a worked example (if the world produces 120 million barrels, price = 70 - 0.3 x 120 = $34; if you produced 40, profit = (34 - 1) x 40 = $1,320M); roles; how a year works. Then a 3-question check with instant friendly feedback, not graded. All numbers come from the session's settings.
-- Year screen: Decision panel (number field, -/+ buttons for 0.1 and 1, slider 0 to capacity, Submit or Change, clear status such as Submitted 38.3 - you can change it until the timer ends); What-if calculator (my Q and my guess of the others' total give price and my profit, with a small demand-curve chart); History (table and chart by year: price, my output, my profit, cumulative profit, others' outputs as disclosure allows); News and Messages panel; Huddle box.
-- Waiting: prediction prompt, then Waiting for the year to end.
-- Reveal: large price with its change from last year and one plain sentence explaining it (Price fell $4.50 because world supply rose 15.0 million barrels.), own profit, cumulative profit, others' outputs per disclosure, pledges versus actual, auto markers.
-- Chat window and Summit screens.
+- Status strip: country badge and name, World N, YEAR 5 or PRACTICE, STATUS (Decide / Waiting / Results), TIME LEFT in large monospace, YOUR TOTAL PROFIT, connection dot. Under it one small line: "At the keyboard: Jack - Envoy: Jared".
+- Main area: on wide screens the left column holds the decision and the right column holds messages; on narrow screens they stack.
+- Decision box: "Year 5 - how many million barrels will Ardonia produce?", a number input (0 to capacity, one decimal) and a primary Submit with a confirmation step. After submitting it reads "Submitted: 38.3 million barrels. You can change this until the timer ends." with a Change button, then one line: "2 of 3 countries in your world have submitted."
+- Last year, as one headline observation: the price in bold with its period and its units, the change from the year before under it with an arrow, then two small facts (world production in million barrels, your profit in $M).
+- Results table, one row per year, newest at the top: Year | Ardonia (you) | Borvia | Cendra | Other suppliers (only once they exist and disclosure allows) | World total | Price | Your profit. The disclosure mode is followed exactly. Right-aligned tabular figures and a small "auto" mark.
+- One chart: price by year, with labelled axes and a source line, and the practice year excluded.
+- Messages box: its first line always states its status. Off: "Messaging is off. Your teacher turns it on." On: "Messaging is on: 3:12 left. Jared (Envoy) types for your country." The input exists only while messaging is on.
+- Briefing: 4 short screens in sync with the instructor, in large readable type, plus "Your teacher moves these screens on": the story; how price works with one fixed worked example from this session's settings; the two roles; how a year works. Nothing on them is interactive.
+- Reveal: the price as the headline number with its change, one plain sentence explaining it (Price fell $4.50 because world supply rose 15.0 million barrels.), then what you produced, your profit this year and your total so far, then this year's world table (Country | Produced | Profit if disclosed). No promise columns.
+- Summit screen: who goes, and the clock.
 - End: own results summary and three reflection questions (free text, up to 500 characters each): When did your world cooperate best, and why? Did any promise get broken, and how did your group react? What would you do differently? After Reveal results to teams: own world chart and the full leaderboard.
 - Takeover screen: This team is now controlled from another computer.
 - Always: a reconnecting banner that says decisions are safely saved on the instructor computer.
-8.4 Instructor (/instructor):
-- Setup: preset picker; number of worlds; advanced settings folded away (a, b, cost, capacity, starting output, years, timers, disclosure, variance, chat mode, communication schedule, new producer year, output and announced or not, demand event, final-year warning, role rotation, autoClose, projectorShowsPrices). A live preview of cooperative and competitive outcomes for the chosen settings. Save and load settings as JSON.
-- Lobby: session code, join URL and QR code, every team's join code and claim status, member names, Print team cards (/instructor/cards: one card per team with country, letter, world, join code and QR code, print-friendly), release a terminal, approve a takeover.
-- Live dashboard: a phase bar with ONE suggested next-action button that follows the schedule (Close Year 5, Open chat window (4 min), Start Year 6); secondary controls: pause or resume, +30 s, close now, announcement, fire event, final-year warning, end game. A grid of worlds x countries showing connected, submitted, Q or auto, time submitted, huddle recorded, prediction recorded. Alerts such as World 2 - Borvia has not submitted, 20 s left and Terminal offline. A chat feed per world with mute. Override a team's decision (reason required, logged). Irreversible actions use an in-app confirmation dialog, never a browser alert.
-- Debrief: World Comparison (each world's total profit by year as a percent of the cooperative maximum, and cumulative); World Detail (pick a world: each country's output by year, the price line, markers for chat windows, summits, new producer and final-year warning; message timeline with pledges versus actual; predictions versus actual; huddle suggestions versus the final decision); Leaderboard (countries by cumulative profit across all worlds; worlds by total); Game theory (best response and the competitive and cooperative outcomes for the session's settings, and where each world actually ended); Debrief questions (section 10, each with a Show evidence link). Every debrief screen has a Show on projector button.
-- Exports: CSV files (decisions, outcomes, messages, predictions, huddles, reflections) and one full JSON export. Delete session data with a typed confirmation.
+8.4 Instructor: two screens, and which one is showing is not a choice. Before the briefing it is the start screen; from the briefing on it is the live screen.
+- Start screen (/instructor), read top to bottom: five numbered steps and nothing else. STEP 1 PRINT TEAM CARDS: all 9 cards on the page as a grid, worlds as rows and countries A, B, C as columns, each card showing the country, the world, a large join code, a QR code and the join address, with a primary "Print cards" button (/instructor/cards is black on white, 4 cards a page, with cut lines). STEP 2 OPEN THE PROJECTOR: a button plus the address in large monospace. STEP 3 CONNECT THE TEAM COMPUTERS: a live 3 x 3 grid of Waiting or Connected with a count ("7 of 9 connected") and the network check in one line (SPEC 8.6). STEP 4 HOW THE CLASS RUNS: five or six numbered one-line steps with rough minutes. STEP 5 START: a large primary "Start briefing" button, which works even when some computers are not connected and then says "2 not connected yet. They can join late." In the corner, small: Lesson settings and Materials.
+- Lesson settings (/instructor/settings): preset picker; number of worlds; a live preview of the cooperative and competitive outcomes; advanced settings folded away (a, b, cost, capacity, starting output, years, timers, disclosure, variance, communication schedule, new producer year, output and announced or not, final-year warning, role rotation, autoClose, projectorShowsPrices). Save and load settings as JSON. Settings can only be changed in the lobby.
+- Live screen (/instructor), top to bottom. (1) Status strip: YEAR 5 | STATUS: Deciding | TIME LEFT 1:42 | SUBMITTED 7 / 9 | MESSAGING: OFF; during the briefing it reads BRIEFING | Screen 2 of 4. (2) Next step: one large primary button for the next step in the plan with one line under it saying what it does, and beside it only the controls valid right now (Pause/Resume, +30 s, Close year now). Rarely used actions - Bring in the new producer now, Final-year warning, End game - sit behind a small "More" menu and each asks for confirmation. (3) Messaging: its own boxed panel with a large switch showing OFF or ON in big letters, off by default; turning it on asks how long (2, 3, 4 or 5 minutes, or until I turn it off) and which worlds (all by default); while on it shows a countdown per world and a "Turn off now" button, and it turns off by itself; one plain line explains it; below it a message feed per world with world tabs. The plan's scheduled windows no longer open by themselves: they appear as the next step ("Turn messaging on for 4 minutes") and the button does exactly what the switch does. (4) Countries grid: worlds as columns, countries as rows; each cell shows a connection dot, a tick plus the submitted number (or a dash), and "auto" when it was filled in. A problem shows inside its own cell ("offline"), and if something needs action one line appears under the status strip. There is no separate list of problems. (5) Results: one compact table per world, Year | A | B | C | Total | Price, newest year at the top. (6) Footer, small: the keyboard shortcuts (N for next step, Space for pause). Override a team's decision (reason required, logged). Irreversible actions use an in-app confirmation dialog, never a browser alert.
+- Debrief: World Comparison (each world's total profit by year as a percent of the cooperative maximum, and cumulative); World Detail (pick a world: each country's output by year, the price line, markers for messaging windows, summits, new producer and final-year warning; the message timeline; each country's messages sent and total profit); Leaderboard (countries by cumulative profit across all worlds; worlds by total); Game theory (best response and the competitive and cooperative outcomes for the session's settings, and where each world actually ended); Debrief questions (section 10, each with a Show evidence link). Every debrief screen has a Show on projector button.
+- Exports: CSV files (decisions, outcomes, messages, reflections) and one full JSON export. Delete session data with a typed confirmation.
 - Materials: links to the printable student briefing, role cards, runbook and debrief guide.
-8.5 Projector (/projector/:sessionId?k=projectorKey): very large type. Lobby: QR code, URL and Find your table card. Play: year, phase, countdown, announcements. Reveal: price per world if allowed. Debrief: whatever the instructor sends.
+8.5 Projector (/projector/:sessionId?k=projectorKey): the same design system at the size a room reads, with 2px rules. A status strip, one very large timer, and between years each world's price with its change and its results table. It shows MESSAGING ON - 3:12 when messaging is on, and FINAL YEAR once that has been given. No messages and no news. Lobby: QR code, URL and Find your table. Debrief: whatever the instructor sends.
 8.6 Network check (/check): any computer can open it; it measures round-trip time and the connection type (WebSocket or fallback) and reports to the instructor dashboard (Network check: 9 of 9 OK).
 
 ## 9. Technical requirements
@@ -136,6 +138,8 @@ Phases: LOBBY, BRIEFING, PRACTICE (open, then reveal), YEAR n (open, then reveal
 
 ## 11. Testing requirements
 - Unit: engine vectors V1-V8, BR1-BR2, CM1, determinism, variance bounds, input parsing, settings validation, views.
+- Messaging: the server refuses a message when messaging is off for that world; the switch works per world and for all worlds; a window turns off by itself at the end of its time; every terminal and the projector are sent the current state; turning it on from the plan step and from the switch leave the same state.
+- Removals: every removed command type is refused with a message a person can read, and no removed panel is rendered.
 - Integration: a real server with socket.io-client bots for every command, permission, phase, timer, chat, visibility and persistence rule.
 - Simulation: npm run simulate plays a complete bot game.
 - Load: npm run loadtest.
@@ -143,5 +147,37 @@ Phases: LOBBY, BRIEFING, PRACTICE (open, then reveal), YEAR n (open, then reveal
 - Accessibility: axe checks on the main pages.
 - npm run verify runs all of these and must pass before any phase is called done.
 
-## 12. Out of scope for v1
+## 12. Changelog
+
+### v2.0 - clarity redesign
+Every screen was redesigned around one rule, written down as SPEC 8.0: an element has to answer a question the user has at that moment. Nine features were removed because none of them did.
+
+Removed from the team terminal:
+1. The "Quick check" questions at the end of the briefing.
+2. The Huddle panel, which recorded each member's suggested number and a reason.
+3. "While you wait": the predictions of the other countries' output and the trust rating, and the debrief charts and exports built on them.
+4. The What-if calculator. Students reason about the market themselves; nothing computes a hypothetical price or profit for them.
+5. The News panel and every news banner, everywhere, including the projector.
+6. Promises: the "Promised" and "Promise kept?" columns and the structured pledge that fed them. Plain chat messages stay.
+7. The Analyst role, which only existed to run the calculator and the forecasts. Operator and Envoy remain.
+
+Removed from the teacher's screens:
+8. The Announcement button, and with it instructor announcements as a kind of message.
+9. The Change demand button and the optional demand event setting.
+
+Removed as a consequence, each logged in docs/DECISIONS.md:
+- The chat mode setting (off / windowsOnly / always), replaced by the messaging switch in section 6.
+- The steppers and the slider in the decision box, which set the same number as the field beside them.
+- The v1 dark theme. One light theme, which also reads better on a projector.
+- The "Things to look at" list on the dashboard: a problem now shows in the cell it belongs to.
+
+Added:
+- The messaging switch: one control, held per world, off by default, with its own command and its own tests.
+- src/client/theme.css: one file holding every colour, space, rule weight, font stack and type size.
+- A separate teacher start screen and live screen, and a lesson settings page of its own.
+- CSV exports are four files plus the JSON, not six plus the JSON.
+
+A session saved by v1 still opens: the loader drops every removed field on the way in, and an event-log line for a removed command is skipped without a warning.
+
+## 13. Out of scope for v2
 Student accounts, LMS integration, grading, other languages. Cloud hosting is an optional separate step.

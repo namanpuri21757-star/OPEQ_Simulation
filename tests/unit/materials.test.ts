@@ -82,12 +82,15 @@ describe('the student briefing', () => {
     expect(text).toContain('Your capacity is 40.0 million barrels');
   });
 
-  it('counts the chat windows and summits the class will really get', () => {
+  it('says who decides when messaging is on, and counts the summits', () => {
     const text = markdownFor(materialFor(DEFAULT_SETTINGS, 'student-briefing')!);
-    expect(text).toContain('There are 2 chat windows and 1 face-to-face summit');
+    expect(text).toContain('Your teacher turns messaging on and off');
+    expect(text).toContain('1 face-to-face summit');
 
+    // short-50 has no summit at all, so the page must not promise one.
     const quiet = markdownFor(materialFor(PRESETS['short-50'], 'student-briefing')!);
-    expect(quiet).toContain('There is 1 chat window and 0 face-to-face summits');
+    expect(quiet).toContain('Your teacher turns messaging on and off');
+    expect(quiet).not.toContain('face-to-face summit');
   });
 
   it('says nothing about the best response', () => {
@@ -116,11 +119,11 @@ describe('the agenda', () => {
       'Welcome and briefing',
       'Practice year',
       'Years 1 to 3',
-      'Chat window after Year 3',
+      'Messaging on after Year 3',
       'Years 4 to 7',
       'Summit after Year 7',
       'Years 8 to 10',
-      'Chat window after Year 10',
+      'Messaging on after Year 10',
       'Year 11',
       'Final-year warning',
       'Year 12',

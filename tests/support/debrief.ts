@@ -6,21 +6,13 @@
  * would never fill, and the numbers on screen are numbers the engine produced.
  *
  * The story: World 1 holds an agreement for two years and then Ardonia goes to
- * capacity after promising not to. World 2 competes from the start.
+ * capacity after saying in a message that it would not. World 2 competes from
+ * the start.
  */
 
 import { debriefFor, type DebriefData } from '../../src/shared/debrief.js';
 import type { SessionState } from '../../src/shared/state.js';
-import {
-  addChat,
-  addPledge,
-  closedAt,
-  makeSession,
-  setHuddle,
-  setPrediction,
-  setReflection,
-  type Triple,
-} from './session.js';
+import { addChat, makeSession, setReflection, type Triple } from './session.js';
 
 export const SHARE = 383;
 const COOPERATING: Triple = [SHARE, SHARE, SHARE];
@@ -39,17 +31,8 @@ export function playedSession(): SessionState {
 
   state.activitiesDone = ['2:chat'];
   addChat(state, 1, 'B', 1, 'Shall we all keep to an equal share?');
-  addPledge(state, 1, 'A', 3, SHARE);
-  addPledge(state, 1, 'B', 3, SHARE);
-  setPrediction(state, 1, 'B', 3, { othersTenths: [SHARE, SHARE], trust: 5, at: closedAt(3) });
-  setHuddle(state, 1, 'A', 3, {
-    suggestions: [
-      { name: 'Ada', tenths: 750 },
-      { name: 'Ben', tenths: SHARE },
-    ],
-    reason: 'Nobody can stop us.',
-    at: closedAt(3),
-  });
+  addChat(state, 1, 'A', 3, 'We will produce 38.3 million barrels.');
+  addChat(state, 1, 'B', 3, 'We will produce 38.3 million barrels too.');
   setReflection(state, 1, 'B', ['Years 1 and 2.', 'Ardonia broke its promise.', 'Trust less.']);
   return state;
 }

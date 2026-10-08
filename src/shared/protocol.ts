@@ -21,8 +21,11 @@ import type { Actor, Phase } from './state.js';
 // ---------------------------------------------------------------------------
 
 export const MAX_MESSAGE_CHARS = 280;
-export const MAX_HUDDLE_REASON_CHARS = 140;
+/** An override reason, which only the instructor ever types. */
+export const MAX_REASON_CHARS = 140;
 export const MAX_REFLECTION_CHARS = 500;
+/** The lengths the messaging switch offers, in minutes (SPEC 8.4). */
+export const MESSAGING_MINUTES = [2, 3, 4, 5] as const;
 export const MAX_MEMBER_NAME_CHARS = 20;
 export const MAX_MEMBERS = 4;
 export const MAX_EXTEND_SECONDS = 600;
@@ -111,16 +114,25 @@ export const commandSchema = z.discriminatedUnion('type', [
   command('resume', empty),
   command('extend', z.strictObject({ seconds: z.number().int().min(1).max(MAX_EXTEND_SECONDS) })),
 
-  // --- talking to the room --------------------------------------------------
+  // --- messaging ------------------------------------------------------------
+  /**
+   * The one messaging control (SPEC 8.4). Turning it on names how long and
+   * which worlds; turning it off needs neither.
+   *
+   * `worldIds` left out means every world. `seconds` left out (or null) means
+   * "until I turn it off".
+   */
   command(
-    'announce',
+    'setMessaging',
     z.strictObject({
-      text: z.string().min(1).max(MAX_MESSAGE_CHARS),
-      /** Left out means every world. */
-      worldId: worldId.optional(),
+      on: z.boolean(),
+      worldIds: z.array(worldId).min(1).max(MAX_WORLDS).nullish(),
+      seconds: z.number().int().min(5).max(3600).nullish(),
     }),
   ),
-  command('fireEvent', z.strictObject({ kind: z.enum(['newProducer', 'demand']) })),
+
+  // --- events ---------------------------------------------------------------
+  command('fireEvent', z.strictObject({ kind: z.enum(['newProducer']) })),
   command('announceFinalYear', empty),
 
   // --- looking after teams --------------------------------------------------
@@ -129,7 +141,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     z.strictObject({
       teamId,
       tenths,
-      reason: z.string().min(1).max(MAX_HUDDLE_REASON_CHARS),
+      reason: z.string().min(1).max(MAX_REASON_CHARS),
     }),
   ),
   command('muteTeam', z.strictObject({ teamId })),
@@ -167,22 +179,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   ),
   command('setMembers', z.strictObject({ names: z.array(memberName).min(1).max(MAX_MEMBERS) })),
   command('submitDecision', z.strictObject({ tenths })),
-  command(
-    'recordHuddle',
-    z.strictObject({
-      suggestions: z.array(z.strictObject({ name: memberName, tenths })).max(MAX_MEMBERS),
-      reason: z.string().max(MAX_HUDDLE_REASON_CHARS).default(''),
-    }),
-  ),
   command('sendMessage', z.strictObject({ text: z.string().min(1).max(MAX_MESSAGE_CHARS) })),
-  command('sendPledge', z.strictObject({ tenths })),
-  command(
-    'submitPrediction',
-    z.strictObject({
-      othersTenths: z.tuple([tenths, tenths]),
-      trust: z.number().int().min(1).max(5),
-    }),
-  ),
   command(
     'submitReflection',
     z.strictObject({
@@ -251,7 +248,9 @@ export const COMMAND_META: Record<CommandType, CommandMeta> = {
   resume: instructorOnly(false),
   extend: instructorOnly(false),
 
-  announce: instructorOnly(false),
+  // The tick turns a messaging window off when its time runs out, so "system"
+  // may send it too.
+  setMessaging: { actors: ['instructor', 'system'], guarded: false, persisted: true },
   fireEvent: instructorOnly(true),
   announceFinalYear: instructorOnly(true),
 
@@ -271,10 +270,7 @@ export const COMMAND_META: Record<CommandType, CommandMeta> = {
   claimTeam: { actors: ['team'], guarded: false, persisted: true },
   setMembers: teamOnly(false),
   submitDecision: teamOnly(true),
-  recordHuddle: teamOnly(true),
   sendMessage: teamOnly(false),
-  sendPledge: teamOnly(false),
-  submitPrediction: teamOnly(true),
   submitReflection: teamOnly(false),
 
   ping: { actors: ['instructor', 'projector', 'team', 'check'], guarded: false, persisted: false },
@@ -430,10 +426,35 @@ export const CLIENT_EVENTS = {
   command: 'command',
 } as const;
 
+/**
+ * The v1 commands that v2 removed, and why each one is gone.
+ *
+ * They are named here rather than simply falling through to "unknown command"
+ * so that an old screen left open in a browser tab, or a replay of a v1 event
+ * log, is answered with something a person can act on instead of a schema dump.
+ */
+export const REMOVED_COMMANDS: Record<string, string> = {
+  announce: 'Announcements were removed. Say it out loud, or turn messaging on.',
+  recordHuddle: 'The huddle panel was removed. Groups talk and then submit.',
+  submitPrediction: 'The waiting questions were removed.',
+  sendPledge: 'Structured promises were removed. Send a plain message instead.',
+};
+
+export function removedCommandMessage(type: unknown): string | null {
+  if (typeof type !== 'string') return null;
+  return REMOVED_COMMANDS[type] ?? null;
+}
+
 /** Parses an incoming command. Returns a friendly message, never a zod dump. */
 export type CommandParse = { ok: true; command: Command } | { ok: false; message: string };
 
 export function parseCommand(raw: unknown): CommandParse {
+  const removed =
+    typeof raw === 'object' && raw !== null
+      ? removedCommandMessage((raw as { type?: unknown }).type)
+      : null;
+  if (removed !== null) return { ok: false, message: removed };
+
   const result = commandSchema.safeParse(raw);
   if (result.success) return { ok: true, command: result.data };
 

@@ -1,0 +1,759 @@
+/*
+ * The whole design system: every colour, space, rule weight, font and type size
+ * this app uses is declared once, here.
+ *
+ * Three decisions run through all of it.
+ *
+ * One light theme only. A dark theme is a second set of contrast pairs to keep
+ * honest, and it is the wrong one in the only room that matters: a classroom
+ * projector washes dark backgrounds out, and half the screens in a lesson are
+ * on a wall rather than a desk.
+ *
+ * A visible grid instead of boxes and shadows. Every section sits inside 1px
+ * rules in the ink colour, so the page reads as a ruled sheet. Nothing needs a
+ * drop shadow to look like a panel, and a printed page comes out the same.
+ *
+ * Numbers are monospace with tabular figures, everywhere, without exception.
+ * A column of prices that does not line up is a column nobody reads down.
+ */
+
+:root {
+  /* --- colour ------------------------------------------------------------
+   * Six values, and that is the whole palette. Cream and ink blue carry the
+   * page; black is for body text; one grey for anything secondary; green and
+   * red appear only on a status, and never without a word or an arrow beside
+   * them (SPEC section 9, never colour alone).
+   *
+   * Contrast on --cream: --ink 8.6:1, --text 19.4:1, --muted 4.7:1 (used at
+   * 1rem and above), --good 4.6:1, --bad 5.9:1.
+   */
+  --cream: #fdfde9;
+  --ink: #1f3bd1;
+  --text: #0a0a0a;
+  --muted: #6a6a60;
+  --good: #1d6b3f;
+  --bad: #b3261e;
+
+  /* Ink at low opacity, for a rule that should not shout. Written out rather
+   * than as a colour-mix() so it works in a print preview too. */
+  --ink-faint: #c8cff2;
+  /* The one fill in the system: an ink-tinted band behind a table header. */
+  --ink-wash: #f2f3fb;
+
+  /* --- rules -------------------------------------------------------------
+   * One weight for every line on every screen. The projector doubles it,
+   * because 1px disappears at the back of a room.
+   */
+  --rule: 1px;
+  --rule-line: var(--rule) solid var(--ink);
+  --rule-faint: var(--rule) solid var(--ink-faint);
+
+  /* --- space -------------------------------------------------------------
+   * A 4px scale. Every gap on every screen is one of these seven.
+   */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2.5rem;
+  --s7: 4rem;
+
+  /* --- type --------------------------------------------------------------
+   * Two stacks, both already on every school laptop, so nothing is fetched
+   * from the internet at runtime (CLAUDE.md rule 7).
+   */
+  --sans:
+    'Helvetica Neue', Helvetica, Arial, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Display sizes are large and light; the two label sizes are small and
+   * letter-spaced. There is nothing in between on purpose. */
+  --t-display: clamp(2.75rem, 6vw, 4.5rem);
+  --t-title: clamp(1.75rem, 3.2vw, 2.5rem);
+  --t-headline: clamp(2.25rem, 4.5vw, 3.25rem);
+  --t-section: 1.25rem;
+  --t-body: 1.0625rem;
+  --t-small: 1rem;
+  --t-label: 0.8125rem;
+
+  --track-label: 0.08em;
+  --track-display: -0.02em;
+}
+
+/* Calm by choice, and calmer still for anyone who asks (SPEC section 9). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Never below 16px, so the text is readable on a classroom laptop. */
+  font-size: 100%;
+  background: var(--cream);
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- headings -------------------------------------------------------------
+ * Display headings are huge and light. There are only ever one or two on a
+ * screen; everything else is a small uppercase label.
+ */
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+h1 {
+  font-size: var(--t-title);
+}
+
+h2 {
+  font-size: var(--t-section);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+h3 {
+  font-size: var(--t-body);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* A focus ring that is always visible, including over the solid ink button. */
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- the label, the one repeating type style -----------------------------
+ * Navigation, buttons, table headers, section eyebrows: all the same small
+ * uppercase letter-spaced label.
+ */
+.label {
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.label-muted {
+  color: var(--muted);
+}
+
+/* --- numbers --------------------------------------------------------------
+ * Every figure on every screen. Tabular so columns line up, and never
+ * proportional even inline in a sentence.
+ */
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* --- the ruled grid ------------------------------------------------------
+ * A .sheet is a page; a .box is one ruled section inside it. Boxes share
+ * their rules with their neighbours, so the page reads as one grid rather
+ * than a stack of separate cards.
+ */
+.sheet {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0 var(--s4) var(--s7);
+}
+
+.sheet-wide {
+  max-width: 100%;
+}
+
+.box {
+  border: var(--rule-line);
+  padding: var(--s5);
+}
+
+/* Stacked boxes: one shared rule between each pair. */
+.stack > .box + .box {
+  border-top: 0;
+}
+
+/* A row of boxes: one shared rule between each pair. */
+.row-boxes {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.row-boxes > .box + .box {
+  border-left: 0;
+}
+
+.box-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-bottom: var(--s4);
+}
+
+/* The step number down the left of the teacher's start screen. */
+.step-no {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  color: var(--muted);
+}
+
+/* --- text ---------------------------------------------------------------- */
+
+/* No paragraph longer than two lines, so the measure is short on purpose. */
+.lede {
+  max-width: 44ch;
+  color: var(--text);
+}
+
+.note {
+  max-width: 54ch;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.problem {
+  font-size: var(--t-small);
+  color: var(--bad);
+}
+
+/* --- buttons ------------------------------------------------------------
+ * Exactly one solid ink button per screen, with a ▸ after it. Everything
+ * else is outlined, and an action that cannot be used now is not rendered
+ * at all rather than greyed out.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border: var(--rule-line);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--ink-wash);
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.btn-primary:hover {
+  /* Darkening by hand rather than with a filter, so it is still the palette. */
+  background: #17299a;
+}
+
+.btn-quiet {
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  text-decoration: underline;
+}
+
+.btn-quiet:hover {
+  background: transparent;
+}
+
+.btn-large {
+  padding: var(--s4) var(--s5);
+  font-size: var(--t-small);
+}
+
+.btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  align-items: center;
+}
+
+/* --- the status strip --------------------------------------------------
+ * The line across the top of every live screen: dense, monospace, ruled off
+ * from what is under it.
+ */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--s5);
+  padding: var(--s3) var(--s4);
+  border: var(--rule-line);
+  background: var(--ink-wash);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-small);
+  color: var(--text);
+}
+
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  white-space: nowrap;
+}
+
+.strip-key {
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.strip-value {
+  font-weight: 500;
+}
+
+.strip-clock {
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.strip-spacer {
+  margin-left: auto;
+}
+
+/* --- the FRED-style headline number ------------------------------------
+ * One observation in bold with its period, the units spelled out beside it,
+ * and the change under it with an arrow.
+ */
+.obs-period {
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.obs-value {
+  display: block;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-headline);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  color: var(--text);
+}
+
+.obs-units {
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+
+.obs-change {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-body);
+}
+
+.obs-up {
+  color: var(--good);
+}
+
+.obs-down {
+  color: var(--bad);
+}
+
+/* Two small facts under a headline number. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s5);
+  margin-top: var(--s4);
+}
+
+.fact-key {
+  display: block;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fact-value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-section);
+}
+
+/* --- tables -------------------------------------------------------------
+ * Dense rows, right-aligned monospace figures, a ruled header band. A table
+ * that is wider than its column scrolls inside itself and is reachable by
+ * keyboard, so the last columns are never mouse-only (SPEC section 9).
+ */
+.table-scroll {
+  overflow-x: auto;
+  border: var(--rule-faint);
+}
+
+.table-scroll:focus-visible {
+  outline-offset: 0;
+}
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-small);
+}
+
+table.grid caption {
+  padding: var(--s2) var(--s3);
+  border-bottom: var(--rule-faint);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--muted);
+}
+
+table.grid th,
+table.grid td {
+  padding: var(--s2) var(--s3);
+  border-bottom: var(--rule-faint);
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.grid thead th {
+  background: var(--ink-wash);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* The first column names the row, so it reads left. */
+table.grid th:first-child,
+table.grid td:first-child {
+  text-align: left;
+}
+
+table.grid td,
+table.grid tbody th {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+table.grid tbody tr:last-child th,
+table.grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* The practice row is not a score, so it is set apart without colour. */
+table.grid tr.is-practice th,
+table.grid tr.is-practice td {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* "auto": a decision the server filled in. */
+.auto-mark {
+  margin-left: var(--s1);
+  font-family: var(--sans);
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- status dots and arrows ------------------------------------------- */
+.dot {
+  font-size: 0.75em;
+  line-height: 1;
+}
+
+.dot-on {
+  color: var(--good);
+}
+
+.dot-off {
+  color: var(--bad);
+}
+
+.dot-wait {
+  color: var(--muted);
+}
+
+/* --- charts ------------------------------------------------------------
+ * A single clean line with labelled axes and a source note under it. The
+ * data table behind every chart lives in .table-scroll above.
+ */
+.chart {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.chart-axis {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.chart-grid {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+}
+
+.chart-tick {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.chart-axis-label {
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  fill: var(--muted);
+}
+
+.chart-source {
+  margin-top: var(--s2);
+  font-size: var(--t-label);
+  color: var(--muted);
+}
+
+/* --- forms ------------------------------------------------------------- */
+.field {
+  display: block;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: var(--s2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--s3);
+  border: var(--rule-line);
+  background: var(--cream);
+  color: var(--text);
+}
+
+.input-number {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-section);
+  text-align: right;
+}
+
+.input-big {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2rem;
+  padding: var(--s3) var(--s4);
+  text-align: right;
+}
+
+/*
+ * A plain <label> and <input> inside a .field get the same treatment, so a
+ * form does not have to name a class on every element it holds. The settings
+ * form and the join screen are built this way: dozens of fields, all alike.
+ */
+.field {
+  display: block;
+  margin-top: var(--s4);
+}
+
+.field > label,
+.field > legend {
+  display: block;
+  margin-bottom: var(--s2);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.field > input[type='text'],
+.field > input[type='number'],
+.field > select,
+.field > textarea,
+.field > .field-row > select {
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--s3);
+  border: var(--rule-line);
+  background: var(--cream);
+  color: var(--text);
+}
+
+.field > textarea {
+  min-height: 4.5rem;
+}
+
+.field > .note,
+.field > span.note {
+  display: block;
+  margin-top: var(--s2);
+}
+
+/* A checkbox reads better with its label beside it, not above it. */
+.field-check {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.field-check > label {
+  margin-bottom: 0;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: var(--t-small);
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* --- notices ----------------------------------------------------------- */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s3);
+  padding: var(--s3) var(--s4);
+  border: var(--rule-line);
+  font-size: var(--t-small);
+}
+
+.notice-title {
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.notice-alert {
+  border-color: var(--bad);
+}
+
+.notice-alert .notice-title {
+  color: var(--bad);
+}
+
+/* --- layout helpers --------------------------------------------------- */
+.cols {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 60rem) {
+  .cols-2 {
+    grid-template-columns: 3fr 2fr;
+  }
+
+  /* Shared rules again: the right column leans on the left column's. */
+  .cols-2 > * + * {
+    border-left: 0;
+  }
+}
+
+.spread {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.stack-tight > * + * {
+  margin-top: var(--s2);
+}
+
+.stack-loose > * + * {
+  margin-top: var(--s4);
+}
+
+/* Visible only to screen readers, for headings that would clutter a screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

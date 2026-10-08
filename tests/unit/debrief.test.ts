@@ -3,23 +3,20 @@
  *
  * These are the numbers a teacher will say out loud in front of a class, so
  * every one of them is checked against an arithmetic a reader can follow, and
- * the awkward cases - a world that never cooperated, a missing pledge, a game
- * ended early - each get their own test.
+ * the awkward cases - a world that never cooperated, a world nobody spoke in, a
+ * game ended early - each get their own test.
  */
 
 import { describe, expect, it } from 'vitest';
 import { COUNTRY_LETTERS } from '../../src/shared/constants.js';
 import { cooperativeMax } from '../../src/shared/engine/engine.js';
-import { debriefFor, percentOf, pledgeKept, THEORY_YEAR } from '../../src/shared/debrief.js';
+import { debriefFor, percentOf, THEORY_YEAR } from '../../src/shared/debrief.js';
 import { DEFAULT_SETTINGS, PRESETS, parseSettings } from '../../src/shared/settings.js';
 import { formatProfitK } from '../../src/shared/units.js';
 import {
   addChat,
-  addPledge,
   closedAt,
   makeSession,
-  setHuddle,
-  setPrediction,
   setReflection,
   type Triple,
 } from '../support/session.js';
@@ -132,155 +129,42 @@ describe('the year cooperation broke', () => {
   });
 });
 
-describe('pledges', () => {
-  it('counts a pledge as kept within half a million barrels', () => {
-    expect(pledgeKept(383, 388)).toBe(true);
-    expect(pledgeKept(383, 389)).toBe(false);
-    expect(pledgeKept(383, 378)).toBe(true);
-    expect(pledgeKept(383, 377)).toBe(false);
-  });
-
-  it('marks each year kept or broken, and leaves a year with no pledge blank', () => {
-    const state = makeSession({ plays: [[cooperating, aCheats]] });
-    addPledge(state, 1, 'A', 1, SHARE);
-    addPledge(state, 1, 'A', 2, SHARE);
-    const world = debriefFor(state).worlds[0];
-
-    const yearOne = world?.years[0]?.countries.find((country) => country.letter === 'A');
-    const yearTwo = world?.years[1]?.countries.find((country) => country.letter === 'A');
-    const noPledge = world?.years[0]?.countries.find((country) => country.letter === 'B');
-
-    expect(yearOne?.pledgeKept).toBe(true);
-    expect(yearTwo?.pledgeTenths).toBe(SHARE);
-    expect(yearTwo?.pledgeKept).toBe(false);
-    expect(noPledge?.pledgeTenths).toBeNull();
-    expect(noPledge?.pledgeKept).toBeNull();
-
-    const country = world?.countries.find((row) => row.letter === 'A');
-    expect(country?.pledgesMade).toBe(2);
-    expect(country?.pledgesKept).toBe(1);
-  });
-
-  it('carries a pledge forward until it is replaced', () => {
-    const state = makeSession({ plays: [[cooperating, cooperating]] });
-    addPledge(state, 1, 'C', 1, SHARE);
-    const world = debriefFor(state).worlds[0];
-    const later = world?.years[1]?.countries.find((country) => country.letter === 'C');
-    expect(later?.pledgeTenths).toBe(SHARE);
-    expect(later?.pledgeKept).toBe(true);
-  });
-});
-
 describe('the message timeline', () => {
-  it('marks each pledge against the year that followed it', () => {
-    const state = makeSession({ plays: [[cooperating, aCheats]] });
-    addChat(state, 1, 'B', 1, 'Shall we all stay at 38.3?');
-    addPledge(state, 1, 'A', 2, SHARE);
+  it('tags each message with the scored year that followed it', () => {
+    const state = makeSession({ plays: [[cooperating, cooperating, aCheats]] });
+    addChat(state, 1, 'A', 3, 'We will produce 38.3 million barrels.');
+
     const messages = debriefFor(state).worlds[0]?.messages ?? [];
-
-    const chat = messages.find((message) => message.kind === 'chat');
-    expect(chat?.year).toBe(1);
-    expect(chat?.kept).toBeNull();
-
-    const pledge = messages.find((message) => message.kind === 'pledge');
-    expect(pledge?.year).toBe(2);
-    expect(pledge?.kept).toBe(false);
-    expect(pledge?.actualTenths).toBe(CAPACITY);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({ letter: 'A', countryName: 'Ardonia', year: 3 });
   });
 
-  it('leaves a pledge made after the last year unmarked rather than broken', () => {
+  it('leaves a message sent after the last year with no year at all', () => {
     const state = makeSession({ plays: [[cooperating]] });
     state.messages.push({
       messageId: 'late',
       worldId: 'world-1',
       teamId: 'world-1-A',
       letter: 'A',
-      kind: 'pledge',
-      text: 'We will produce 38.3 million barrels.',
-      tenths: SHARE,
-      at: closedAt(1) + 5000,
+      text: 'Next time we will cooperate.',
+      at: closedAt(9),
     });
-    const pledge = debriefFor(state).worlds[0]?.messages.find((m) => m.messageId === 'late');
-    expect(pledge?.year).toBeNull();
-    expect(pledge?.kept).toBeNull();
+
+    const message = debriefFor(state).worlds[0]?.messages.find((m) => m.messageId === 'late');
+    expect(message?.year).toBeNull();
   });
 
-  it('shows an announcement that went to every world in each world', () => {
-    const state = makeSession({ plays: [[cooperating], [cooperating]] });
-    state.messages.push({
-      messageId: 'note',
-      worldId: null,
-      teamId: null,
-      letter: null,
-      kind: 'announcement',
-      text: 'Five minutes left.',
-      at: closedAt(1) - 500,
-    });
-    const debrief = debriefFor(state);
-    for (const world of debrief.worlds) {
-      const found = world.messages.find((message) => message.messageId === 'note');
-      expect(found?.countryName).toBeNull();
-    }
-  });
-});
-
-describe('predictions', () => {
-  it('measures how far out each guess was', () => {
-    const state = makeSession({ plays: [[cooperating, aCheats]] });
-    // A guessed the other two would stay at the share, and they did.
-    setPrediction(state, 1, 'A', 1, { othersTenths: [SHARE, SHARE], trust: 4, at: closedAt(1) });
-    // In Year 2 A guessed low by 10.0 million barrels in total.
-    setPrediction(state, 1, 'A', 2, { othersTenths: [283, 383], trust: 2, at: closedAt(2) });
-    const country = debriefFor(state).worlds[0]?.countries.find((row) => row.letter === 'A');
-
-    expect(country?.predictions).toHaveLength(2);
-    expect(country?.predictions[0]).toMatchObject({
-      year: 1,
-      predictedTenths: SHARE * 2,
-      actualTenths: SHARE * 2,
-      errorTenths: 0,
-    });
-    expect(country?.predictions[1]?.errorTenths).toBe(100);
-    expect(country?.meanPredictionErrorTenths).toBe(50);
-    expect(country?.averageTrustTenths).toBe(30);
-  });
-
-  it('reports no error at all when a group never guessed', () => {
-    const state = makeSession({ plays: [[cooperating]] });
-    const country = debriefFor(state).worlds[0]?.countries.find((row) => row.letter === 'A');
-    expect(country?.predictions).toEqual([]);
-    expect(country?.meanPredictionErrorTenths).toBeNull();
-    expect(country?.averageTrustTenths).toBeNull();
-  });
-});
-
-describe('huddles', () => {
-  it('says whose suggestion became the decision', () => {
+  it('counts the messages each country sent', () => {
     const state = makeSession({ plays: [[cooperating, cooperating]] });
-    setHuddle(state, 1, 'A', 1, {
-      suggestions: [
-        { name: 'Ada', tenths: SHARE },
-        { name: 'Ben', tenths: 500 },
-      ],
-      reason: 'Keep the price up.',
-      at: closedAt(1),
-    });
-    setHuddle(state, 1, 'A', 2, {
-      suggestions: [
-        { name: 'Ada', tenths: 600 },
-        { name: 'Ben', tenths: SHARE },
-      ],
-      reason: 'Same again.',
-      at: closedAt(2),
-    });
+    addChat(state, 1, 'A', 1, 'Equal shares?');
+    addChat(state, 1, 'A', 2, 'Still equal shares?');
+    addChat(state, 1, 'B', 2, 'Agreed.');
 
-    const country = debriefFor(state).worlds[0]?.countries.find((row) => row.letter === 'A');
-    expect(country?.huddles[0]?.decisionTenths).toBe(SHARE);
-    expect(country?.huddles[0]?.suggestions.map((s) => s.matched)).toEqual([true, false]);
-    expect(country?.memberMatches).toEqual([
-      { name: 'Ada', suggestions: 2, matched: 1 },
-      { name: 'Ben', suggestions: 2, matched: 1 },
-      { name: 'Cleo', suggestions: 0, matched: 0 },
+    const countries = debriefFor(state).worlds[0]?.countries ?? [];
+    expect(countries.map((country) => [country.letter, country.messagesSent])).toEqual([
+      ['A', 2],
+      ['B', 1],
+      ['C', 0],
     ]);
   });
 });
@@ -329,7 +213,7 @@ describe('what a debrief carries about the whole session', () => {
       'newProducer',
       'finalYear',
     ]);
-    expect(markers[0]?.label).toBe('Chat after Year 3');
+    expect(markers[0]?.label).toBe('Messaging on after Year 3');
     expect(markers[2]?.label).toContain('15.0 million barrels');
     expect(markers[3]?.year).toBe(10);
   });

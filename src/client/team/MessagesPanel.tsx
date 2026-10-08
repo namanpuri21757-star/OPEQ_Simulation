@@ -1,22 +1,26 @@
 import { useId, useState } from 'react';
 import { MAX_MESSAGE_CHARS } from '@shared/protocol';
-import { formatQuantity, parseQuantity } from '@shared/units';
+import { envoyNames } from '@shared/roles';
 import type { MessageView, TeamView } from '@shared/views';
 import type { SendCommand } from '../net';
-import { Badge, Banner, Button, type Say } from '../ui';
+import { Badge, Button, Countdown, type Say } from '../ui';
 
 /**
  * The world channel (SPEC section 6): the three countries in this world, and
- * announcements from the teacher. Never student names, only countries.
+ * nobody else.
  *
- * Outside a chat window the panel is still here, read-only, so a group can look
- * back at what was promised. That matters: a pledge made in Year 3 is the thing
- * the reveal in Year 4 compares against.
+ * Its first line always says what state it is in, because "why can't we type?"
+ * was the question this panel kept being asked. When messaging is off there is
+ * no input at all, so there is nothing to try and nothing to be refused by.
+ *
+ * The list stays readable when messaging is off: a promise made in Year 3 is
+ * exactly what a group wants to look back at in Year 4.
  */
 export interface MessagesPanelProps {
   view: TeamView;
   send: SendCommand;
   onSaid?: Say | undefined;
+  serverNow?: (() => number) | undefined;
 }
 
 /** "14:05" without asking the browser's language settings. */
@@ -28,35 +32,29 @@ export function clockTime(at: number): string {
 }
 
 function Line({ message, own }: { message: MessageView; own: boolean }) {
-  const pledge = message.kind === 'pledge';
   return (
-    <li className={`message${own ? ' message-own' : ''}`}>
+    <li className={`message${own ? ' message-mine' : ''}`}>
       <span className="message-who">
-        {message.letter === null ? (
-          <strong>Your teacher</strong>
-        ) : (
-          <>
-            <Badge letter={message.letter} size="small" />
-            <strong>{message.countryName}</strong>
-          </>
-        )}
-        {own && <span className="message-tag">you</span>}
-        {pledge && <span className="message-tag">promise</span>}
+        <Badge letter={message.letter} size="small" />
+        {message.countryName}
+      </span>{' '}
+      <span className="num" aria-hidden="true">
+        {clockTime(message.at)}
       </span>
+      <br />
       <span className="message-text">{message.text}</span>
-      <span className="message-time">{clockTime(message.at)}</span>
     </li>
   );
 }
 
-export function MessagesPanel({ view, send, onSaid }: MessagesPanelProps) {
+export function MessagesPanel({ view, send, onSaid, serverNow }: MessagesPanelProps) {
   const id = useId();
   const [text, setText] = useState('');
-  const [pledge, setPledge] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const canWrite = view.chatOpen;
+  const on = view.messaging.on && !view.muted;
+  const envoy = envoyNames(view.roles);
 
   const sendChat = async () => {
     const trimmed = text.trim();
@@ -76,94 +74,74 @@ export function MessagesPanel({ view, send, onSaid }: MessagesPanelProps) {
     }
   };
 
-  const sendPledge = async () => {
-    const parsed = parseQuantity(pledge, view.settings.capacityTenths);
-    if (!parsed.ok) {
-      setProblem(parsed.message);
-      return;
-    }
-    setBusy(true);
-    const ack = await send('sendPledge', { tenths: parsed.tenths });
-    setBusy(false);
-    if (ack.ok) {
-      setPledge('');
-      setProblem(null);
-      onSaid?.('Your promise has been sent.', 'good');
-    } else {
-      setProblem(ack.message);
-      onSaid?.(ack.message, 'bad');
-    }
-  };
-
   return (
-    <section className="panel messages" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>Messages</h2>
+    <section className="box" aria-labelledby={`${id}-heading`}>
+      <h2 className="visually-hidden" id={`${id}-heading`}>
+        Messages
+      </h2>
 
-      {view.messages.length === 0 ? (
-        <p className="hint">No messages yet.</p>
+      {/* The first line is the state, every time. */}
+      {view.muted ? (
+        <p className="messages-state messages-off" role="status">
+          Your teacher has paused messages from your country. You can still read them.
+        </p>
+      ) : on ? (
+        <p className="messages-state" role="status">
+          Messaging is on
+          {view.messaging.until !== null && serverNow !== undefined && (
+            <>
+              {': '}
+              <Countdown
+                deadline={view.messaging.until}
+                remainingMs={null}
+                paused={false}
+                serverNow={serverNow}
+                closedLabel="0:00"
+              />
+              {' left'}
+            </>
+          )}
+          {envoy === '' ? '.' : `. ${envoy} (Envoy) types for your country.`}
+        </p>
       ) : (
-        <ul className="message-list">
+        <p className="messages-state messages-off" role="status">
+          Messaging is off. Your teacher turns it on.
+        </p>
+      )}
+
+      {view.messages.length > 0 && (
+        <ul className="message-list" tabIndex={0} aria-label="Messages in your world">
           {view.messages.map((message) => (
             <Line key={message.messageId} message={message} own={message.letter === view.letter} />
           ))}
         </ul>
       )}
 
-      {view.muted && (
-        <Banner tone="warning" title="Paused">
-          Your teacher has paused your messages for now. You can still read them.
-        </Banner>
-      )}
-
-      {!canWrite ? (
-        !view.muted && <p className="hint">Messages open when your teacher opens a chat window.</p>
-      ) : (
-        <>
-          <p className="field">
-            <label htmlFor={`${id}-text`}>Write to the other countries in your world</label>
-            <textarea
-              id={`${id}-text`}
-              rows={3}
-              maxLength={MAX_MESSAGE_CHARS}
-              value={text}
-              onChange={(event) => {
-                setText(event.target.value);
-                setProblem(null);
-              }}
-            />
-            <span className="hint" aria-live="polite">
-              {`${String(text.length)} of ${String(MAX_MESSAGE_CHARS)} characters`}
-            </span>
-          </p>
-          <Button tone="primary" onClick={() => void sendChat()} disabled={busy}>
+      {on && (
+        <div className="message-form">
+          <label className="visually-hidden" htmlFor={`${id}-text`}>
+            Write to the other countries in your world
+          </label>
+          <input
+            id={`${id}-text`}
+            className="input"
+            type="text"
+            maxLength={MAX_MESSAGE_CHARS}
+            autoComplete="off"
+            value={text}
+            placeholder="Write to the other two countries"
+            onChange={(event) => {
+              setText(event.target.value);
+              setProblem(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void sendChat();
+            }}
+          />
+          <Button onClick={() => void sendChat()} disabled={busy}>
             Send
           </Button>
-
-          <p className="field pledge-field">
-            <label htmlFor={`${id}-pledge`}>Promise a number (million barrels)</label>
-            <input
-              id={`${id}-pledge`}
-              type="text"
-              inputMode="decimal"
-              value={pledge}
-              onChange={(event) => {
-                setPledge(event.target.value);
-                setProblem(null);
-              }}
-            />
-            <span className="hint">
-              {pledge.trim() === ''
-                ? 'This sends "We will produce X million barrels."'
-                : `This sends "We will produce ${pledge.trim()} million barrels."`}
-            </span>
-          </p>
-          <Button onClick={() => void sendPledge()} disabled={busy}>
-            Send our promise
-          </Button>
-          <p className="hint">
-            {`Your capacity is ${formatQuantity(view.settings.capacityTenths)} million barrels. Keep promises you mean to keep: the results screen shows what each country promised next to what it really produced.`}
-          </p>
-        </>
+        </div>
       )}
 
       {problem !== null && (

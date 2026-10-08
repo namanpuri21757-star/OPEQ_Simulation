@@ -30,7 +30,7 @@ export function economicsDocument(): string {
   const share = coop.shareTenths;
   const cooperating: Triple = [share, share, share];
   const competing: Triple = [nash.eachTenths, nash.eachTenths, nash.eachTenths];
-  const cheatQ = bestResponseTenths(share * 2, settings, year);
+  const cheatQ = bestResponseTenths(share * 2, settings);
   const cheating: Triple = [cheatQ, share, share];
 
   const allCoop = outcomeFor(settings, year, cooperating);
@@ -145,8 +145,8 @@ export function economicsDocument(): string {
     '| If the others produce in total | Your best output |',
     '| --- | --- |',
     ...brRows.map((others) => {
-      const capped = bestResponseTenths(others, settings, year);
-      const raw = bestResponseRawTenths(others, settings, year);
+      const capped = bestResponseTenths(others, settings);
+      const raw = bestResponseRawTenths(others, settings);
       const note =
         raw === capped
           ? ''

@@ -6,7 +6,7 @@ import {
   PROJECTOR_KEY,
   projectorView,
 } from '../../../tests/support/instructorView';
-import { message, NOW, timing } from '../../../tests/support/teamView';
+import { NOW, timing } from '../../../tests/support/teamView';
 import { playedDebrief } from '../../../tests/support/debrief';
 import ProjectorPage, { ProjectorScreen } from './ProjectorPage';
 
@@ -36,35 +36,35 @@ describe('the projector in the lobby', () => {
 });
 
 describe('the projector during play', () => {
-  it('shows the year, the phase and the clock', () => {
+  it('shows the year, the phase and the clock in one strip', () => {
     show({ phase: 'YEAR_OPEN', year: 5 });
 
-    expect(screen.getByText('Year 5')).toBeInTheDocument();
-    expect(screen.getByText('Decide now')).toBeInTheDocument();
+    const strip = screen.getByRole('group', { name: 'Where the game is' });
+    expect(strip).toHaveTextContent('DECIDE NOW');
+    expect(strip).toHaveTextContent('Year');
+    expect(strip).toHaveTextContent('5');
     expect(screen.getByText('2:00')).toBeInTheDocument();
+  });
+
+  it('says whether messaging is on, and how long is left', () => {
+    const off = show({ phase: 'YEAR_REVEAL' });
+    expect(screen.getByRole('group', { name: 'Where the game is' })).toHaveTextContent('OFF');
+    off.unmount();
+
+    show({ phase: 'YEAR_REVEAL', messaging: { on: true, until: NOW + 192_000 } });
+    const strip = screen.getByRole('group', { name: 'Where the game is' });
+    expect(strip).toHaveTextContent('ON');
+    expect(strip).toHaveTextContent('3:12');
+  });
+
+  it('says FINAL YEAR once the warning has been given', () => {
+    show({ phase: 'YEAR_OPEN', finalYearAnnounced: true });
+    expect(screen.getByRole('group', { name: 'Where the game is' })).toHaveTextContent('FINAL YEAR');
   });
 
   it('labels the practice year as PRACTICE', () => {
     show({ phase: 'PRACTICE_OPEN', year: 0 });
     expect(screen.getByText('PRACTICE')).toBeInTheDocument();
-  });
-
-  it('shows the latest announcement', () => {
-    show({
-      announcements: [
-        message({ kind: 'announcement', letter: null, countryName: null, text: 'Two minutes.' }),
-        message({
-          messageId: 'm2',
-          kind: 'announcement',
-          letter: null,
-          countryName: null,
-          text: 'One minute.',
-        }),
-      ],
-    });
-
-    expect(screen.getByText('One minute.')).toBeInTheDocument();
-    expect(screen.queryByText('Two minutes.')).toBeNull();
   });
 
   it('sends the Envoys to the meeting point during a summit', () => {
@@ -74,18 +74,42 @@ describe('the projector during play', () => {
 });
 
 describe('the projector at a reveal', () => {
-  it('shows each world’s price when prices are allowed', () => {
+  it('shows each world’s price, its change and its results table', () => {
     show({
       phase: 'YEAR_REVEAL',
       worldCount: 2,
       worlds: [
-        { worldNumber: 1, priceCents: 3553, year: 5 },
-        { worldNumber: 2, priceCents: 1825, year: 5 },
+        {
+          worldNumber: 1,
+          priceCents: 3553,
+          priceChangeCents: -450,
+          year: 5,
+          messagingOn: false,
+          rows: [
+            { year: 5, isPractice: false, label: 'Year 5', priceCents: 3553, totalTenths: 1149 },
+            { year: 4, isPractice: false, label: 'Year 4', priceCents: 4003, totalTenths: 999 },
+          ],
+        },
+        {
+          worldNumber: 2,
+          priceCents: 1825,
+          priceChangeCents: 100,
+          year: 5,
+          messagingOn: false,
+          rows: [
+            { year: 5, isPractice: false, label: 'Year 5', priceCents: 1825, totalTenths: 1725 },
+          ],
+        },
       ],
     });
 
-    expect(screen.getByText('$35.53')).toBeInTheDocument();
-    expect(screen.getByText('$18.25')).toBeInTheDocument();
+    expect(screen.getAllByText('$35.53').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('$18.25').length).toBeGreaterThan(0);
+    // The change reads with an arrow as well as a colour.
+    expect(screen.getByText(/\$4\.50/).textContent).toContain('\u25bc');
+    expect(screen.getByText(/\$1\.00/).textContent).toContain('\u25b2');
+    // And each world's own table is there.
+    expect(screen.getByRole('group', { name: 'World 1 by year' })).toBeInTheDocument();
   });
 
   it('shows no price when the instructor has turned prices off', () => {
@@ -94,10 +118,20 @@ describe('the projector at a reveal', () => {
     show({
       phase: 'YEAR_REVEAL',
       showsPrices: false,
-      worlds: [{ worldNumber: 1, priceCents: null, year: null }],
+      worlds: [
+        {
+          worldNumber: 1,
+          priceCents: null,
+          priceChangeCents: null,
+          year: null,
+          rows: [],
+          messagingOn: false,
+        },
+      ],
     });
 
-    expect(screen.queryByRole('heading', { name: "This year's price" })).toBeNull();
+    expect(screen.queryByText('$35.53')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'World 1 by year' })).toBeNull();
   });
 });
 
@@ -132,16 +166,23 @@ describe('the projector during the debrief', () => {
 });
 
 describe('what the projector must never show', () => {
-  it('carries no chat, no team-private data and no key', () => {
+  it('carries no message, no team-private data and no key', () => {
     const { container } = render(
       <ProjectorScreen
         view={projectorView({
           phase: 'YEAR_REVEAL',
           timing: timing(),
-          announcements: [
-            message({ kind: 'announcement', letter: null, countryName: null, text: 'Well done.' }),
+          messaging: { on: true, until: NOW + 60_000 },
+          worlds: [
+            {
+              worldNumber: 1,
+              priceCents: 3553,
+              priceChangeCents: null,
+              year: 5,
+              rows: [],
+              messagingOn: true,
+            },
           ],
-          worlds: [{ worldNumber: 1, priceCents: 3553, year: 5 }],
         })}
         serverNow={() => NOW}
       />,

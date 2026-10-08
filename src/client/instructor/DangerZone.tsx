@@ -49,10 +49,10 @@ export function DangerZone({ view, send, onSaid, onDeleted }: DangerZoneProps) {
   return (
     <details className="danger">
       <summary>Start over, or clear up</summary>
-      <p className="hint">
+      <p className="note">
         Both of these throw work away, so both ask you to type a word first. Neither can be undone.
       </p>
-      <div className="row">
+      <div className="btn-row">
         <Button onClick={() => setAsking('reset')}>Play again with this class</Button>
         <Button onClick={() => setAsking('delete')}>Delete this game&rsquo;s data</Button>
       </div>

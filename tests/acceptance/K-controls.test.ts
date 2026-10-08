@@ -325,7 +325,7 @@ describe('K4 - events fire once, in the right worlds', () => {
     if (!again.ok) expect(again.code).toBe('NOT_ALLOWED');
   });
 
-  it('sends an announcement to one world only when the instructor picks one', async () => {
+  it('turns messaging on for one world only when the instructor picks one', async () => {
     const game = await openGame(harness, { settings: { worlds: 3 } });
     await startPractice(game);
 
@@ -333,18 +333,13 @@ describe('K4 - events fire once, in the right worlds', () => {
     const worldTwo = game.world(2)['A'];
     if (!worldOne || !worldTwo) throw new Error('missing terminals');
 
-    await game.instructor.must('announce', {
-      text: 'World 1, your envoy is wanted.',
-      worldId: 'world-1',
-    });
+    await game.instructor.must('setMessaging', { on: true, worldIds: ['world-1'] });
     await game.sync();
 
-    const textsFor = (client: GameClient) =>
-      (client.view['messages'] as Array<{ text: string }>).map((row) => row.text);
+    const messagingFor = (client: GameClient) =>
+      client.view['messaging'] as { on: boolean } | undefined;
 
-    expect(textsFor(worldOne)).toContain('World 1, your envoy is wanted.');
-    expect(textsFor(worldTwo)).not.toContain('World 1, your envoy is wanted.');
-    // And the whole payload, not only the messages list.
-    expect(JSON.stringify(worldTwo.views)).not.toContain('your envoy is wanted');
+    expect(messagingFor(worldOne)?.on).toBe(true);
+    expect(messagingFor(worldTwo)?.on).toBe(false);
   });
 });

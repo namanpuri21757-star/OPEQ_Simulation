@@ -40,7 +40,7 @@ export default function TeamTerminal() {
 
   if (problem !== null) {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <Banner tone="alert">{problem}</Banner>
       </main>
@@ -51,7 +51,7 @@ export default function TeamTerminal() {
   if (needsClaim || view === null || view.kind !== 'team') {
     if (needsClaim) return <Navigate to="/join" replace />;
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">Getting your country ready...</p>
       </main>
@@ -61,7 +61,7 @@ export default function TeamTerminal() {
   const offline = statusMessage(status);
 
   return (
-    <main className="page page-team">
+    <main className="sheet page-team">
       <TerminalHeader view={view} status={status} serverNow={serverNow} />
 
       {offline !== null && (
@@ -73,10 +73,10 @@ export default function TeamTerminal() {
       {view.phase === 'LOBBY' && <LobbyScreen view={view} />}
       {view.phase === 'BRIEFING' && <BriefingScreen view={view} />}
       {(view.phase === 'PRACTICE_OPEN' || view.phase === 'YEAR_OPEN') && (
-        <YearScreen view={view} send={send} onSaid={say} />
+        <YearScreen view={view} send={send} onSaid={say} serverNow={serverNow} />
       )}
       {(view.phase === 'PRACTICE_REVEAL' || view.phase === 'YEAR_REVEAL') && (
-        <RevealScreen view={view} />
+        <RevealScreen view={view} send={send} onSaid={say} serverNow={serverNow} />
       )}
       {view.phase === 'BETWEEN' && (
         <BetweenScreen view={view} send={send} serverNow={serverNow} onSaid={say} />

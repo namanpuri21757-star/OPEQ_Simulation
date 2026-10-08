@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { ackOk } from '@shared/protocol';
 import {
   countryLine,
   publicSettings,
@@ -21,9 +22,9 @@ const full = teamView({
   history: [yearRow(5, { ownActualTenths: 383, others: [countryLine('A'), countryLine('C')] })],
   reveal: reveal({
     countries: [
-      countryLine('A', { actualTenths: 500, targetTenths: 500, pledgeTenths: 383 }),
+      countryLine('A', { actualTenths: 500, targetTenths: 500 }),
       countryLine('B', { actualTenths: 383, targetTenths: 383, profitK: 1_264_000 }),
-      countryLine('C', { actualTenths: 317, targetTenths: 317, pledgeTenths: 383 }),
+      countryLine('C', { actualTenths: 317, targetTenths: 317 }),
     ],
   }),
 });
@@ -41,42 +42,65 @@ const totalOnly = teamView({
   }),
 });
 
+/** The reveal takes a sender for its messages box; nothing here sends. */
+const send = () => vi.fn(() => Promise.resolve(ackOk('cmd-1', 1)));
+
+/** The headline observation box, which is the first box on the screen. */
+function headline(): HTMLElement {
+  const box = screen
+    .getByRole('heading', { name: 'Year 5 results' })
+    .closest('.box');
+  expect(box).not.toBeNull();
+  return box as HTMLElement;
+}
+
 describe('RevealScreen', () => {
-  it('leads with the price and the one sentence that explains it', () => {
-    render(<RevealScreen view={full} />);
-    // The same price is in the history table too, so look inside the headline.
-    const headline = screen.getByText('Year 5 price').closest('.reveal-price');
-    expect(headline).not.toBeNull();
-    expect(within(headline as HTMLElement).getByText('$34.00')).toBeInTheDocument();
+  it('leads with the price, its units and the one sentence that explains it', () => {
+    render(<RevealScreen view={full} send={send()} />);
+    // The same price is in the results table too, so look inside the headline.
+    expect(within(headline()).getByText('$34.00')).toBeInTheDocument();
+    expect(within(headline()).getByText('$ per barrel')).toBeInTheDocument();
     expect(
       screen.getByText('Price fell $4.50 because world supply rose 15.0 million barrels.'),
     ).toBeInTheDocument();
   });
 
-  it('shows this team its own output, profit and running total', () => {
-    render(<RevealScreen view={full} />);
-    expect(screen.getByText('38.3 million barrels')).toBeInTheDocument();
-    expect(screen.getByText('$1,264.00M')).toBeInTheDocument();
-    expect(screen.getByText('$5,000.00M')).toBeInTheDocument();
+  it('shows the change from last year with an arrow as well as a colour', () => {
+    render(<RevealScreen view={full} send={send()} />);
+    const change = within(headline()).getByText(/from last year/);
+    expect(change).toHaveTextContent('$4.50 from last year');
+    expect(change.className).toContain('obs-down');
+    expect(change.textContent).toContain('▼');
   });
 
-  it('compares each promise with what was produced under full disclosure', () => {
-    render(<RevealScreen view={full} />);
-    expect(screen.getByText('Promise kept?')).toBeInTheDocument();
-    expect(screen.getByText('produced 11.7 more than promised')).toBeInTheDocument();
-    expect(screen.getByText('produced 6.6 less than promised')).toBeInTheDocument();
+  it('shows this team its own output, profit and running total', () => {
+    render(<RevealScreen view={full} send={send()} />);
+    const facts = headline();
+    expect(within(facts).getByText('38.3')).toBeInTheDocument();
+    expect(within(facts).getByText('$1,264.00M')).toBeInTheDocument();
+    expect(within(facts).getByText('$5,000.00M')).toBeInTheDocument();
+  });
+
+  it('shows what each country produced under full disclosure, and no promises', () => {
+    render(<RevealScreen view={full} send={send()} />);
+    const table = screen.getByRole('group', { name: 'What each country produced' });
+    expect(within(table).getByText('Ardonia')).toBeInTheDocument();
+    expect(within(table).getByText('50.0')).toBeInTheDocument();
+    expect(within(table).getByText('Borvia (you)')).toBeInTheDocument();
+    expect(screen.queryByText('Promise kept?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Promised')).not.toBeInTheDocument();
   });
 
   it('shows no other country’s output when the view does not carry one', () => {
-    render(<RevealScreen view={totalOnly} />);
+    render(<RevealScreen view={totalOnly} send={send()} />);
 
     // Own output and the world total are allowed; a per-country table is not.
-    expect(screen.getByText('38.3 million barrels')).toBeInTheDocument();
-    expect(screen.getByText('120.0 million barrels')).toBeInTheDocument();
-    expect(screen.queryByText('Promise kept?')).not.toBeInTheDocument();
-    expect(screen.queryByText('50.0')).not.toBeInTheDocument();
-    expect(screen.queryByText('31.7')).not.toBeInTheDocument();
-    expect(screen.queryByText(/not shown/)).not.toBeInTheDocument();
+    expect(within(headline()).getByText('38.3')).toBeInTheDocument();
+    expect(within(headline()).getByText('120.0')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'What each country produced' })).toBeNull();
+    expect(
+      screen.getByText(/you only see your own output/),
+    ).toBeInTheDocument();
   });
 
   it('marks an output the server filled in', () => {
@@ -86,13 +110,16 @@ describe('RevealScreen', () => {
           phase: 'YEAR_REVEAL',
           reveal: reveal({ ownAuto: true, countries: [countryLine('B', { actualTenths: 383 })] }),
         })}
+        send={send()}
       />,
     );
-    expect(screen.getByText('filled in for you')).toBeInTheDocument();
+    expect(screen.getAllByText('auto').length).toBeGreaterThan(0);
   });
 
   it('waits politely when there is no reveal yet', () => {
-    render(<RevealScreen view={teamView({ phase: 'YEAR_REVEAL', reveal: null })} />);
+    render(
+      <RevealScreen view={teamView({ phase: 'YEAR_REVEAL', reveal: null })} send={send()} />,
+    );
     expect(screen.getByRole('status')).toHaveTextContent(
       'Waiting for your teacher to show the results.',
     );

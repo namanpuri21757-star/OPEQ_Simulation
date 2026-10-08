@@ -11,13 +11,7 @@ You sit at the keyboard. Your country speaks with one voice: yours.
 - Say the number out loud before you press Submit, so the whole group hears it. Mistyped numbers are the most common way a group loses a year.
 - Submit early, even if you are not sure. You can change it until the timer ends, and a submitted number beats the one the server fills in for you (40.0 in the first year, or last year's number after that).
 - Watch the clock, not the argument. When 30 seconds are left, say so.
-
-## Analyst
-
-You work out what the numbers do before the group commits to one.
-
-- Use the What-if calculator for at least two numbers every year: the one your group likes and one higher. Read out the price and the profit for both.
-- Look back at the history table before you guess. What a country did last year is the best clue to what it will do this year.
+- Read the results table out loud before the group decides. What a country did last year is the best clue to what it will do this year.
 - Remember that your own extra barrels push the price down too. Going from 40.0 to 75.0 does not multiply your profit.
 
 ## Envoy
@@ -30,6 +24,6 @@ You are the only one who talks to the other countries.
 
 ## If your group has two or four people
 
-- With two, the Operator is also the Analyst.
-- With four, the extra person is a second Analyst: one of you checks the other.
-- With one, you do all three jobs, and the calculator is your friend.
+- With two, it is one job each.
+- With three or four, everyone except the Operator is an Envoy. Agree who types the message before the window opens.
+- With one, you do both jobs.

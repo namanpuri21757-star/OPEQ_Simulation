@@ -15,7 +15,6 @@ import {
   bestResponseTenths,
   competitiveOutcome,
   cooperativeMax,
-  effectiveA,
   priceCents,
   profitK,
 } from '../engine/engine.js';
@@ -93,13 +92,13 @@ function landingsFor(
 export function theoryFor(settings: Settings, worlds: readonly DebriefWorld[]): DebriefTheory {
   const year = THEORY_YEAR;
   const units = economicUnits(settings);
-  const aCents = effectiveA(year, settings);
+  const aCents = units.aCents;
   const coop = cooperativeMax(settings, year);
   const nash = competitiveOutcome(settings, year);
 
   const share = coop.shareTenths;
   const others = share * 2;
-  const best = bestResponseTenths(others, settings, year);
+  const best = bestResponseTenths(others, settings);
 
   // One country at its best response while the other two keep the agreement.
   const cheatTotal = best + others + coop.newProducerTenths;
@@ -120,7 +119,7 @@ export function theoryFor(settings: Settings, worlds: readonly DebriefWorld[]): 
     competitiveEachProfitK: nash.eachProfitK,
     bestResponseOthersTenths: others,
     bestResponseTenths: best,
-    bestResponseRawTenths: bestResponseRawTenths(others, settings, year),
+    bestResponseRawTenths: bestResponseRawTenths(others, settings),
     bestResponseProfitK: cheaterProfitK,
     gainFromCheatingK: cheaterProfitK - coop.equalShares.eachProfitK,
     lossPerCooperatorK: coop.equalShares.eachProfitK - cooperatorProfitK,

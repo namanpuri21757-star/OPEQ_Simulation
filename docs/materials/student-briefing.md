@@ -37,10 +37,9 @@ Each barrel costs $1.00 to lift out of the ground. Profit is what is left, times
 
 > Your capacity is 75.0 million barrels a year. You can produce any amount from 0 up to that, with one decimal place, like 38.3.
 
-## Your three jobs
+## Your two jobs
 
 - Operator: sits at the keyboard and types the number in. Nobody else touches it.
-- Analyst: runs the What-if calculator and works out what the others are likely to do.
 - Envoy: writes the messages and goes to the summit.
 
 The jobs swap every 4 years, so everyone gets a turn. Your screen always says who has which job right now.
@@ -48,10 +47,9 @@ The jobs swap every 4 years, so everyone gets a turn. Your screen always says wh
 ## How a year works
 
 1. Your teacher opens the year and a timer starts.
-2. Talk it over as a group. You can write down what each person suggested, and why.
+2. Talk it over as a group and agree on a number.
 3. The Operator types your number and presses Submit. You can change it until the timer ends.
-4. While you wait, guess what the other two countries will produce, and say how much you trust any agreement.
-5. The year closes. Everyone sees the price, and you see your own profit and your total so far.
+4. The year closes. Everyone sees the price, and you see your own profit and your total so far.
 
 A practice year comes first and does not count. Year 1 onwards does. The practice year gives you 120 seconds, and a normal year about 150.
 
@@ -59,8 +57,8 @@ A practice year comes first and does not count. Year 1 onwards does. The practic
 
 ## Talking to the other countries
 
-- There are 2 chat windows and 1 face-to-face summit. Outside those, you cannot send messages.
+- Your teacher turns messaging on and off, and your screen always says which it is. There is also 1 face-to-face summit, where the Envoys meet in the room.
 - Your messages go to the other two countries in your world only, and they show your country name, never your own name.
-- You can make a promise: "We will produce 40.0 million barrels." Everyone sees afterwards whether you kept it.
+- You can promise anything you like in a message, for example "We will produce 40.0 million barrels". The others can see what you really produced afterwards.
 
 A promise is not a rule. Nobody can stop you breaking one, and nobody can stop the others. What happens next is up to all three of you.

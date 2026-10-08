@@ -69,7 +69,7 @@ describe('settingsPreview', () => {
     ]);
     // The cheater is responding to the other two plus the new producer.
     expect(preview.cheating.eachTenths[0]).toBe(
-      bestResponseTenths(coop.shareTenths * 2 + 150, standard, year),
+      bestResponseTenths(coop.shareTenths * 2 + 150, standard),
     );
   });
 

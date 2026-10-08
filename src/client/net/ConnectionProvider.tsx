@@ -88,13 +88,13 @@ export function ConnectionProvider({ children, store, sessionId }: ProviderProps
 
   if (found === null) {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">{problem ?? 'Looking for the game on your teacher’s computer...'}</p>
         {problem !== null && (
           <button
             type="button"
-            className="button"
+            className="btn"
             onClick={() => {
               setProblem(null);
               setAttempt((n) => n + 1);
@@ -160,12 +160,12 @@ function LiveConnection({
   // has been asleep since another lesson. There is one thing to do about it.
   if (snapshot.status === 'refused') {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
-        <section className="panel">
+        <section className="box">
           <h2>This computer was in a different game</h2>
           <p role="status">{snapshot.problem}</p>
-          <button type="button" className="button button-primary button-large" onClick={onLost}>
+          <button type="button" className="btn btn-primary btn-large" onClick={onLost}>
             Look for the game again
           </button>
         </section>

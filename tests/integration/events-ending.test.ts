@@ -45,18 +45,16 @@ describe('the new producer', () => {
     const reveal = game.teams[0]?.view['reveal'] as { sentence: string };
     expect(reveal.sentence).toMatch(/world supply rose/);
     expect(reveal.sentence).not.toMatch(/another producer/i);
-    expect(game.teams[0]?.view['news']).toEqual([]);
   });
 
-  it('puts it in the news when it was announced', async () => {
+  it('names itself in the results sentence when it was announced', async () => {
     const game = await openGame(harness, {
       settings: { worlds: 1, schedule: [], newProducer: { announced: true, year: 2 } },
     });
     await playYears(game, 2, 383);
 
-    const news = game.teams[0]?.view['news'] as Array<{ kind: string; text: string }>;
-    expect(news[0]).toMatchObject({ kind: 'newProducer' });
-    expect(news[0]?.text).toContain('15.0 million barrels');
+    const reveal = game.teams[0]?.view['reveal'] as { sentence: string };
+    expect(reveal.sentence).toMatch(/another producer joined the market/);
   });
 
   it('can be brought forward by hand between years', async () => {
@@ -96,46 +94,6 @@ describe('the new producer', () => {
   });
 });
 
-describe('the demand event', () => {
-  it('moves the highest price in its year and says so in the news', async () => {
-    const game = await openGame(harness, {
-      settings: {
-        worlds: 1,
-        schedule: [],
-        newProducer: { enabled: false },
-        demandEvent: { enabled: true, year: 2, deltaA: -10, announced: true },
-      },
-    });
-    await playYears(game, 2, 383);
-
-    const world = harness.server.store.get(game.session.sessionId)?.worlds[0];
-    const year1 = world?.years[0]?.outcome.priceCents ?? 0;
-    const year2 = world?.years[1]?.outcome.priceCents ?? 0;
-
-    expect(year1 - year2).toBe(1000);
-    const news = game.teams[0]?.view['news'] as Array<{ kind: string }>;
-    expect(news.some((item) => item.kind === 'demand')).toBe(true);
-  });
-
-  it('changes nothing in the practice year', async () => {
-    const game = await openGame(harness, {
-      settings: {
-        worlds: 1,
-        schedule: [],
-        newProducer: { enabled: false },
-        demandEvent: { enabled: true, year: 1, deltaA: -20 },
-      },
-    });
-    await startPractice(game);
-    await submitAll(game, 383);
-    await closeYear(game);
-
-    const practice = harness.server.store.get(game.session.sessionId)?.worlds[0]?.practice;
-    // 70 - 0.3 x 114.9 = 35.53, with no demand change applied.
-    expect(practice?.outcome.priceCents).toBe(3553);
-  });
-});
-
 describe('the final-year warning', () => {
   it('is suggested before the last year and then announced to everyone', async () => {
     const game = await openGame(harness, {
@@ -151,8 +109,7 @@ describe('the final-year warning', () => {
     await game.instructor.must('announceFinalYear');
     await game.sync();
 
-    const news = game.teams[0]?.view['news'] as Array<{ kind: string; text: string }>;
-    expect(news.some((item) => item.kind === 'finalYear')).toBe(true);
+    // Every screen reads finalYearAnnounced: there is no news feed any more.
     expect(game.teams[0]?.view['finalYearAnnounced']).toBe(true);
   });
 
@@ -266,7 +223,7 @@ describe('ending the game', () => {
 });
 
 describe('between-years activities', () => {
-  it('runs the scheduled chat and summit, and only once each', async () => {
+  it('offers the scheduled messaging window and summit, and only once each', async () => {
     const game = await openGame(harness, {
       settings: {
         worlds: 1,
@@ -280,19 +237,26 @@ describe('between-years activities', () => {
     });
     await playYears(game, 1, 383);
 
+    // A scheduled window is no longer a phase: it is the messaging switch.
     expect(game.instructor.view['suggested']).toMatchObject({
-      command: 'startBetween',
-      label: 'Open chat window (4 min)',
-      payload: { kind: 'chat', seconds: 240 },
+      command: 'setMessaging',
+      label: 'Turn messaging on for 4 min',
+      payload: { on: true, seconds: 240 },
     });
-    await game.instructor.must('startBetween', { kind: 'chat', seconds: 240 });
+    await game.instructor.must('setMessaging', { on: true, seconds: 240 });
     await game.sync();
-    expect(game.teams[0]?.view['between']).toMatchObject({ kind: 'chat', afterYear: 1 });
-    expect(game.teams[0]?.view['chatOpen']).toBe(true);
+    expect(game.teams[0]?.view['messaging']).toMatchObject({ on: true });
+    // The phase has not moved: the room is still looking at the results.
+    expect(game.teams[0]?.view['phase']).toBe('YEAR_REVEAL');
 
-    await game.instructor.must('endBetween');
+    // Messaging is still on, so that is what to deal with next.
+    expect(game.instructor.view['suggested']).toMatchObject({
+      command: 'setMessaging',
+      label: 'Turn messaging off',
+    });
+    await game.instructor.must('setMessaging', { on: false });
     await game.sync();
-    // The chat has been run, so the next suggestion moves the game on.
+    // The window has been run, so the next suggestion moves the game on.
     expect(game.instructor.view['suggested']).toMatchObject({ command: 'openYear' });
 
     await playYear(game, 2);

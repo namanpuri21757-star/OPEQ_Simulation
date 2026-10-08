@@ -148,14 +148,14 @@ describe('N1 - a new session from a preset', () => {
 describe('N2 - Reset', () => {
   it('clears the decisions and the messages and keeps every setting', async () => {
     const game = await openGame(harness, {
-      settings: { worlds: 2, disclosure: 'totalOnly', variancePct: 5, chatMode: 'always' },
+      settings: { worlds: 2, disclosure: 'totalOnly', variancePct: 5 },
     });
 
     await playYears(game, 2, 383);
+    await game.instructor.must('setMessaging', { on: true });
     for (const team of game.teams) {
       await team.must('sendMessage', { text: 'Something worth forgetting.' });
     }
-    await game.instructor.must('announce', { text: 'Half way.' });
     await game.instructor.must('muteTeam', { teamId: game.teams[0]?.teamId ?? '' });
 
     const before = harness.server.store.get(game.session.sessionId);
@@ -169,11 +169,11 @@ describe('N2 - Reset', () => {
     const after = harness.server.store.get(game.session.sessionId);
     if (!after) throw new Error('the session went away');
 
-    // Gone: every decision, outcome, message, note, guess and reflection.
+    // Gone: every decision, outcome, message and reflection.
     expect(after.phase).toBe('LOBBY');
     expect(after.year).toBe(0);
     expect(after.messages).toEqual([]);
-    expect(after.news).toEqual([]);
+    expect(after.messaging).toEqual({});
     expect(after.overrides).toEqual([]);
     expect(after.firedEvents).toEqual([]);
     expect(after.activitiesDone).toEqual([]);
@@ -184,8 +184,6 @@ describe('N2 - Reset', () => {
       expect(world.open).toBeNull();
     }
     for (const team of Object.values(after.teams)) {
-      expect(team.huddles).toEqual({});
-      expect(team.predictions).toEqual({});
       expect(team.reflection).toBeNull();
       expect(team.muted).toBe(false);
     }

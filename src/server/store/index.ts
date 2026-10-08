@@ -22,6 +22,7 @@ import {
   type CreateSessionResult,
 } from '../../shared/protocol.js';
 import type { Actor, SessionState } from '../../shared/state.js';
+import { expiredMessagingWorlds } from '../../shared/views.js';
 import {
   applyEvent,
   createInitialState,
@@ -392,33 +393,65 @@ export class SessionStore {
   async tick(): Promise<void> {
     const now = this.clock.now();
     for (const [sessionId, session] of this.sessions) {
-      const state = session.state;
-      if (!isTimedPhase(state.phase)) continue;
-      if (state.timer.paused || state.timer.deadline === null) continue;
-      if (now < state.timer.deadline) continue;
-
-      const type = state.phase === 'BETWEEN' ? 'endBetween' : 'closeYear';
       // The tick runs from a setInterval, so one session that throws must never
       // become an unhandled rejection and must never stop the other sessions.
       try {
-        await this.enqueue(session, () =>
-          this.applyOne(
-            sessionId,
-            session,
-            {
-              commandId: newId(),
-              type,
-              payload: {},
-              expectedPhase: session.state.phase,
-              expectedYear: session.state.year,
-            },
-            { actor: 'system' },
-          ),
-        );
+        await this.closeOverdueMessaging(sessionId, session, now);
+        await this.closeOverduePhase(sessionId, session, now);
       } catch (err) {
-        this.logger(`The clock could not close ${state.phase} for ${sessionId}: ${String(err)}`);
+        this.logger(`The clock could not move ${sessionId} on: ${String(err)}`);
       }
     }
+  }
+
+  /**
+   * A messaging window turns itself off when its time runs out (SPEC 8.4).
+   *
+   * It is checked in every phase, not only a timed one: a window opened between
+   * years has to close on time even though no year is running.
+   */
+  private async closeOverdueMessaging(
+    sessionId: string,
+    session: LiveSession,
+    now: number,
+  ): Promise<void> {
+    const worldIds = expiredMessagingWorlds(session.state, now);
+    if (worldIds.length === 0) return;
+    await this.enqueue(session, () =>
+      this.applyOne(
+        sessionId,
+        session,
+        { commandId: newId(), type: 'setMessaging', payload: { on: false, worldIds } },
+        { actor: 'system' },
+      ),
+    );
+  }
+
+  private async closeOverduePhase(
+    sessionId: string,
+    session: LiveSession,
+    now: number,
+  ): Promise<void> {
+    const state = session.state;
+    if (!isTimedPhase(state.phase)) return;
+    if (state.timer.paused || state.timer.deadline === null) return;
+    if (now < state.timer.deadline) return;
+
+    const type = state.phase === 'BETWEEN' ? 'endBetween' : 'closeYear';
+    await this.enqueue(session, () =>
+      this.applyOne(
+        sessionId,
+        session,
+        {
+          commandId: newId(),
+          type,
+          payload: {},
+          expectedPhase: session.state.phase,
+          expectedYear: session.state.year,
+        },
+        { actor: 'system' },
+      ),
+    );
   }
 
   async close(): Promise<void> {

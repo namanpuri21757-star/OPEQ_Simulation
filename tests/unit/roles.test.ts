@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultMembers, roleBlock, rolesForYear } from '../../src/shared/roles.js';
+import { defaultMembers, envoyNames, roleBlock, rolesForYear } from '../../src/shared/roles.js';
 
 const FOUR = ['Ada', 'Ben', 'Cleo', 'Dev'];
 
@@ -14,32 +14,32 @@ describe('role blocks', () => {
   });
 });
 
-describe('handing out roles', () => {
-  it('gives one each with three members', () => {
-    expect(rolesForYear(['Ada', 'Ben', 'Cleo'], 1, 4)).toMatchObject({
-      operator: 'Ada',
-      analysts: ['Ben'],
-      envoy: 'Cleo',
-    });
-  });
-
-  it('makes the Operator the Analyst as well with two members', () => {
+describe('handing out the two roles', () => {
+  it('gives one job each with two members', () => {
     expect(rolesForYear(['Ada', 'Ben'], 1, 4)).toMatchObject({
       operator: 'Ada',
-      analysts: ['Ada'],
-      envoy: 'Ben',
+      envoys: ['Ben'],
     });
   });
 
-  it('adds a second Analyst with four members', () => {
-    expect(rolesForYear(FOUR, 1, 4).analysts).toEqual(['Ben', 'Dev']);
+  it('makes everyone after the Operator an Envoy with three members', () => {
+    expect(rolesForYear(['Ada', 'Ben', 'Cleo'], 1, 4)).toMatchObject({
+      operator: 'Ada',
+      envoys: ['Ben', 'Cleo'],
+    });
   });
 
-  it('gives one person every role on their own', () => {
+  it('shares the Envoy job with four members', () => {
+    expect(rolesForYear(FOUR, 1, 4)).toMatchObject({
+      operator: 'Ada',
+      envoys: ['Ben', 'Cleo', 'Dev'],
+    });
+  });
+
+  it('gives one person both jobs on their own', () => {
     expect(rolesForYear(['Ada'], 7, 4)).toMatchObject({
       operator: 'Ada',
-      analysts: ['Ada'],
-      envoy: 'Ada',
+      envoys: ['Ada'],
     });
   });
 
@@ -60,5 +60,17 @@ describe('handing out roles', () => {
   it('falls back to numbered members when a group typed no names', () => {
     expect(defaultMembers(3)).toEqual(['Member 1', 'Member 2', 'Member 3']);
     expect(rolesForYear([], 1, 4).operator).toBe('Member 1');
+  });
+});
+
+describe('naming the Envoys for one line of text', () => {
+  it('reads as one name, two names or a list', () => {
+    expect(envoyNames(rolesForYear(['Ada', 'Ben'], 1, 4))).toBe('Ben');
+    expect(envoyNames(rolesForYear(['Ada', 'Ben', 'Cleo'], 1, 4))).toBe('Ben and Cleo');
+    expect(envoyNames(rolesForYear(FOUR, 1, 4))).toBe('Ben, Cleo and Dev');
+  });
+
+  it('names the one person when they hold both jobs', () => {
+    expect(envoyNames(rolesForYear(['Ada'], 1, 4))).toBe('Ada');
   });
 });

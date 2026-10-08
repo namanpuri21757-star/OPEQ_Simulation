@@ -84,7 +84,7 @@ export function runbookDoc(): MaterialDoc {
           ],
           [
             'Roles',
-            'One person types. One person calculates. One person talks to the others. The jobs swap, so everyone does each one.',
+            'One person types the number. One person writes the messages and goes to the summits. The jobs swap, so everyone does each one.',
           ],
           ['Practice year', 'This one does not count. Get the typing wrong now rather than later.'],
           [
@@ -92,7 +92,7 @@ export function runbookDoc(): MaterialDoc {
             'From here it counts. I am not going to tell you what a good number is.',
           ],
           [
-            'A chat window',
+            'Messaging on',
             'You have the time on the screen. A promise with a number in it is worth more than a friendly message.',
           ],
           [
@@ -121,12 +121,13 @@ export function runbookDoc(): MaterialDoc {
           'Say twice that the practice year is left out of every score.',
         ],
       },
-      { kind: 'subheading', text: 'A chat window' },
+      { kind: 'subheading', text: 'Messaging' },
       {
         kind: 'bullets',
         items: [
+          'It is off until you turn it on. The big switch on your dashboard asks how long and which worlds, and it turns itself off when the time runs out.',
           'Only the Envoy types. Make that rule out loud, or three people will fight over one keyboard.',
-          'The chat is per world: a group only ever talks to the other two countries in its own world.',
+          'Messaging is per world: a group only ever writes to the other two countries in its own world, and you see every message.',
           'If a group is unkind, mute it from the dashboard for one window and say why.',
         ],
       },

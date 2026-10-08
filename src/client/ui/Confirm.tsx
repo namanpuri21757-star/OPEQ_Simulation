@@ -57,17 +57,20 @@ export function Confirm({
     >
       {children}
       {typed !== undefined && (
-        <p className="field">
-          <label htmlFor="confirm-word">{`Type ${typed} to continue`}</label>
+        <div className="field">
+          <label className="field-label" htmlFor="confirm-word">
+            {`Type ${typed} to continue`}
+          </label>
           <input
             id="confirm-word"
+            className="input"
             type="text"
             autoComplete="off"
             spellCheck={false}
             value={word}
             onChange={(event) => setWord(event.target.value)}
           />
-        </p>
+        </div>
       )}
     </Dialog>
   );

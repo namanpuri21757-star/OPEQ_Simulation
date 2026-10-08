@@ -32,7 +32,6 @@ import type {
   BetweenState,
   DecisionRecord,
   MessageRecord,
-  NewsRecord,
   Phase,
   ProjectorScreen,
   SessionState,
@@ -58,7 +57,8 @@ export interface TimingView {
   resumedAfterRestart: boolean;
 }
 
-/** The economics a student is allowed to know, for the What-if calculator. */
+/** The settings a student is allowed to know: the capacity of their own field,
+ * the cost of a barrel and how the price rule reads. Never a benchmark. */
 export interface PublicSettingsView {
   a: number;
   b: number;
@@ -66,7 +66,6 @@ export interface PublicSettingsView {
   capacity: number;
   startingOutput: number;
   disclosure: DisclosureMode;
-  chatMode: Settings['chatMode'];
   variancePct: number;
   rotateEvery: number;
   /** Capacity in tenths, so a client never has to multiply by 10 itself. */
@@ -75,21 +74,17 @@ export interface PublicSettingsView {
 
 export interface MessageView {
   messageId: string;
-  kind: MessageRecord['kind'];
-  /** The country that wrote it, or null for an instructor announcement. */
-  letter: CountryLetter | null;
-  countryName: string | null;
+  letter: CountryLetter;
+  countryName: string;
   text: string;
-  tenths?: number;
   at: number;
 }
 
-export interface NewsView {
-  newsId: string;
-  kind: NewsRecord['kind'];
-  year: number;
-  text: string;
-  at: number;
+/** Whether a world's messaging window is open, and when it closes by itself. */
+export interface MessagingView {
+  on: boolean;
+  /** When it closes on its own, or null for "until the teacher turns it off". */
+  until: number | null;
 }
 
 export interface BetweenView {
@@ -108,8 +103,6 @@ export interface CountryLineView {
   auto: boolean;
   /** Only ever set for the recipient's own country. */
   profitK: number | null;
-  /** The latest pledge made in the world channel before the year closed. */
-  pledgeTenths: number | null;
 }
 
 export interface YearRowView {
@@ -195,7 +188,6 @@ function publicSettings(settings: Settings): PublicSettingsView {
     capacity: settings.capacity,
     startingOutput: settings.startingOutput,
     disclosure: settings.disclosure,
-    chatMode: settings.chatMode,
     variancePct: settings.variancePct,
     rotateEvery: settings.rotateEvery,
     capacityTenths: economicUnits(settings).capacityTenths,
@@ -203,25 +195,34 @@ function publicSettings(settings: Settings): PublicSettingsView {
 }
 
 function messageView(record: MessageRecord): MessageView {
-  const base: MessageView = {
+  return {
     messageId: record.messageId,
-    kind: record.kind,
     letter: record.letter,
-    countryName: record.letter === null ? null : COUNTRY_NAMES[record.letter],
+    countryName: COUNTRY_NAMES[record.letter],
     text: record.text,
     at: record.at,
   };
-  return record.tenths === undefined ? base : { ...base, tenths: record.tenths };
 }
 
-function newsView(record: NewsRecord): NewsView {
-  return {
-    newsId: record.newsId,
-    kind: record.kind,
-    year: record.year,
-    text: record.text,
-    at: record.at,
-  };
+/**
+ * Whether one world may send messages right now (SPEC section 6).
+ *
+ * `now` is passed in rather than read from a clock here, so the reducer can ask
+ * the same question with the timestamp stored in an event and get the same
+ * answer on a replay.
+ */
+export function messagingFor(state: SessionState, worldId: string, now: number): MessagingView {
+  const open = state.messaging[worldId];
+  if (!open) return { on: false, until: null };
+  if (open.until !== null && open.until <= now) return { on: false, until: null };
+  return { on: true, until: open.until };
+}
+
+/** The worlds whose windows have run out, so the tick can close them. */
+export function expiredMessagingWorlds(state: SessionState, now: number): string[] {
+  return Object.entries(state.messaging)
+    .filter(([, open]) => open.until !== null && open.until <= now)
+    .map(([worldId]) => worldId);
 }
 
 function betweenView(between: BetweenState | null): BetweenView | null {
@@ -242,29 +243,11 @@ function worldOf(state: SessionState, worldId: string): WorldState | undefined {
   return state.worlds.find((w) => w.worldId === worldId);
 }
 
-/** The latest pledge each country made in a world before a moment in time. */
-function pledgesBefore(
-  state: SessionState,
-  worldId: string,
-  before: number,
-): Partial<Record<CountryLetter, number>> {
-  const out: Partial<Record<CountryLetter, number>> = {};
-  for (const message of state.messages) {
-    if (message.kind !== 'pledge') continue;
-    if (message.worldId !== worldId) continue;
-    if (message.at > before) continue;
-    if (message.letter === null || message.tenths === undefined) continue;
-    out[message.letter] = message.tenths;
-  }
-  return out;
-}
-
 function countryLine(
   record: WorldYearRecord,
   letter: CountryLetter,
   isOwn: boolean,
   disclosure: DisclosureMode,
-  pledgeTenths: number | null,
 ): CountryLineView {
   const outcome = record.outcome.countries[letter];
   const decision: DecisionRecord | undefined = record.decisions[letter];
@@ -276,7 +259,6 @@ function countryLine(
     targetTenths: maySeeOutput ? (decision?.tenths ?? outcome.targetTenths) : null,
     auto: maySeeOutput ? outcome.auto : false,
     profitK: isOwn ? outcome.profitK : null,
-    pledgeTenths,
   };
 }
 
@@ -292,12 +274,11 @@ function yearRowsFor(state: SessionState, world: WorldState, letter: CountryLett
   return allRecords(world).map((record) => {
     const own = record.outcome.countries[letter];
     if (!record.isPractice) cumulative += own.profitK;
-    const pledges = pledgesBefore(state, world.worldId, record.closedAt);
 
     const others =
       disclosure === 'full'
         ? COUNTRY_LETTERS.filter((l) => l !== letter).map((l) =>
-            countryLine(record, l, false, disclosure, pledges[l] ?? null),
+            countryLine(record, l, false, disclosure),
           )
         : null;
 
@@ -344,7 +325,6 @@ function revealFor(
   const rows = yearRowsFor(state, world, letter);
   const row = rows[rows.length - 1];
   const own = record.outcome.countries[letter];
-  const pledges = pledgesBefore(state, world.worldId, record.closedAt);
 
   return {
     year: record.year,
@@ -360,9 +340,7 @@ function revealFor(
     cumulativeProfitK: row ? row.cumulativeProfitK : 0,
     totalTenths: disclosure === 'priceOnly' ? null : record.outcome.totalTenths,
     newProducerTenths: disclosure === 'full' ? record.outcome.newProducerTenths : null,
-    countries: COUNTRY_LETTERS.map((l) =>
-      countryLine(record, l, l === letter, disclosure, pledges[l] ?? null),
-    ),
+    countries: COUNTRY_LETTERS.map((l) => countryLine(record, l, l === letter, disclosure)),
   };
 }
 
@@ -445,24 +423,14 @@ export interface TeamView {
   history: YearRowView[];
   reveal: RevealView | null;
   messages: MessageView[];
-  news: NewsView[];
   muted: boolean;
-  chatOpen: boolean;
-  huddle: { suggestions: Array<{ name: string; tenths: number }>; reason: string } | null;
-  prediction: { othersTenths: number[]; trust: number } | null;
+  /** This world's messaging window (SPEC 8.3). */
+  messaging: MessagingView;
   reflection: { answers: string[] } | null;
   finalYearAnnounced: boolean;
   resultsRevealed: boolean;
   /** Only once the instructor has released results (SPEC section 7). */
   leaderboard: LeaderboardView | null;
-}
-
-/** True when this team may send a message right now (SPEC section 6). */
-export function chatIsOpen(state: SessionState): boolean {
-  const mode = state.settings.chatMode;
-  if (mode === 'off') return false;
-  if (mode === 'always') return true;
-  return state.phase === 'BETWEEN';
 }
 
 export function viewForTeam(state: SessionState, teamId: string, now: number): TeamView | null {
@@ -481,8 +449,7 @@ export function viewForTeam(state: SessionState, teamId: string, now: number): T
     state.settings.rotateEvery,
   );
 
-  const huddle = team.huddles[state.year];
-  const prediction = team.predictions[state.year];
+  const messaging = messagingFor(state, team.worldId, now);
 
   return {
     kind: 'team',
@@ -518,17 +485,10 @@ export function viewForTeam(state: SessionState, teamId: string, now: number): T
       : 0,
     history: yearRowsFor(state, world, letter),
     reveal: revealFor(state, world, letter),
-    // Only this world's channel, plus announcements that went to every world.
-    messages: state.messages
-      .filter((m) => m.worldId === team.worldId || m.worldId === null)
-      .map(messageView),
-    news: state.news.filter((n) => n.worldId === team.worldId || n.worldId === null).map(newsView),
+    // Only this world's channel. There is nothing else a team may read.
+    messages: state.messages.filter((m) => m.worldId === team.worldId).map(messageView),
     muted: team.muted,
-    chatOpen: chatIsOpen(state) && !team.muted,
-    huddle: huddle ? { suggestions: huddle.suggestions, reason: huddle.reason } : null,
-    prediction: prediction
-      ? { othersTenths: prediction.othersTenths, trust: prediction.trust }
-      : null,
+    messaging,
     reflection: team.reflection ? { answers: team.reflection.answers } : null,
     finalYearAnnounced: state.finalYearAnnounced,
     resultsRevealed: state.resultsRevealedToTeams,
@@ -544,7 +504,21 @@ export interface ProjectorWorldView {
   worldNumber: number;
   /** Only after a reveal, and only when projectorShowsPrices is on. */
   priceCents: number | null;
+  /** How the price moved since the year before, or null for the first one. */
+  priceChangeCents: number | null;
   year: number | null;
+  /** This world's results so far, newest year first. Prices only. */
+  rows: ProjectorYearRow[];
+  messagingOn: boolean;
+}
+
+/** One line of a world's results table on the projector. */
+export interface ProjectorYearRow {
+  year: number;
+  isPractice: boolean;
+  label: string;
+  priceCents: number;
+  totalTenths: number;
 }
 
 export interface ProjectorTableRow {
@@ -565,9 +539,9 @@ export interface ProjectorView {
   briefingSlide: number;
   timing: TimingView;
   between: BetweenView | null;
-  /** Instructor announcements only. Never a team's chat (SPEC section 7). */
-  announcements: MessageView[];
-  news: NewsView[];
+  /** Shown as "MESSAGING ON - 3:12". Never the messages themselves (SPEC 7). */
+  messaging: MessagingView;
+  finalYearAnnounced: boolean;
   worlds: ProjectorWorldView[];
   /** The "Find your table" card in the lobby. */
   tables: ProjectorTableRow[];
@@ -589,6 +563,14 @@ export interface ProjectorView {
 export function viewForProjector(state: SessionState, now: number): ProjectorView {
   const showsPrices = state.settings.projectorShowsPrices;
   const atReveal = state.phase === 'PRACTICE_REVEAL' || state.phase === 'YEAR_REVEAL';
+  const windows = state.worlds.map((world) => messagingFor(state, world.worldId, now));
+  const anyOn = windows.some((window) => window.on);
+  // The soonest one to close, so the strip never promises more time than the
+  // first world has left. An indefinite window has no time to show at all.
+  const deadlines = windows.filter((w) => w.on).map((w) => w.until);
+  const until = deadlines.includes(null)
+    ? null
+    : Math.min(...(deadlines as number[]), Number.POSITIVE_INFINITY);
 
   return {
     kind: 'projector',
@@ -600,16 +582,31 @@ export function viewForProjector(state: SessionState, now: number): ProjectorVie
     briefingSlide: state.briefingSlide,
     timing: timingView(state, now),
     between: betweenView(state.between),
-    announcements: state.messages.filter((m) => m.kind === 'announcement').map(messageView),
-    news: state.news.map(newsView),
-    worlds: state.worlds.map((world) => {
+    messaging: { on: anyOn, until: anyOn && Number.isFinite(until) ? until : null },
+    finalYearAnnounced: state.finalYearAnnounced,
+    worlds: state.worlds.map((world, index) => {
       const records = allRecords(world);
       const last = records[records.length - 1];
+      const before = records[records.length - 2];
       const mayShow = showsPrices && atReveal && last !== undefined;
       return {
         worldNumber: world.worldNumber,
         priceCents: mayShow && last ? last.outcome.priceCents : null,
+        priceChangeCents:
+          mayShow && last && before ? last.outcome.priceCents - before.outcome.priceCents : null,
         year: mayShow && last ? last.year : null,
+        // The table is the same public fact as the headline price, so it is
+        // held back by the same setting and only shown between years.
+        rows: showsPrices
+          ? [...records].reverse().map((record) => ({
+              year: record.year,
+              isPractice: record.isPractice,
+              label: record.isPractice ? 'PRACTICE' : yearLabel(record.year),
+              priceCents: record.outcome.priceCents,
+              totalTenths: record.outcome.totalTenths,
+            }))
+          : [],
+        messagingOn: windows[index]?.on ?? false,
       };
     }),
     tables: state.worlds.flatMap((world) =>
@@ -658,12 +655,6 @@ export interface InstructorTeamView {
   muted: boolean;
   pendingTakeover: boolean;
   decision: { tenths: number; auto: boolean; source: string; at: number } | null;
-  /** Whether this year's huddle and prediction are in, for the live grid. */
-  huddleRecorded: boolean;
-  predictionRecorded: boolean;
-  /** Every year's, keyed by year, because the debrief compares them (SPEC 8.4). */
-  huddles: Record<number, { suggestions: Array<{ name: string; tenths: number }>; reason: string }>;
-  predictions: Record<number, { othersTenths: number[]; trust: number }>;
   reflection: { answers: string[] } | null;
   cumulativeProfitK: number;
 }
@@ -688,6 +679,14 @@ export interface InstructorWorldView {
       source: string;
     }>;
   }>;
+}
+
+/** One world's messaging state on the dashboard. */
+export interface InstructorMessagingRow {
+  worldId: string;
+  worldNumber: number;
+  on: boolean;
+  until: number | null;
 }
 
 export interface SuggestedAction {
@@ -721,9 +720,10 @@ export interface InstructorView {
   worlds: InstructorWorldView[];
   teams: InstructorTeamView[];
   messages: MessageView[];
-  /** Messages keyed by world, for the per-world chat feed. */
+  /** Messages keyed by world, for the per-world feed behind the world tabs. */
   messagesByWorld: Record<string, MessageView[]>;
-  news: NewsView[];
+  /** One row per world: the messaging switch as the teacher sees it (SPEC 8.4). */
+  messaging: InstructorMessagingRow[];
   overrides: SessionState['overrides'];
   firedEvents: SessionState['firedEvents'];
   networkChecks: SessionState['networkChecks'];
@@ -762,8 +762,6 @@ export function viewForInstructor(
     const world = worldOf(state, team.worldId);
     const decision = world?.open?.decisions[team.letter] ?? null;
     const presence = extras.presence[team.teamId];
-    const huddle = team.huddles[state.year];
-    const prediction = team.predictions[state.year];
     return {
       teamId: team.teamId,
       worldId: team.worldId,
@@ -792,20 +790,6 @@ export function viewForInstructor(
               source: decision.source,
               at: decision.at,
             },
-      huddleRecorded: huddle !== undefined,
-      predictionRecorded: prediction !== undefined,
-      huddles: Object.fromEntries(
-        Object.entries(team.huddles).map(([year, record]) => [
-          year,
-          { suggestions: record.suggestions, reason: record.reason },
-        ]),
-      ),
-      predictions: Object.fromEntries(
-        Object.entries(team.predictions).map(([year, record]) => [
-          year,
-          { othersTenths: record.othersTenths, trust: record.trust },
-        ]),
-      ),
       reflection: team.reflection ? { answers: team.reflection.answers } : null,
       cumulativeProfitK: world ? cumulativeProfitK(world, team.letter) : 0,
     };
@@ -863,7 +847,15 @@ export function viewForInstructor(
     teams,
     messages: state.messages.map(messageView),
     messagesByWorld,
-    news: state.news.map(newsView),
+    messaging: state.worlds.map((world) => {
+      const window = messagingFor(state, world.worldId, now);
+      return {
+        worldId: world.worldId,
+        worldNumber: world.worldNumber,
+        on: window.on,
+        until: window.until,
+      };
+    }),
     overrides: state.overrides,
     firedEvents: state.firedEvents,
     networkChecks: state.networkChecks,

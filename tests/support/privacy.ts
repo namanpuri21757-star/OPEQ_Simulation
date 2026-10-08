@@ -67,11 +67,8 @@ export function secretsForTeam(state: SessionState, teamId: string): Secret[] {
     if (other.token) {
       out.push({ needle: other.token, what: `another team's terminal token (${other.teamId})` });
     }
-    // Same-world chat is shared on purpose; nobody else's huddle notes,
-    // reasons, predictions or reflections ever are (SPEC section 7).
-    for (const huddle of Object.values(other.huddles)) {
-      out.push({ needle: huddle.reason, what: `another team's huddle reason (${other.teamId})` });
-    }
+    // Same-world messages are shared on purpose; nobody else's reflections
+    // ever are (SPEC section 7).
     if (other.reflection) {
       for (const answer of other.reflection.answers) {
         out.push({ needle: answer, what: `another team's reflection (${other.teamId})` });
@@ -123,9 +120,6 @@ export function secretsForProjector(
   for (const team of Object.values(state.teams)) {
     out.push({ needle: team.joinCode, what: `a join code (${team.teamId})` });
     if (team.token) out.push({ needle: team.token, what: `a terminal token (${team.teamId})` });
-    for (const huddle of Object.values(team.huddles)) {
-      out.push({ needle: huddle.reason, what: `a huddle reason (${team.teamId})` });
-    }
     if (team.reflection) {
       for (const answer of team.reflection.answers) {
         out.push({ needle: answer, what: `a reflection (${team.teamId})` });
@@ -133,10 +127,7 @@ export function secretsForProjector(
     }
   }
   for (const message of state.messages) {
-    // An announcement is written by the instructor for the room to read, so it
-    // is always allowed.
-    if (message.kind === 'announcement') continue;
-    if (message.worldId !== null && shown.has(message.worldId)) continue;
+    if (shown.has(message.worldId)) continue;
     out.push({
       needle: message.text,
       what: shown.size === 0 ? 'a team message' : 'a message from a world that is not on screen',

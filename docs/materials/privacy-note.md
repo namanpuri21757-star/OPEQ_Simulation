@@ -26,8 +26,8 @@ Nothing else is collected. No surname, no email address, no date of birth, no cl
 ## Who can see it
 
 - The teacher sees everything, which is how the discussion at the end of the lesson works.
-- A group sees only its own country and the other two countries in its own world. It never sees another world, and never sees another group’s private notes.
-- The projector screen shows public information only: the year, the clock, announcements and, if the teacher allows it, each world’s price.
+- A group sees only its own country and the other two countries in its own world. It never sees another world, and never sees another group’s messages.
+- The projector screen shows public information only: the year, the clock and, if the teacher allows it, each world’s price. It never shows a message.
 - A teacher may download the results as a spreadsheet file to look at later. Those files are the teacher’s to look after, under the school’s normal rules.
 
 ## How to delete it

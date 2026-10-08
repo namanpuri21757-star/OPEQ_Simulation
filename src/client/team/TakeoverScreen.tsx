@@ -16,12 +16,12 @@ export interface TakeoverScreenProps {
 
 export function TakeoverScreen({ gone, onJoinAgain }: TakeoverScreenProps) {
   return (
-    <main className="page">
+    <main className="sheet">
       <h1>{APP_NAME}</h1>
-      <section className="panel takeover">
+      <section className="box" style={{ marginTop: 'var(--s5)' }}>
         <h2>{gone.reason === 'takenOver' ? 'This team moved to another computer' : 'Paused'}</h2>
-        <p className="lead">{gone.message}</p>
-        <p className="hint">
+        <p className="lede">{gone.message}</p>
+        <p className="note">
           Nothing is lost. Everything your group sent is saved on your teacher&rsquo;s computer.
         </p>
         {gone.reason !== 'deleted' && (

@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MAX_MESSAGE_CHARS } from '../../src/shared/protocol.js';
 import { readEvents, sessionDir } from '../../src/server/store/files.js';
 import { GameClient } from '../support/client.js';
-import { closeYear, openGame, openYear, startBetween, startPractice } from '../support/game.js';
+import { closeYear, openGame, openYear, startPractice } from '../support/game.js';
 import { newSession, startServer, type Harness } from '../support/harness.js';
 
 let harness: Harness;
@@ -41,7 +41,6 @@ describe('S1 - oversized payloads', () => {
 
     const attempts: Array<[string, unknown]> = [
       ['sendMessage', { text: huge }],
-      ['recordHuddle', { suggestions: [{ name: huge, tenths: 383 }], reason: huge }],
       ['submitReflection', { answers: [huge, huge, huge] }],
       ['setMembers', { names: [huge] }],
       ['claimTeam', { joinCode: huge }],
@@ -132,11 +131,12 @@ describe('S1 - oversized payloads', () => {
 
 describe('S2 - a message with HTML or a script tag in it', () => {
   it('is stored and sent on as plain characters, never as markup', async () => {
-    const game = await openGame(harness, { settings: { worlds: 1, chatMode: 'always' } });
+    const game = await openGame(harness, { settings: { worlds: 1 } });
     const team = game.teams[0];
     const other = game.teams[1];
     if (!team || !other) throw new Error('missing teams');
     await startPractice(game);
+    await game.instructor.must('setMessaging', { on: true });
 
     const nasty = '<script>alert(1)</script> <b>38.3</b> & "quoted" \'single\'';
     const ack = await team.send('sendMessage', { text: nasty });
@@ -162,7 +162,7 @@ describe('S2 - a message with HTML or a script tag in it', () => {
     expect(payload).not.toContain('"html"');
   });
 
-  it('treats markup in a name, a reason and a reflection the same way', async () => {
+  it('treats markup in a name and a reflection the same way', async () => {
     const game = await openGame(harness, {
       settings: {
         worlds: 1,
@@ -177,26 +177,28 @@ describe('S2 - a message with HTML or a script tag in it', () => {
 
     await team.must('setMembers', { names: ['<b>Ada</b>'] });
     await startPractice(game);
-    await team.must('recordHuddle', {
-      suggestions: [{ name: '</p><script>', tenths: 383 }],
-      reason: '<iframe src="evil"></iframe>',
-    });
     await closeYear(game);
     await openYear(game, 1);
     await team.must('submitDecision', { tenths: 383 });
     await closeYear(game);
     await game.instructor.must('endGame');
     await game.sync();
-    await team.must('submitReflection', {
+    const saved = await team.must('submitReflection', {
       answers: ['<b>one</b>', '<svg onload=alert(1)>', 'plain'],
     });
+
+    // must() only waits for the team's own view. Views are capped at ten a
+    // second (SPEC section 9), so the dashboard can still be one behind.
+    await game.instructor.waitForView(
+      (view) => (view['version'] as number) >= (saved.ok ? saved.version : 0),
+      'the dashboard to catch up',
+    );
 
     const state = harness.server.store.get(game.session.sessionId);
     const stored = state?.teams[team.teamId ?? ''];
     // Every one of them is still a string, with its angle brackets intact and
     // nothing turned into an element anywhere on the way.
     expect(stored?.members[0]).toBe('<b>Ada</b>');
-    expect(stored?.huddles[0]?.reason).toBe('<iframe src="evil"></iframe>');
     expect(stored?.reflection?.answers[1]).toBe('<svg onload=alert(1)>');
     // The dashboard is sent the same characters, as text.
     const dashboard = JSON.stringify(game.instructor.view);
@@ -317,8 +319,6 @@ describe('I2 on HTTP - the export links', () => {
       'decisions',
       'outcomes',
       'messages',
-      'predictions',
-      'huddles',
       'reflections',
       'session',
     ]) {
@@ -335,12 +335,11 @@ describe('I2 on HTTP - the export links', () => {
 });
 
 /** Opens a chat window if the phase allows it, so a message can be sent. */
+/**
+ * Gets to a point where a message would be allowed, so a test about a long
+ * message is testing the length and not the switch.
+ */
 async function startBetweenSafely(game: Awaited<ReturnType<typeof openGame>>): Promise<void> {
-  if (game.instructor.phase === 'BETWEEN') return;
-  if (game.instructor.phase === 'PRACTICE_OPEN') {
-    await closeYear(game);
-    await openYear(game, 1);
-    await closeYear(game);
-  }
-  if (game.instructor.phase === 'YEAR_REVEAL') await startBetween(game, 'chat', 120);
+  await game.instructor.must('setMessaging', { on: true });
+  await game.sync();
 }

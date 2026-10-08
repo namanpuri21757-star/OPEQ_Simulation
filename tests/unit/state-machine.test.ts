@@ -33,7 +33,7 @@ describe('the transition table', () => {
   it('finds the real transition before a catch-all row', () => {
     expect(transitionFor('closeYear', 'YEAR_OPEN')?.to).toBe('YEAR_REVEAL');
     expect(transitionFor('closeYear', 'PRACTICE_OPEN')?.to).toBe('PRACTICE_REVEAL');
-    expect(transitionFor('announce', 'LOBBY')?.to).toBe('same');
+    expect(transitionFor('setMessaging', 'LOBBY')?.to).toBe('same');
   });
 
   it('says no for a command that cannot be sent from here', () => {
@@ -62,7 +62,7 @@ describe('the transition table', () => {
 
   it('writes a sentence a student can read for every command a team can send', () => {
     const teamCommands = (
-      ['submitDecision', 'recordHuddle', 'submitPrediction', 'submitReflection'] as const
+      ['submitDecision', 'submitReflection', 'sendMessage'] as const
     ).map((command) => command);
 
     for (const command of teamCommands) {

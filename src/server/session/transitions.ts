@@ -64,7 +64,7 @@ export const TRANSITIONS: readonly Transition[] = [
     command: 'startBetween',
     from: ['YEAR_REVEAL'],
     to: 'BETWEEN',
-    note: 'Runs a chat window or a face-to-face summit on a timer.',
+    note: 'Runs a face-to-face summit on a timer, while the room moves.',
   },
   {
     command: 'endBetween',
@@ -90,7 +90,12 @@ export const TRANSITIONS: readonly Transition[] = [
   { command: 'pause', from: TIMED, to: 'same', note: 'Keeps the remaining time.' },
   { command: 'resume', from: TIMED, to: 'same', note: 'Rebuilds the deadline.' },
   { command: 'extend', from: TIMED, to: 'same', note: 'Adds 1 to 600 seconds.' },
-  { command: 'announce', from: ALL, to: 'same', note: 'To every world or to one.' },
+  {
+    command: 'setMessaging',
+    from: ALL,
+    to: 'same',
+    note: 'Turns messaging on or off, for every world or for some of them.',
+  },
   {
     command: 'fireEvent',
     from: BETWEEN_YEARS,
@@ -135,11 +140,13 @@ export const TRANSITIONS: readonly Transition[] = [
     to: 'same',
     note: 'Can be changed until the year closes. The last one counts.',
   },
-  { command: 'recordHuddle', from: OPEN, to: 'same', note: 'Private to the team and instructor.' },
-  { command: 'submitPrediction', from: OPEN, to: 'same', note: 'Only after submitting.' },
   { command: 'submitReflection', from: ['ENDED'], to: 'same', note: 'Three questions at the end.' },
-  { command: 'sendMessage', from: ALL, to: 'same', note: 'Subject to the chat mode and mute.' },
-  { command: 'sendPledge', from: ALL, to: 'same', note: 'A promise, compared at the reveal.' },
+  {
+    command: 'sendMessage',
+    from: ALL,
+    to: 'same',
+    note: 'Only while this world’s messaging window is open, and not when muted.',
+  },
   { command: 'report', from: ALL, to: 'same', note: 'A network check result.' },
 ];
 
@@ -185,7 +192,7 @@ const PHASE_IN_WORDS: Record<Phase, string> = {
   PRACTICE_REVEAL: 'while the practice results are up',
   YEAR_OPEN: 'while a year is open',
   YEAR_REVEAL: 'while the results are up',
-  BETWEEN: 'during talking time',
+  BETWEEN: 'during the summit',
   ENDED: 'now the game has finished',
 };
 
@@ -202,12 +209,10 @@ const STUDENT_MESSAGES: Partial<Record<CommandType, (phase: Phase) => string>> =
     }
     if (phase === 'ENDED') return 'The game has finished, so there is nothing left to submit.';
     if (phase === 'BETWEEN') {
-      return 'This is talking time. You will type your number when the next year opens.';
+      return 'The summit is on. You will type your number when the next year opens.';
     }
     return 'This year is closed. Your last number was kept.';
   },
-  recordHuddle: () => 'Your notes belong to an open year, and no year is open right now.',
-  submitPrediction: () => 'You can make your guess while your year is open, after you submit.',
   submitReflection: () => 'The reflection questions open when your teacher ends the game.',
 };
 

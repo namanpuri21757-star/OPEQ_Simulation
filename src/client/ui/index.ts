@@ -12,7 +12,5 @@ export {
   type ChartPoint,
   type ChartSeries,
 } from './LineChart';
-export { NumberStepper } from './NumberStepper';
 export { QrCode, type QrCodeProps } from './QrCode';
-export { Slider } from './Slider';
 export { Toast, useToast, type Say, type ToastMessage } from './Toast';

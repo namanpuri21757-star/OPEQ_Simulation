@@ -25,7 +25,7 @@ export default function SummaryPage({ store }: SummaryPageProps) {
 
   if (saved === null) {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">
           Open your dashboard first, then come back here. The summary is built from the game running
@@ -49,7 +49,7 @@ function Summary() {
 
   if (view === null || view.kind !== 'instructor') {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">Getting the results...</p>
       </main>
@@ -59,7 +59,7 @@ function Summary() {
   const debrief = view.debrief;
   if (debrief === null) {
     return (
-      <main className="page">
+      <main className="sheet">
         <h1>{APP_NAME}</h1>
         <p role="status">
           The summary is ready once the game has ended. Go back to the dashboard and finish the game
@@ -70,11 +70,11 @@ function Summary() {
   }
 
   return (
-    <main className="page page-summary">
+    <main className="sheet page-summary">
       <header className="materials-toolbar">
         <div>
           <h1>Debrief summary</h1>
-          <p className="hint">{`Session ${view.sessionId} - ${String(view.worlds.length)} worlds, ${String(debrief.years.length)} scored years`}</p>
+          <p className="note">{`Session ${view.sessionId} - ${String(view.worlds.length)} worlds, ${String(debrief.years.length)} scored years`}</p>
         </div>
         <Button
           onClick={() => {

@@ -98,7 +98,7 @@ export function settingsPreview(settings: Settings, year = 1): SettingsPreview {
   // What one country's best answer is while the other two keep the deal. The
   // other two plus the new producer are the supply it is responding to.
   const qn = newProducerTenths(year, settings);
-  const cheat = bestResponseTenths(share * 2 + qn, settings, year);
+  const cheat = bestResponseTenths(share * 2 + qn, settings);
 
   const cooperative = rowFor(settings, year, [share, share, share]);
   const cheating = rowFor(settings, year, [cheat, share, share]);

@@ -51,9 +51,9 @@ export function questionsFor(settings: Settings, theory: DebriefTheory): Debrief
     [
       4,
       'LG2',
-      'What did your Envoy promise, and did your group keep it?',
+      'What did your Envoy promise in the messages, and did your group keep it?',
       'worldDetail',
-      'the promises and what happened',
+      'the messages and what each country did',
     ],
     [5, 'LG6', newProducerQuestion, 'worldDetail', 'the price and the new producer'],
     [6, 'LG6', finalYearQuestion, 'worldDetail', 'the final year'],
@@ -74,9 +74,9 @@ export function questionsFor(settings: Settings, theory: DebriefTheory): Debrief
     [
       9,
       'LG2',
-      "Whose suggestion became the group's decision most often? Did the Operator have extra influence?",
+      'How did your group agree on its number each year? Did whoever was at the keyboard have extra influence?',
       'worldDetail',
-      'the huddles',
+      'this world year by year',
     ],
     [
       10,

@@ -77,30 +77,36 @@ export function EndedScreen({ view, send, onSaid }: EndedScreenProps) {
   const lastScored = [...view.history].reverse().find((record) => !record.isPractice);
 
   return (
-    <>
-      <section className="panel" aria-labelledby="ended-heading">
-        <h2 id="ended-heading">The game has finished</h2>
-        <p>
-          {lastScored
-            ? `${view.countryName} earned ${formatProfitK(lastScored.cumulativeProfitK)} in total.`
-            : 'No years were scored in this game.'}
+    <div className="stack">
+      <section className="box" aria-labelledby="ended-heading">
+        <p className="obs-period" id="ended-heading">
+          {`${view.countryName}, total over every scored year`}
         </p>
+        <p>
+          <strong className="obs-value">
+            {lastScored ? formatProfitK(lastScored.cumulativeProfitK) : '-'}
+          </strong>
+        </p>
+        {lastScored === undefined && <p className="note">No years were scored in this game.</p>}
       </section>
 
       <HistoryPanel view={view} />
 
-      <section className="panel reflection" aria-labelledby="reflect-heading">
+      <section className="box reflection" aria-labelledby="reflect-heading">
         <h2 id="reflect-heading">Three questions</h2>
-        <p className="hint">
+        <p className="note">
           Your answers go to your teacher for the talk at the end. Up to
           {` ${String(MAX_REFLECTION_CHARS)} `}
           characters each.
         </p>
         {QUESTIONS.map((question, index) => (
-          <p className="field" key={question}>
-            <label htmlFor={`reflect-${String(index)}`}>{question}</label>
+          <div className="field" key={question}>
+            <label className="field-label" htmlFor={`reflect-${String(index)}`}>
+              {question}
+            </label>
             <textarea
               id={`reflect-${String(index)}`}
+              className="textarea"
               rows={3}
               maxLength={MAX_REFLECTION_CHARS}
               value={answers[index] ?? ''}
@@ -111,7 +117,7 @@ export function EndedScreen({ view, send, onSaid }: EndedScreenProps) {
                 setProblem(null);
               }}
             />
-          </p>
+          </div>
         ))}
         {problem !== null && (
           <p className="problem" role="alert">
@@ -121,12 +127,12 @@ export function EndedScreen({ view, send, onSaid }: EndedScreenProps) {
         <Button tone="primary" onClick={() => void save()} disabled={busy}>
           Save our answers
         </Button>
-        {saved !== null && <p className="hint">Saved. You can change them and save again.</p>}
+        {saved !== null && <p className="note">Saved. You can change them and save again.</p>}
       </section>
 
       {leaderboard !== null && (
         <>
-          <section className="panel" aria-labelledby="world-chart-heading">
+          <section className="box" aria-labelledby="world-chart-heading">
             <h2 id="world-chart-heading">Your world, year by year</h2>
             <LineChart
               title="Output by country"
@@ -155,7 +161,7 @@ export function EndedScreen({ view, send, onSaid }: EndedScreenProps) {
             />
           </section>
 
-          <section className="panel" aria-labelledby="leaderboard-heading">
+          <section className="box" aria-labelledby="leaderboard-heading">
             <h2 id="leaderboard-heading">Every country in the class</h2>
             <DataTable
               caption="Total profit, every world"
@@ -179,6 +185,6 @@ export function EndedScreen({ view, send, onSaid }: EndedScreenProps) {
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }

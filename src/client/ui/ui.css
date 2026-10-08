@@ -1,430 +1,238 @@
 /*
- * The shared components. Every size here comes from the spacing and type scale
- * in styles.css, so the screens stay in step with one another.
+ * The few components that need more than the system classes in theme.css:
+ * the country badge, the chart furniture, the dialog and the toast.
+ *
+ * Everything else - buttons, tables, strips, boxes, headline numbers - is a
+ * class in theme.css, so a screen is built out of the design system rather than
+ * out of one-off rules.
  */
 
-/* --- buttons ------------------------------------------------------------- */
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 2.75rem; /* a comfortable target on a tablet */
-  padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--ink);
-  font-size: var(--text-body);
-  cursor: pointer;
-}
-
-.button:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.button-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 600;
-}
-
-.button-quiet {
-  border-color: transparent;
-  background: transparent;
-  text-decoration: underline;
-}
-
-.button-large {
-  min-height: 4rem;
-  padding: var(--space-3) var(--space-5);
-  font-size: var(--text-lead);
-}
-
-/* --- badges -------------------------------------------------------------- */
-
+/* --- the country badge ---------------------------------------------------
+ * A shape AND a letter, so it reads in black and white and to anyone who
+ * cannot tell the colours apart (SPEC 8.3). Ink blue is the only colour.
+ */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--s2);
 }
 
 .badge-art {
-  width: 2rem;
-  height: 2rem;
-  flex: none;
-}
-
-.badge-small .badge-art {
-  width: 1.5rem;
-  height: 1.5rem;
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .badge-large .badge-art {
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.badge-small .badge-art {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .badge-shape {
-  fill: var(--paper);
-  stroke: var(--badge-colour, var(--ink));
-  stroke-width: 3;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
 }
 
 .badge-letter {
-  fill: var(--badge-colour, var(--ink));
+  fill: var(--ink);
+  font-family: var(--sans);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.badge-A {
-  --badge-colour: var(--country-a);
-}
-
-.badge-B {
-  --badge-colour: var(--country-b);
-}
-
-.badge-C {
-  --badge-colour: var(--country-c);
+/* A triangle's visual centre is below its bounding box's, so the letter moves
+ * down to sit inside the shape rather than on its top edge. */
+.badge-B .badge-letter {
+  transform: translateY(4px);
 }
 
 .badge-name {
-  font-weight: 600;
+  font-weight: 500;
 }
 
-/* --- banners ------------------------------------------------------------- */
-
-.banner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: baseline;
-  padding: var(--space-2) var(--space-3);
-  border: 2px solid var(--line);
-  border-left-width: 8px;
-  border-radius: var(--radius);
-  background: var(--panel);
-  margin-bottom: var(--space-3);
-}
-
-.banner-warning {
-  border-left-color: var(--focus);
-}
-
-.banner-alert {
-  border-left-color: var(--bad);
-}
-
-.banner-info {
-  border-left-color: var(--accent);
-}
-
-.banner-title {
-  text-transform: uppercase;
-  font-size: var(--text-small);
-  letter-spacing: 0.04em;
-}
-
-/* --- fields -------------------------------------------------------------- */
-
-.field {
-  display: block;
-  margin-bottom: var(--space-3);
-}
-
-.field > label,
-.stepper-label,
-.slider-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-}
-
-input[type='text'],
-input[type='number'],
-textarea,
-select {
-  padding: var(--space-2);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  max-width: 100%;
-}
-
-.hint {
-  color: var(--ink-soft);
-  font-size: var(--text-small);
-  margin: var(--space-1) 0 0;
-}
-
-.problem {
-  color: var(--bad);
-  margin: var(--space-1) 0 0;
-  font-weight: 600;
-}
-
-.stepper-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.stepper-input {
-  width: 6rem;
-  font-size: var(--text-lead);
-  text-align: right;
-}
-
-.stepper-unit {
-  color: var(--ink-soft);
-}
-
-.slider {
-  margin: var(--space-3) 0;
-}
-
-.slider-input {
-  width: 100%;
-}
-
-.slider-ends {
-  display: flex;
-  justify-content: space-between;
-  color: var(--ink-soft);
-  font-size: var(--text-small);
-}
-
-/* --- dialog -------------------------------------------------------------- */
-
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-3);
-  background: rgb(0 0 0 / 55%);
-  z-index: 10;
-}
-
-.dialog {
-  background: var(--panel);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  max-width: 32rem;
-  width: 100%;
-}
-
-.dialog-title {
-  font-size: var(--text-h2);
-}
-
-.dialog-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-/* --- countdown ----------------------------------------------------------- */
-
-.countdown-time {
+/* --- the countdown ------------------------------------------------------
+ * Inline, because it reads inside a sentence as often as on its own.
+ */
+.countdown {
+  display: inline;
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-size: var(--text-h1);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .countdown-low {
   color: var(--bad);
 }
 
-/* --- tables and charts --------------------------------------------------- */
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.data-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-variant-numeric: tabular-nums;
-}
-
-.data-table caption {
-  text-align: left;
-  font-weight: 600;
-  padding-bottom: var(--space-2);
-}
-
-.data-table th,
-.data-table td {
-  border: 1px solid var(--line);
-  padding: var(--space-1) var(--space-2);
-  text-align: right;
-}
-
-.data-table thead th,
-.data-table tbody th {
-  text-align: left;
-  background: var(--paper);
-}
-
-.chart {
-  margin: var(--space-3) 0;
+/* --- chart furniture ---------------------------------------------------- */
+figure.figure {
+  margin: 0;
 }
 
 .chart-title {
-  font-weight: 600;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--s3);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-.chart-art {
-  width: 100%;
-  height: auto;
-  max-width: 40rem;
-}
-
-.chart-axis {
-  stroke: var(--line);
-  stroke-width: 1.5;
-}
-
-.chart-tick,
-.chart-axis-label {
-  fill: var(--ink-soft);
-  font-size: 12px;
+.chart-mark line {
+  stroke: var(--muted);
+  stroke-width: 1;
 }
 
 .chart-series path {
-  stroke-width: 2.5;
+  stroke: var(--ink);
+  stroke-width: 2;
 }
 
-.chart-series-1 path,
-.chart-series-1 .chart-marker {
-  stroke: var(--country-a);
-  fill: var(--country-a);
+.chart-series .chart-marker {
+  fill: var(--ink);
+  stroke: var(--ink);
 }
 
+/* Series past the first are told apart by their dash and marker, which are set
+ * on the series itself, so no extra colour is needed. The later ones are
+ * lightened only so the first line still reads as the main one. */
 .chart-series-2 path,
 .chart-series-2 .chart-marker {
-  stroke: var(--country-b);
-  fill: var(--country-b);
+  stroke: var(--text);
+  fill: var(--text);
 }
 
 .chart-series-3 path,
 .chart-series-3 .chart-marker {
-  stroke: var(--country-c);
-  fill: var(--country-c);
+  stroke: var(--muted);
+  fill: var(--muted);
 }
 
 .chart-series-4 path,
-.chart-series-4 .chart-marker {
-  stroke: var(--ink-soft);
-  fill: var(--ink-soft);
-}
-
-/* Worlds 5 and 6: the world-comparison chart can carry six lines. */
+.chart-series-4 .chart-marker,
 .chart-series-5 path,
-.chart-series-5 .chart-marker {
-  stroke: var(--series-e);
-  fill: var(--series-e);
-}
-
+.chart-series-5 .chart-marker,
 .chart-series-6 path,
 .chart-series-6 .chart-marker {
-  stroke: var(--series-f);
-  fill: var(--series-f);
+  stroke: var(--ink);
+  fill: var(--ink);
 }
 
-/* A labelled moment: a chat window, the new producer, the final year. */
-.chart-mark line {
-  stroke: var(--ink-soft);
-  stroke-width: 1.5;
-}
-
+.chart-legend,
 .chart-marks {
-  list-style: none;
-  padding: 0;
-  margin: var(--space-1) 0 var(--space-2);
-  font-size: var(--text-small);
-  color: var(--ink-soft);
-}
-
-.chart-marks li {
-  border-left: 3px solid var(--line);
-  padding-left: var(--space-1);
-}
-
-.chart-legend {
-  list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--s2) var(--s4);
+  margin: var(--s3) 0 0;
   padding: 0;
-  margin: var(--space-2) 0;
-  font-size: var(--text-small);
+  list-style: none;
+  font-size: var(--t-label);
+  color: var(--muted);
 }
 
-.chart-legend .chart-swatch {
-  margin-right: var(--space-1);
+.chart-swatch {
+  margin-right: var(--s1);
 }
 
-.chart-legend li.chart-series-1 .chart-swatch {
-  color: var(--country-a);
-}
-
-.chart-legend li.chart-series-2 .chart-swatch {
-  color: var(--country-b);
-}
-
-.chart-legend li.chart-series-3 .chart-swatch {
-  color: var(--country-c);
-}
-
-.chart-legend li.chart-series-4 .chart-swatch {
-  color: var(--ink-soft);
-}
-
-.chart-legend li.chart-series-5 .chart-swatch {
-  color: var(--series-e);
-}
-
-.chart-legend li.chart-series-6 .chart-swatch {
-  color: var(--series-f);
+.chart-data {
+  margin-top: var(--s3);
+  font-size: var(--t-label);
 }
 
 .chart-data summary {
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
   cursor: pointer;
 }
 
-/* --- toast --------------------------------------------------------------- */
+.chart-data .table-scroll {
+  margin-top: var(--s3);
+}
 
+/* --- the dialog --------------------------------------------------------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s4);
+  background: rgb(10 10 10 / 35%);
+}
+
+.dialog {
+  width: min(32rem, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--s5);
+  border: var(--rule-line);
+  background: var(--cream);
+}
+
+.dialog h2 {
+  margin-bottom: var(--s4);
+}
+
+.dialog-body > * + * {
+  margin-top: var(--s3);
+}
+
+.dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: var(--s5);
+}
+
+/* --- the toast ----------------------------------------------------------
+ * The live region is the fixed box, not a wrapper around it. A wrapper with
+ * nothing but a position:fixed child has no height of its own, which makes it
+ * invisible to anything measuring the page - including a browser test.
+ */
 .toast-region {
-  min-height: 2rem;
+  position: fixed;
+  right: var(--s4);
+  bottom: var(--s4);
+  z-index: 20;
+  max-width: 24rem;
 }
 
 .toast {
-  display: inline-block;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  border: 2px solid var(--line);
-  background: var(--panel);
-}
-
-.toast-good {
-  border-color: var(--good);
+  padding: var(--s3) var(--s4);
+  border: var(--rule-line);
+  background: var(--cream);
+  font-size: var(--t-small);
 }
 
 .toast-bad {
   border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* --- the QR code --------------------------------------------------------
+ * Always black on white, whatever else the page is doing: a phone camera
+ * reads contrast, and a cream background with ink-blue squares is a code that
+ * sometimes does not scan.
+ */
+.qr {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 10rem;
+}
+
+.qr-paper {
+  fill: #ffffff;
+}
+
+.qr-ink {
+  fill: #000000;
 }

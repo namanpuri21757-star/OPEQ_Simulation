@@ -15,23 +15,12 @@ import {
   EXPORT_FILES,
   exportFile,
   fullJson,
-  huddlesCsv,
   messagesCsv,
   outcomesCsv,
-  predictionsCsv,
   reflectionsCsv,
 } from '../../src/shared/exports.js';
 import { priceNumber, profitNumber, quantityNumber } from '../../src/shared/units.js';
-import {
-  addChat,
-  addPledge,
-  closedAt,
-  makeSession,
-  setHuddle,
-  setPrediction,
-  setReflection,
-  type Triple,
-} from '../support/session.js';
+import { addChat, makeSession, setReflection, type Triple } from '../support/session.js';
 
 const SHARE = 383;
 const cooperating: Triple = [SHARE, SHARE, SHARE];
@@ -75,16 +64,8 @@ function playedSession() {
     autos: ['2:C'],
   });
   addChat(state, 1, 'B', 1, 'Shall we all stay low? Yes, "all" of us.');
-  addPledge(state, 1, 'A', 2, SHARE);
-  setPrediction(state, 1, 'A', 1, { othersTenths: [SHARE, SHARE], trust: 4, at: closedAt(1) });
-  setHuddle(state, 1, 'A', 2, {
-    suggestions: [
-      { name: 'Ada', tenths: 750 },
-      { name: 'Ben', tenths: SHARE },
-    ],
-    reason: '=38.3, and they will never know',
-    at: closedAt(2),
-  });
+  // Starts with "=", so the CSV has to hold it as text and not as a formula.
+  addChat(state, 1, 'A', 2, '=38.3, and they will never know');
   setReflection(state, 1, 'A', ['Years 1 and 2.', 'We broke one.', 'Talk first.']);
   return state;
 }
@@ -184,40 +165,21 @@ describe('outcomes.csv', () => {
   });
 });
 
-describe('the other four CSV files', () => {
+describe('the other two CSV files', () => {
   const state = playedSession();
 
-  it('lists every message, with the broken promise marked', () => {
+  it('lists every message with the year it came before', () => {
     const rows = rowsOf(messagesCsv(state)).map(cellsOf);
-    const pledge = rows.find((cells) => cells[2] === 'pledge');
-    expect(pledge?.[0]).toBe('1');
-    expect(pledge?.[1]).toBe('2');
-    expect(pledge?.[6]).toBe(quantityNumber(SHARE));
-    expect(pledge?.[7]).toBe(quantityNumber(750));
-    expect(pledge?.[8]).toBe('no');
+    expect(rows).toHaveLength(3);
 
     // A quote inside a message survives the round trip.
-    const chat = rows.find((cells) => cells[2] === 'chat');
-    expect(chat?.[5]).toBe('Shall we all stay low? Yes, "all" of us.');
-  });
+    const quoted = rows.find((cells) => cells[2] === 'B');
+    expect(quoted?.slice(0, 4)).toEqual(['1', '1', 'B', 'Borvia']);
+    expect(quoted?.[4]).toBe('Shall we all stay low? Yes, "all" of us.');
 
-  it('lists each guess beside what really happened', () => {
-    const rows = rowsOf(predictionsCsv(state)).map(cellsOf);
-    expect(rows).toHaveLength(2);
-    expect(rows[1]?.slice(0, 4)).toEqual(['1', 'A', 'Ardonia', '1']);
-    expect(rows[1]?.[6]).toBe(quantityNumber(0));
-    expect(rows[1]?.[7]).toBe('4');
-  });
-
-  it('lists each suggestion beside the decision', () => {
-    const rows = rowsOf(huddlesCsv(state)).map(cellsOf);
-    expect(rows).toHaveLength(3);
-    const ada = rows.find((cells) => cells[4] === 'Ada');
-    expect(ada?.[5]).toBe(quantityNumber(750));
-    expect(ada?.[6]).toBe(quantityNumber(750));
-    expect(ada?.[7]).toBe('yes');
-    // The reason starts with "=", so it is held as text, not a formula.
-    expect(ada?.[8]).toBe("'=38.3, and they will never know");
+    // A message starting with "=" is held as text, not as a formula.
+    const formula = rows.find((cells) => cells[2] === 'A');
+    expect(formula?.[4]).toBe("'=38.3, and they will never know");
   });
 
   it('puts the three questions in the reflection headings', () => {
@@ -260,17 +222,15 @@ describe('the JSON export', () => {
 });
 
 describe('the list of files', () => {
-  it('offers the six CSV files and the JSON file', () => {
+  it('offers the four CSV files and the JSON file', () => {
     expect(EXPORT_FILES.map((file) => file.name)).toEqual([
       'decisions',
       'outcomes',
       'messages',
-      'predictions',
-      'huddles',
       'reflections',
       'session',
     ]);
-    expect(EXPORT_FILES.filter((file) => file.contentType.startsWith('text/csv'))).toHaveLength(6);
+    expect(EXPORT_FILES.filter((file) => file.contentType.startsWith('text/csv'))).toHaveLength(4);
   });
 
   it('builds every file for a game that scored nothing', () => {

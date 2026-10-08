@@ -24,16 +24,16 @@ function exportHref(view: InstructorView, name: string): string {
 
 export function ExportsPanel({ view }: ExportsPanelProps) {
   return (
-    <section className="panel" aria-labelledby="exports-heading">
+    <section className="box" aria-labelledby="exports-heading">
       <h2 id="exports-heading">Download the results</h2>
-      <p className="hint">
+      <p className="note">
         The CSV files open in any spreadsheet. The JSON file holds everything, including the
         debrief. Both are saved on this computer only.
       </p>
       <ul className="exports-list">
         {EXPORT_FILES.map((file) => (
           <li key={file.name}>
-            <a className="button" href={exportHref(view, file.name)} download={file.fileName}>
+            <a className="btn" href={exportHref(view, file.name)} download={file.fileName}>
               {file.label}
             </a>
           </li>

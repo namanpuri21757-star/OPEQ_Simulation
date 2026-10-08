@@ -66,7 +66,7 @@ function describe(report: Report): string {
 }
 
 test.describe('A1 - accessibility', () => {
-  test('axe finds nothing serious or critical on any of the eight screens', async ({ browser }) => {
+  test('axe finds nothing serious or critical on any of the main screens', async ({ browser }) => {
     const server = await GameServer.start();
     const opened: Screen[] = [];
     const reports: Report[] = [];
@@ -136,28 +136,27 @@ test.describe('A1 - accessibility', () => {
       await pressBigButton(dash);
 
       // The reveal, with the large price and the aria-live sentence.
-      await expect(first.page.locator('.reveal-price')).toBeVisible();
+      await expect(first.page.locator('.obs-value').first()).toBeVisible();
       reports.push(await audit('a team reveal screen', first.page));
       reports.push(await audit('the projector at a reveal', projector.page));
 
-      // --- a chat window ----------------------------------------------------
+      // --- messaging on -----------------------------------------------------
 
-      await pressUntil(dash, /^Open chat window/);
+      await pressUntil(dash, /^Turn messaging on/);
       await pressBigButton(dash);
-      await expect(first.page.getByRole('heading', { name: 'Chat window' })).toBeVisible();
+      await expect(first.page.locator('.messages-state')).toContainText('Messaging is on');
       await first.page.getByLabel('Write to the other countries in your world').fill('Hello.');
       await first.page.getByRole('button', { name: 'Send', exact: true }).click();
       await expect(first.page.locator('.message-list')).toContainText('Hello.');
-      reports.push(await audit('a team chat screen', first.page));
+      reports.push(await audit('a team screen with messaging on', first.page));
+      reports.push(await audit('the live screen with messaging on', dash));
       await pressBigButton(dash);
 
       // --- the end, the reflections and the debrief -------------------------
 
       await pressUntil(dash, /^End the game$/);
       await pressBigButton(dash);
-      await expect(
-        first.page.getByRole('heading', { name: 'The game has finished' }),
-      ).toBeVisible();
+      await expect(first.page.getByRole('heading', { name: 'Three questions' })).toBeVisible();
       reports.push(await audit('a team end screen', first.page));
 
       await pressBigButton(dash);
@@ -182,7 +181,7 @@ test.describe('A1 - accessibility', () => {
       const blocking = reports.filter((report) => report.blocking.length > 0);
       expect(blocking.map(describe).join('\n'), '\naxe found serious problems').toBe('');
       // Every screen in the list really was audited.
-      expect(reports).toHaveLength(12);
+      expect(reports).toHaveLength(13);
     } finally {
       for (const screen of opened) await screen.context.close();
       await server.cleanup();

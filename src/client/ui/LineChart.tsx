@@ -47,6 +47,8 @@ export interface LineChartProps {
   formatLeft?: (y: number) => string;
   formatRight?: (y: number) => string;
   height?: number;
+  /** The line under the chart saying where the numbers came from (FRED style). */
+  source?: string;
 }
 
 const WIDTH = 640;
@@ -94,6 +96,7 @@ export function LineChart({
   formatLeft = (y) => String(y),
   formatRight = (y) => String(y),
   height = 260,
+  source,
 }: LineChartProps) {
   const xs = [...new Set(series.flatMap((s) => s.points.map((p) => p.x)))].sort((a, b) => a - b);
   const left = series.filter((s) => (s.axis ?? 'left') === 'left');
@@ -124,10 +127,10 @@ export function LineChart({
   ]);
 
   return (
-    <figure className="chart">
+    <figure className="figure">
       <figcaption className="chart-title">{title}</figcaption>
       <svg
-        className="chart-art"
+        className="chart"
         viewBox={`0 0 ${String(WIDTH)} ${String(height)}`}
         role="img"
         aria-label={`${title}. The same numbers are in the table below.`}
@@ -240,6 +243,7 @@ export function LineChart({
           ))}
         </ul>
       )}
+      {source !== undefined && <p className="chart-source">{source}</p>}
       <details className="chart-data">
         <summary>Show the numbers</summary>
         <DataTable caption={title} columns={columns} rows={rows} hideCaption />

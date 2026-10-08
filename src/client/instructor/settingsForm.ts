@@ -12,7 +12,6 @@
  */
 
 import {
-  CHAT_MODES,
   DISCLOSURE_MODES,
   validateSettings,
   type Settings,
@@ -43,12 +42,6 @@ const DISCLOSURE_LABELS: Record<(typeof DISCLOSURE_MODES)[number], string> = {
   full: 'Full - everyone in a world sees each country’s output',
   totalOnly: 'Total only - the world total and the price',
   priceOnly: 'Price only - just the price',
-};
-
-const CHAT_LABELS: Record<(typeof CHAT_MODES)[number], string> = {
-  off: 'Off - no messages at all',
-  windowsOnly: 'Chat windows only - messages during the scheduled windows',
-  always: 'Always - messages any time',
 };
 
 export const SETTINGS_GROUPS: readonly FieldGroup[] = [
@@ -118,14 +111,8 @@ export const SETTINGS_GROUPS: readonly FieldGroup[] = [
   },
   {
     name: 'Communication',
-    blurb: 'What teams may say to each other, and what they get to see.',
+    blurb: 'What a team gets to see, and how often the jobs move round.',
     fields: [
-      {
-        path: 'chatMode',
-        label: 'When teams may send messages',
-        kind: 'choice',
-        choices: CHAT_MODES.map((mode) => ({ value: mode, label: CHAT_LABELS[mode] })),
-      },
       {
         path: 'disclosure',
         label: 'What a team sees after a year',
@@ -137,7 +124,7 @@ export const SETTINGS_GROUPS: readonly FieldGroup[] = [
         label: 'Jobs rotate every',
         kind: 'integer',
         unit: 'years',
-        hint: 'Operator, Analyst and Envoy swap round this often.',
+        hint: 'Operator and Envoy swap round this often.',
       },
     ],
   },
@@ -155,20 +142,10 @@ export const SETTINGS_GROUPS: readonly FieldGroup[] = [
       },
       {
         path: 'newProducer.announced',
-        label: 'Say so in the news when it arrives',
+        label: 'Name it in the results sentence when it arrives',
         kind: 'boolean',
         hint: 'Off by default, so the price drop is a surprise.',
       },
-      { path: 'demandEvent.enabled', label: 'Demand changes one year', kind: 'boolean' },
-      { path: 'demandEvent.year', label: 'Demand changes in year', kind: 'integer' },
-      {
-        path: 'demandEvent.deltaA',
-        label: 'Change to the highest price (a)',
-        kind: 'decimal',
-        unit: 'dollars',
-      },
-      { path: 'demandEvent.message', label: 'What the news says', kind: 'text' },
-      { path: 'demandEvent.announced', label: 'Announce the demand change', kind: 'boolean' },
       {
         path: 'finalYearWarning',
         label: 'Warn the class before the last year',

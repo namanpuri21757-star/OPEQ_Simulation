@@ -174,7 +174,7 @@ Everything a class produces is in the **`data`** folder inside the Crude Accord
 folder, and nowhere else. No accounts, no cloud, no internet.
 
 What is in there: the decisions each country made, the messages they sent each
-other, their private notes and predictions, and the first names a group chose to
+other, their reflection answers, and the first names a group chose to
 type in (which are optional — groups can stay as "Member 1, Member 2").
 
 Three ways to delete it:

@@ -53,7 +53,3 @@ export function yesNo(value: boolean): string {
   return value ? 'yes' : 'no';
 }
 
-/** A yes, a no, or an empty cell when there was nothing to judge. */
-export function yesNoBlank(value: boolean | null): string {
-  return value === null ? '' : yesNo(value);
-}

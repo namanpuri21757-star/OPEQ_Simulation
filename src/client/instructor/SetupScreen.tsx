@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MAX_WORLDS, MIN_WORLDS } from '@shared/constants';
 import { PRESETS, PRESET_NAMES, type PresetName, type SettingsInput } from '@shared/settings';
 import type { InstructorView } from '@shared/views';
@@ -9,17 +10,21 @@ import { SettingsPreview } from './SettingsPreview';
 import { ALL_FIELDS, NOT_A_NUMBER, checkDraft, setAt } from './settingsForm';
 
 /**
- * The setup screen (SPEC 8.4): pick a preset, say how many worlds, and change
- * anything else only if you want to.
+ * The lesson settings, on a page of their own (SPEC 8.4).
  *
- * The one rule driving the layout: a teacher setting this up has a class walking
- * in. The preset picker and the worlds box are the whole job, the preview tells
- * them whether the game still works, and everything else is folded away.
+ * In v1 this form was the first thing a teacher saw, which put a decision in
+ * front of them before they knew what the game was. It is now a link in the
+ * corner of the start screen: a teacher who wants the standard lesson never has
+ * to come here at all, and one who does arrives knowing what they want to
+ * change.
+ *
+ * Three sections and one obvious next step: pick the shape, say how many worlds,
+ * read the preview, save.
  */
 const PRESET_BLURB: Record<PresetName, string> = {
-  'standard-75': 'About 75 minutes. 12 years, a chat window, a summit and a new producer.',
-  'short-50': 'About 50 minutes. 8 years, one chat window, no summit.',
-  'long-90': 'About 90 minutes. 16 years, two chat windows and a summit.',
+  'standard-75': 'About 75 minutes. 12 years, two messaging windows, a summit and a new producer.',
+  'short-50': 'About 50 minutes. 8 years, one messaging window, no summit.',
+  'long-90': 'About 90 minutes. 16 years, two messaging windows and a summit.',
   'test-fast': 'Five-second years. For trying the software out, not for a class.',
 };
 
@@ -35,8 +40,6 @@ const INTEGER_PATHS = new Set([
 ]);
 
 const NUMBER_SHAPE = /^\d+(?:\.\d*)?$/;
-/** The demand change is the one setting that may be negative. */
-const SIGNED_SHAPE = /^-?\d+(?:\.\d*)?$/;
 
 export interface SetupScreenProps {
   view: InstructorView;
@@ -53,6 +56,7 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const problems = checkDraft(draft, typed);
+  const locked = view.phase !== 'LOBBY';
 
   /** Replaces the whole draft: a preset, or a loaded file. */
   const replace = (next: SettingsInput) => {
@@ -73,9 +77,8 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
     }
 
     setTexts((current) => ({ ...current, [path]: raw }));
-    const shape = path === 'demandEvent.deltaA' ? SIGNED_SHAPE : NUMBER_SHAPE;
     const trimmed = raw.trim();
-    if (!shape.test(trimmed) || (INTEGER_PATHS.has(path) && trimmed.includes('.'))) {
+    if (!NUMBER_SHAPE.test(trimmed) || (INTEGER_PATHS.has(path) && trimmed.includes('.'))) {
       setTyped((current) => ({ ...current, [path]: NOT_A_NUMBER }));
       return;
     }
@@ -127,106 +130,139 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
   const worlds = draft.worlds ?? MIN_WORLDS;
 
   return (
-    <section className="panel setup" aria-labelledby="setup-heading">
-      <h2 id="setup-heading">Set the game up</h2>
+    <main className="sheet">
+      <header className="teacher-band">
+        <h1 className="teacher-title">Lesson settings</h1>
+        <p className="teacher-facts">{`Session ${view.sessionId}`}</p>
+      </header>
 
-      <fieldset className="presets">
-        <legend>Choose a shape for the lesson</legend>
-        {PRESET_NAMES.map((name) => (
-          <label className="preset" key={name} htmlFor={`preset-${name}`}>
-            <input
-              id={`preset-${name}`}
-              type="radio"
-              name="preset"
-              value={name}
-              checked={preset === name}
-              onChange={() => {
-                setPreset(name);
-                replace(draftFor(name, worlds));
-              }}
-            />
-            <span>
-              <strong>{name}</strong>
-              <span className="hint">{PRESET_BLURB[name]}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <p className="field">
-        <label htmlFor="setting-worlds">How many worlds?</label>
-        <span className="field-row">
-          <input
-            id="setting-worlds"
-            className="field-number"
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            aria-describedby="worlds-hint"
-            value={texts['worlds'] ?? String(worlds)}
-            onChange={(event) => onChange('worlds', event.target.value)}
-          />
-          <span className="field-unit">{`${String(MIN_WORLDS)} to ${String(MAX_WORLDS)}`}</span>
-        </span>
-        <span className="hint" id="worlds-hint">
-          Each world has 3 countries, so one world is 3 groups. With 25 students, 3 worlds of 3
-          groups gives 9 groups of 2 or 3.
-        </span>
-        {problems.byPath['worlds'] !== undefined && (
-          <span className="problem" role="alert">
-            {problems.byPath['worlds']}
-          </span>
-        )}
-      </p>
-
-      {problems.settings !== null && <SettingsPreview settings={problems.settings} />}
-      {problems.settings === null && (
-        <Banner tone="warning" title="Preview">
-          The preview comes back as soon as every setting is a number the game can use.
+      {locked && (
+        <Banner tone="alert" title="Locked">
+          The game has started, so the settings cannot be changed now. Reset the game first if you
+          need to.
         </Banner>
       )}
 
-      {problems.other.length > 0 && (
-        <div role="alert">
-          {problems.other.map((message) => (
-            <p className="problem" key={message}>
-              {message}
+      <div className="stack">
+        <section className="box" aria-labelledby="shape-heading">
+          <h2 className="step-title" id="shape-heading">
+            <span className="step-no">1</span> The shape of the lesson
+          </h2>
+          <fieldset className="presets" style={{ marginTop: 'var(--s4)' }}>
+            <legend>Choose one</legend>
+            {PRESET_NAMES.map((name) => (
+              <label className="preset" key={name} htmlFor={`preset-${name}`}>
+                <input
+                  id={`preset-${name}`}
+                  type="radio"
+                  name="preset"
+                  value={name}
+                  checked={preset === name}
+                  onChange={() => {
+                    setPreset(name);
+                    replace(draftFor(name, worlds));
+                  }}
+                />
+                <span>
+                  <strong>{name}</strong>
+                  <br />
+                  <span className="note">{PRESET_BLURB[name]}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        </section>
+
+        <section className="box" aria-labelledby="worlds-heading">
+          <h2 className="step-title" id="worlds-heading">
+            <span className="step-no">2</span> How many worlds
+          </h2>
+          <div className="field-row" style={{ marginTop: 'var(--s4)' }}>
+            <label className="field-label" htmlFor="setting-worlds" style={{ marginBottom: 0 }}>
+              Worlds
+            </label>
+            <input
+              id="setting-worlds"
+              className="field-number"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-describedby="worlds-hint"
+              value={texts['worlds'] ?? String(worlds)}
+              onChange={(event) => onChange('worlds', event.target.value)}
+            />
+            <span className="field-unit">{`${String(MIN_WORLDS)} to ${String(MAX_WORLDS)}`}</span>
+          </div>
+          <p className="note" id="worlds-hint" style={{ marginTop: 'var(--s3)' }}>
+            Each world has 3 countries, so one world is 3 groups. With 25 students, 3 worlds gives 9
+            groups of 2 or 3.
+          </p>
+          {problems.byPath['worlds'] !== undefined && (
+            <p className="problem" role="alert">
+              {problems.byPath['worlds']}
             </p>
-          ))}
-        </div>
-      )}
+          )}
+        </section>
 
-      <AdvancedSettings
-        draft={draft}
-        texts={texts}
-        problems={problems.byPath}
-        onChange={onChange}
-        onToggle={(path, value) => setDraft((current) => setAt(current, path, value))}
-        onSchedule={(schedule) => setDraft((current) => ({ ...current, schedule }))}
-      />
+        <section className="box" aria-labelledby="preview-heading">
+          <h2 className="step-title" id="preview-heading">
+            <span className="step-no">3</span> What these numbers pay
+          </h2>
+          {problems.settings !== null ? (
+            <SettingsPreview settings={problems.settings} />
+          ) : (
+            <p className="note">
+              The preview comes back as soon as every setting is a number the game can use.
+            </p>
+          )}
+          {problems.other.length > 0 && (
+            <div role="alert">
+              {problems.other.map((message) => (
+                <p className="problem" key={message}>
+                  {message}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
 
-      <div className="row">
-        <Button tone="primary" onClick={() => void save()} disabled={busy}>
-          Save settings
-        </Button>
-        <Button onClick={download}>Save settings to a file</Button>
-        <Button onClick={() => fileInput.current?.click()}>Load settings from a file</Button>
-        <input
-          ref={fileInput}
-          className="visually-hidden"
-          type="file"
-          accept="application/json,.json"
-          aria-label="Settings file to load"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void load(file);
-            event.target.value = '';
-          }}
-        />
+        <section className="box">
+          <AdvancedSettings
+            draft={draft}
+            texts={texts}
+            problems={problems.byPath}
+            onChange={onChange}
+            onToggle={(path, value) => setDraft((current) => setAt(current, path, value))}
+            onSchedule={(schedule) => setDraft((current) => ({ ...current, schedule }))}
+          />
+        </section>
+
+        <section className="box">
+          <div className="btn-row">
+            <Button tone="primary" onClick={() => void save()} disabled={busy || locked}>
+              Save settings
+            </Button>
+            <Button onClick={download}>Save to a file</Button>
+            <Button onClick={() => fileInput.current?.click()}>Load from a file</Button>
+            <input
+              ref={fileInput}
+              className="visually-hidden"
+              type="file"
+              accept="application/json,.json"
+              aria-label="Settings file to load"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void load(file);
+                event.target.value = '';
+              }}
+            />
+          </div>
+        </section>
       </div>
-      <p className="hint">
-        Settings can only be changed before the briefing starts. Save them, then hand out the cards.
+
+      <p className="teacher-corner">
+        <Link to="/instructor">Back to the start screen</Link>
       </p>
-    </section>
+    </main>
   );
 }

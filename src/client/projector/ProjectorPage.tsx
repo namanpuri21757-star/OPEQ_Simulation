@@ -1,33 +1,34 @@
+import type { CSSProperties } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { APP_NAME, APP_TAGLINE } from '@shared/constants';
-import { formatPrice } from '@shared/units';
+import { formatPrice, formatQuantity } from '@shared/units';
 import type { ProjectorView } from '@shared/views';
 import { RoleConnection, useView } from '../net';
-import { Countdown, QrCode } from '../ui';
+import { Countdown, DataTable, QrCode } from '../ui';
 import { DebriefScreenView, debriefTitleOf, isDebriefScreenName } from '../debrief';
 import { joinLink } from '../instructor/links';
 
 /**
- * The projector (SPEC 8.5): very large type, public information only.
+ * The projector (SPEC 8.5): the same design system at the size a room reads.
  *
  * It is built from the projector view, which is the only thing the server will
  * send this key, so there is nothing private here to leave out by hand. The
  * read-only key also means a student who photographs the screen and types the
  * address in gets a screen that cannot change anything.
  *
- * Three things it shows, in order of what the room needs: in the lobby, how to
- * join and where to sit; during play, the year, the phase and the clock; after a
- * reveal, each world's price when the instructor has allowed it.
+ * A status strip, one big clock, and between years each world's price and its
+ * results table. No news and no announcements: both are gone, and the room now
+ * hears from the teacher out loud, which is where it belonged.
  */
 const PHASE_WORDS: Record<ProjectorView['phase'], string> = {
   LOBBY: 'Welcome',
   BRIEFING: 'Briefing',
-  PRACTICE_OPEN: 'Practice year - decide now',
+  PRACTICE_OPEN: 'Practice year',
   PRACTICE_REVEAL: 'Practice results',
   YEAR_OPEN: 'Decide now',
   YEAR_REVEAL: 'Results',
-  BETWEEN: 'Talking time',
-  ENDED: 'Game over',
+  BETWEEN: 'Summit',
+  ENDED: 'Finished',
 };
 
 export default function ProjectorPage() {
@@ -100,73 +101,112 @@ export function ProjectorScreen({ view, serverNow }: ProjectorScreenProps) {
   }
 
   const timed = view.timing.deadline !== null || view.timing.remainingMs !== null;
-  const latest = view.announcements[view.announcements.length - 1] ?? null;
   const atReveal = view.phase === 'PRACTICE_REVEAL' || view.phase === 'YEAR_REVEAL';
-  const prices = view.worlds.filter((world) => world.priceCents !== null);
+  const showTables = atReveal && view.showsPrices;
 
   return (
     <main className="projector">
-      <header className="projector-head">
-        <p className="projector-phase">{PHASE_WORDS[view.phase]}</p>
+      <header className="strip projector-strip" role="group" aria-label="Where the game is">
+        <span className="strip-item">
+          <span className="strip-value">{PHASE_WORDS[view.phase].toUpperCase()}</span>
+        </span>
         {view.phase !== 'LOBBY' && view.phase !== 'BRIEFING' && (
-          <p className="projector-year">{view.year === 0 ? 'PRACTICE' : view.yearLabel}</p>
+          <span className="strip-item">
+            <span className="strip-key">Year</span>
+            <span className="strip-value projector-year">
+              {view.year === 0 ? 'PRACTICE' : view.year}
+            </span>
+          </span>
         )}
-        {timed && (
-          <div className="projector-clock">
-            <Countdown
-              deadline={view.timing.deadline}
-              remainingMs={view.timing.remainingMs}
-              paused={view.timing.paused}
-              serverNow={serverNow}
-              closedLabel="Time is up"
-            />
-          </div>
+        {view.finalYearAnnounced && (
+          <span className="strip-item">
+            <span className="strip-value">FINAL YEAR</span>
+          </span>
+        )}
+        {view.phase !== 'LOBBY' && (
+          <span className="strip-item strip-spacer">
+            <span className="strip-key">Messaging</span>
+            <span className={`strip-value ${view.messaging.on ? 'switch-on' : ''}`}>
+              {view.messaging.on ? 'ON' : 'OFF'}
+              {view.messaging.on && view.messaging.until !== null && (
+                <>
+                  {' – '}
+                  <Countdown
+                    deadline={view.messaging.until}
+                    remainingMs={null}
+                    paused={false}
+                    serverNow={serverNow}
+                    closedLabel="0:00"
+                  />
+                </>
+              )}
+            </span>
+          </span>
         )}
       </header>
+
+      {timed && (
+        <div className="projector-clock">
+          <Countdown
+            deadline={view.timing.deadline}
+            remainingMs={view.timing.remainingMs}
+            paused={view.timing.paused}
+            serverNow={serverNow}
+            closedLabel="Time is up"
+          />
+        </div>
+      )}
 
       {view.phase === 'LOBBY' && <Lobby view={view} />}
 
       {view.between !== null && (
-        <p className="projector-lead">
-          {view.between.kind === 'summit'
-            ? 'Envoys: go to the meeting point.'
-            : 'Chat window is open. Talk to the other countries in your world.'}
-        </p>
+        <p className="projector-lead">Envoys: go to the meeting point.</p>
       )}
 
-      {atReveal && view.showsPrices && prices.length > 0 && (
-        <section className="projector-prices" aria-labelledby="prices-heading">
-          <h2 id="prices-heading" className="projector-h2">
-            This year&rsquo;s price
+      {showTables && (
+        <section
+          className="projector-worlds"
+          aria-labelledby="worlds-heading"
+          style={{ '--worlds': view.worlds.length } as CSSProperties}
+        >
+          <h2 className="visually-hidden" id="worlds-heading">
+            Each world this year
           </h2>
-          <ul className="price-list">
-            {prices.map((world) => (
-              <li key={world.worldNumber}>
-                <span className="price-world">{`World ${String(world.worldNumber)}`}</span>
-                <span className="price-value">{formatPrice(world.priceCents ?? 0)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {latest !== null && (
-        <section className="projector-announcement" aria-live="polite">
-          <h2 className="projector-h2">From your teacher</h2>
-          <p>{latest.text}</p>
-        </section>
-      )}
-
-      {view.news.length > 0 && (
-        <section className="projector-news" aria-labelledby="news-heading">
-          <h2 id="news-heading" className="projector-h2">
-            News
-          </h2>
-          <ul>
-            {view.news.slice(-3).map((item) => (
-              <li key={item.newsId}>{item.text}</li>
-            ))}
-          </ul>
+          {view.worlds.map((world) => (
+            <div className="projector-world" key={world.worldNumber}>
+              <p className="obs-period">{`World ${String(world.worldNumber)}`}</p>
+              <p>
+                <strong className="projector-price">
+                  {world.priceCents === null ? '-' : formatPrice(world.priceCents)}
+                </strong>
+              </p>
+              {world.priceChangeCents !== null && world.priceChangeCents !== 0 && (
+                <p
+                  className={`obs-change ${world.priceChangeCents > 0 ? 'obs-up' : 'obs-down'}`}
+                >
+                  <span aria-hidden="true">{world.priceChangeCents > 0 ? '▲' : '▼'}</span>{' '}
+                  {formatPrice(Math.abs(world.priceChangeCents))}
+                </p>
+              )}
+              {world.rows.length > 0 && (
+                <DataTable
+                  caption={`World ${String(world.worldNumber)} by year`}
+                  columns={['Year', 'Total', 'Price']}
+                  rows={world.rows.map((row) => [
+                    row.isPractice ? 'PR' : String(row.year),
+                    formatQuantity(row.totalTenths),
+                    formatPrice(row.priceCents),
+                  ])}
+                  isPractice={(index) => world.rows[index]?.isPractice === true}
+                  hideCaption
+                />
+              )}
+            </div>
+          ))}
+          <p className="chart-source">
+            Price in $ per barrel. Total in million barrels. PR is the practice year, which is never
+            scored.
+          </p>
         </section>
       )}
 
@@ -201,21 +241,23 @@ function Lobby({ view }: { view: ProjectorView }) {
         <h2 id="tables-heading" className="projector-h2">
           Find your table
         </h2>
-        {worlds.map((worldNumber) => (
-          <div className="projector-world" key={worldNumber}>
-            <h3>{`World ${String(worldNumber)}`}</h3>
-            <ul>
-              {view.tables
-                .filter((row) => row.worldNumber === worldNumber)
-                .map((row) => (
-                  <li key={row.letter}>
-                    <span className="table-country">{`${row.countryName} (${row.letter})`}</span>
-                    <span className="table-state">{row.claimed ? 'ready' : 'waiting'}</span>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        ))}
+        <div className="projector-table-grid">
+          {worlds.map((worldNumber) => (
+            <div className="projector-world" key={worldNumber}>
+              <h3>{`World ${String(worldNumber)}`}</h3>
+              <ul>
+                {view.tables
+                  .filter((row) => row.worldNumber === worldNumber)
+                  .map((row) => (
+                    <li key={row.letter}>
+                      <span className="table-country">{`${row.countryName} (${row.letter})`}</span>
+                      <span className="table-state">{row.claimed ? 'ready' : 'waiting'}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </section>
     </>
   );

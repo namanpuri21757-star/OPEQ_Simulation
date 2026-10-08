@@ -12,11 +12,11 @@
 .cards-page {
   max-width: 60rem;
   margin: 0 auto;
-  padding: var(--space-3);
+  padding: var(--s4);
 }
 
 .cards-toolbar {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--s4);
 }
 
 .cards {
@@ -25,17 +25,17 @@
   padding: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  gap: var(--s4);
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  border: 2px dashed var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-3);
-  background: var(--panel);
+  gap: var(--s2);
+  border: 2px dashed var(--ink-faint);
+  border-radius: 0;
+  padding: var(--s4);
+  background: var(--cream);
   /* A quarter of a sheet, so four fit a page with room for the cut. */
   min-height: 6.4in;
   break-inside: avoid;
@@ -44,36 +44,36 @@
 .card-who {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--s4);
 }
 
 .card-country {
-  font-size: var(--text-h1);
+  font-size: var(--t-title);
   font-weight: 700;
   margin: 0;
 }
 
 .card-world {
   margin: 0;
-  color: var(--ink-soft);
-  font-size: var(--text-lead);
+  color: var(--muted);
+  font-size: var(--t-section);
 }
 
 .card-code {
-  margin: var(--space-2) 0;
+  margin: var(--s2) 0;
 }
 
 .card-code-label {
   display: block;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: var(--text-small);
-  color: var(--ink-soft);
+  font-size: var(--t-label);
+  color: var(--muted);
 }
 
 .card-code-value {
   display: block;
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 2.75rem;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -83,27 +83,27 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--s4);
   margin-top: auto;
 }
 
 .card-link-label {
   margin: 0;
-  font-size: var(--text-small);
-  color: var(--ink-soft);
+  font-size: var(--t-label);
+  color: var(--muted);
 }
 
 .card-link {
   margin: 0;
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: var(--text-body);
+  font-family: var(--mono);
+  font-size: var(--t-body);
   overflow-wrap: anywhere;
 }
 
 .card-hint {
-  margin: var(--space-1) 0 0;
-  font-size: var(--text-small);
-  color: var(--ink-soft);
+  margin: var(--s1) 0 0;
+  font-size: var(--t-label);
+  color: var(--muted);
 }
 
 .qr-card {

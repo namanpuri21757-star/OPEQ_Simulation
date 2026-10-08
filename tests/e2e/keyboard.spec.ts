@@ -153,25 +153,15 @@ test.describe('A2 - keyboard only', () => {
       await pressBigButton(dash);
       await pressUntil(dash, /^Start Year 1$/);
       await pressBigButton(dash);
-      await expect(page.locator('.terminal-year')).toHaveText('Year 1');
+      await expect(page.locator('.team-year')).toHaveText('1');
 
-      // Type the number.
-      const field = page.getByLabel(/How many million barrels will .+ produce\?/);
+      // Type the number. One field sets it, so Tab reaches it and that is all.
+      const field = page.getByRole('textbox', { name: 'Million barrels' });
       await field.evaluate((element: HTMLInputElement) => element.blur());
       await page.keyboard.press('Tab');
-      await tabTo(page, '.stepper-input', 'the decision box');
+      await tabTo(page, 'input[inputmode="decimal"]', 'the decision box');
       await page.keyboard.press('Control+a');
-      await page.keyboard.type('38.0');
-      await expect(field).toHaveValue('38.0');
-
-      // Nudge it with the stepper buttons, which are the keyboard-friendly way
-      // to change a number by a known amount. Each one is named in words rather
-      // than by its sign, so a screen reader says what it does.
-      await pressByKeyboard(page, '0.1 million barrels more');
-      await expect(field).toHaveValue('38.1');
-      await pressByKeyboard(page, '1.0 million barrels more');
-      await expect(field).toHaveValue('39.1');
-      await pressByKeyboard(page, '0.1 million barrels less');
+      await page.keyboard.type('39.0');
       await expect(field).toHaveValue('39.0');
 
       // Submit, and answer the confirmation dialog - which puts focus on its
@@ -182,7 +172,9 @@ test.describe('A2 - keyboard only', () => {
       expect(await focused(page)).toContain('Yes, submit');
       await page.keyboard.press('Enter');
       await expect(dialog).toBeHidden();
-      await expect(page.locator('.decision-state')).toContainText('Submitted 39.0 million barrels');
+      await expect(page.locator('.decision-done')).toContainText(
+        'Submitted: 39.0 million barrels.',
+      );
 
       // Escape closes a dialog, so a student who opens one by accident is not
       // stuck in it.
@@ -192,30 +184,19 @@ test.describe('A2 - keyboard only', () => {
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toBeHidden();
 
-      // The waiting-time guess, also by keyboard: two numbers and a trust
-      // score, then Save.
-      await expect(page.getByRole('heading', { name: 'While you wait' })).toBeVisible();
-      await tabTo(page, '.prediction input[type="text"] >> nth=0', 'the first guess box');
-      await page.keyboard.type('38.3');
-      await page.keyboard.press('Tab');
-      await page.keyboard.type('38.3');
-      // A radio group is arrowed through, not tabbed through.
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('ArrowRight');
-      await page.keyboard.press('ArrowRight');
-      await pressByKeyboard(page, 'Save my guess');
-      await expect(page.getByText('Saved for this year.')).toBeVisible();
-
-      // Change the number again and send it, to prove the whole loop works.
+      // Nothing else on the year screen asks to be filled in once the number
+      // is sent, so the next thing a keyboard reaches is the Change button.
       await pressByKeyboard(page, 'Submit the new number');
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.keyboard.press('Enter');
-      await expect(page.locator('.decision-state')).toContainText('Submitted 39.0 million barrels');
+      await expect(page.locator('.decision-done')).toContainText(
+        'Submitted: 39.0 million barrels.',
+      );
 
       // --- reading the result ----------------------------------------------
 
       for (const screen of others) {
-        await screen.page.getByLabel(/How many million barrels will .+ produce\?/).fill('38.3');
+        await screen.page.getByRole('textbox', { name: 'Million barrels' }).fill('38.3');
         await screen.page.getByRole('button', { name: /^Submit/ }).click();
         await screen.page.getByRole('dialog').getByRole('button', { name: 'Yes, submit' }).click();
       }
@@ -224,8 +205,8 @@ test.describe('A2 - keyboard only', () => {
 
       // The price is announced in a live region, so a screen reader says it
       // without the student going looking (SPEC section 9).
-      await expect(page.locator('.reveal-price')).toBeVisible();
-      const sentence = page.locator('.reveal-sentence');
+      await expect(page.locator('.obs-value').first()).toBeVisible();
+      const sentence = page.locator('.lede[role="status"]').first();
       await expect(sentence).toBeVisible();
       await expect(sentence).toHaveAttribute('role', 'status');
 

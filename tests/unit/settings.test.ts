@@ -37,7 +37,7 @@ describe('presets', () => {
     expect(s).toEqual(DEFAULT_SETTINGS);
     expect([s.a, s.b, s.cost, s.capacity, s.startingOutput]).toEqual([70, 0.3, 1, 75, 40]);
     expect([s.worlds, s.years, s.variancePct]).toEqual([3, 12, 0]);
-    expect([s.disclosure, s.chatMode]).toEqual(['full', 'windowsOnly']);
+    expect(s.disclosure).toBe('full');
     expect([
       s.timers.practiceSeconds,
       s.timers.earlyYearSeconds,
@@ -49,7 +49,6 @@ describe('presets', () => {
       { afterYear: 10, kind: 'chat', seconds: 180 },
     ]);
     expect(s.newProducer).toEqual({ enabled: true, year: 9, output: 15, announced: false });
-    expect(s.demandEvent.enabled).toBe(false);
     expect([s.finalYearWarning, s.autoClose, s.projectorShowsPrices]).toEqual([true, false, true]);
     expect(s.rotateEvery).toBe(4);
   });
@@ -197,14 +196,6 @@ describe('cross-field rules', () => {
     ).toBe('');
   });
 
-  it('keeps a demand event inside the years that are played', () => {
-    expect(
-      errorAt('demandEvent.year', { years: 8, demandEvent: { enabled: true, year: 12 } }),
-    ).toBe(
-      'The demand change has to happen in a year that is played. This game has 8 years, so choose a year from 1 to 8.',
-    );
-  });
-
   it('keeps a per-year timer override inside the years that are played', () => {
     expect(
       errorAt('timers.perYear.0.year', {
@@ -262,11 +253,19 @@ describe('simple field rules', () => {
     expect(validateSettings({ variancePct: 2.5 }).ok).toBe(false);
   });
 
-  it('only knows the three disclosure modes and the three chat modes', () => {
+  it('only knows the three disclosure modes', () => {
     expect(validateSettings({ disclosure: 'priceOnly' }).ok).toBe(true);
     expect(validateSettings({ disclosure: 'everything' }).ok).toBe(false);
-    expect(validateSettings({ chatMode: 'always' }).ok).toBe(true);
-    expect(validateSettings({ chatMode: 'sometimes' }).ok).toBe(false);
+  });
+
+  // v2 has no chat mode: messaging is a switch the teacher holds, not a setting
+  // chosen before the lesson (SPEC section 6).
+  it('has no chat mode to set any more', () => {
+    expect(validateSettings({ chatMode: 'always' }).ok).toBe(false);
+  });
+
+  it('has no demand event to set any more', () => {
+    expect(validateSettings({ demandEvent: { enabled: true, year: 3 } }).ok).toBe(false);
   });
 
   it('only knows chat and summit activities', () => {

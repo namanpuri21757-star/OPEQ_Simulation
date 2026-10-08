@@ -116,6 +116,28 @@ export async function startBetween(
   await game.sync();
 }
 
+/**
+ * Turns messaging on (SPEC 8.4).
+ *
+ * No worlds named means every world, and no seconds means "until it is turned
+ * off", which are exactly the defaults the switch on the dashboard sends.
+ */
+export async function messagingOn(
+  game: OpenGame,
+  options: { seconds?: number; worldIds?: string[] } = {},
+): Promise<void> {
+  await game.instructor.must('setMessaging', { on: true, ...options });
+  await game.sync();
+}
+
+export async function messagingOff(game: OpenGame, worldIds?: string[]): Promise<void> {
+  await game.instructor.must('setMessaging', {
+    on: false,
+    ...(worldIds === undefined ? {} : { worldIds }),
+  });
+  await game.sync();
+}
+
 export async function endBetween(game: OpenGame): Promise<void> {
   await game.instructor.must('endBetween');
   await game.sync();

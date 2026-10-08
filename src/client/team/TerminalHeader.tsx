@@ -1,37 +1,45 @@
+import { formatProfitK } from '@shared/units';
 import type { TeamView } from '@shared/views';
+import { envoyNames } from '@shared/roles';
 import type { ConnectionStatus } from '../net';
 import { Badge, Countdown } from '../ui';
 
 /**
- * The strip along the top of every team screen (SPEC 8.3): who we are, which
- * year it is, what is happening, how long is left and whether we are connected.
+ * The strip along the top of every team screen (SPEC 8.3).
  *
- * It is always on screen during an open year, together with the decision box,
- * because those are the two things a group looks at every few seconds.
+ * Who we are, which year it is, what to do, how long is left and the one number
+ * that is the point of the whole game: total profit. Nothing else earns a place
+ * up here, because a group glances at this line every few seconds with a timer
+ * running.
+ *
+ * Roles sit on their own line underneath, because they change once every few
+ * years and the strip changes every second.
  */
-const PHASE_WORDS: Record<TeamView['phase'], string> = {
-  LOBBY: 'Waiting to start',
+const STATUS_WORDS: Record<TeamView['phase'], string> = {
+  LOBBY: 'Waiting',
   BRIEFING: 'Briefing',
-  PRACTICE_OPEN: 'Practice year is open',
-  PRACTICE_REVEAL: 'Practice results',
-  YEAR_OPEN: 'Year is open',
+  PRACTICE_OPEN: 'Decide',
+  PRACTICE_REVEAL: 'Results',
+  YEAR_OPEN: 'Decide',
   YEAR_REVEAL: 'Results',
-  BETWEEN: 'Talking time',
-  ENDED: 'Game over',
+  BETWEEN: 'Summit',
+  ENDED: 'Finished',
 };
 
-const STATUS_WORDS: Record<ConnectionStatus, string> = {
-  connecting: 'Connecting',
-  online: 'Connected',
-  offline: 'Reconnecting',
-  refused: 'Not connected',
-};
-
-export function phaseWords(view: TeamView): string {
-  if (view.phase === 'BETWEEN') {
-    return view.between?.kind === 'summit' ? 'Summit' : 'Chat window';
+export function statusWord(view: TeamView): string {
+  // A group that has sent its number is waiting, not deciding, and the word has
+  // to say so or the screen looks like it still wants something.
+  if ((view.phase === 'YEAR_OPEN' || view.phase === 'PRACTICE_OPEN') && view.decision !== null) {
+    return 'Waiting';
   }
-  return PHASE_WORDS[view.phase];
+  return STATUS_WORDS[view.phase];
+}
+
+/** The total over scored years, which is the last row's running total. */
+export function totalProfitK(view: TeamView): number {
+  const scored = view.history.filter((record) => !record.isPractice);
+  const last = scored[scored.length - 1];
+  return last ? last.cumulativeProfitK : 0;
 }
 
 export interface TerminalHeaderProps {
@@ -43,39 +51,64 @@ export interface TerminalHeaderProps {
 export function TerminalHeader({ view, status, serverNow }: TerminalHeaderProps) {
   const timed = view.timing.deadline !== null || view.timing.remainingMs !== null;
   const started = view.phase !== 'LOBBY' && view.phase !== 'BRIEFING';
+  const envoys = envoyNames(view.roles);
 
   return (
-    <header className="terminal-header">
-      <div className="terminal-who">
-        <Badge letter={view.letter} size="large" />
-        <div>
-          <h1 className="terminal-country">{view.countryName}</h1>
-          <p className="terminal-label">{view.label}</p>
-        </div>
-      </div>
+    <>
+      <header className="strip" role="group" aria-label="Your country and the clock">
+        <span className="strip-item team-who">
+          <Badge letter={view.letter} />
+          <span className="team-country">{view.countryName}</span>
+          <span className="strip-key team-world">{`World ${String(view.worldNumber)}`}</span>
+        </span>
 
-      <div className="terminal-when">
-        {/* Before the practice year opens there is no year to name yet, and
-            "PRACTICE" over an empty lobby reads like something has started. */}
         {started && (
-          <p className="terminal-year">{view.isPractice ? 'PRACTICE' : view.yearLabel}</p>
+          <span className="strip-item">
+            <span className="strip-key">Year</span>
+            <span className="strip-value team-year">
+              {view.isPractice ? 'PRACTICE' : view.year}
+            </span>
+          </span>
         )}
-        <p className="terminal-phase">{phaseWords(view)}</p>
-      </div>
 
-      <div className="terminal-clock">
+        <span className="strip-item">
+          <span className="strip-key">Status</span>
+          <span className="strip-value">{statusWord(view)}</span>
+        </span>
+
         {timed && (
-          <Countdown
-            deadline={view.timing.deadline}
-            remainingMs={view.timing.remainingMs}
-            paused={view.timing.paused}
-            serverNow={serverNow}
-          />
+          <span className="strip-item">
+            <span className="strip-key">Time left</span>
+            <span className="strip-clock">
+              <Countdown
+                deadline={view.timing.deadline}
+                remainingMs={view.timing.remainingMs}
+                paused={view.timing.paused}
+                serverNow={serverNow}
+              />
+            </span>
+          </span>
         )}
-        <p className={`terminal-status terminal-status-${status}`}>
-          <span aria-hidden="true">{status === 'online' ? '●' : '○'}</span> {STATUS_WORDS[status]}
-        </p>
-      </div>
-    </header>
+
+        <span className="strip-item strip-spacer">
+          <span className="strip-key">Your total profit</span>
+          <span className="strip-value">{formatProfitK(totalProfitK(view))}</span>
+        </span>
+
+        <span className="strip-item">
+          <span className={`dot ${status === 'online' ? 'dot-on' : 'dot-off'}`} aria-hidden="true">
+            &#9679;
+          </span>
+          <span className="strip-key team-status">
+            {status === 'online' ? 'Connected' : 'Offline'}
+          </span>
+        </span>
+      </header>
+
+      <p className="team-roles">
+        {`At the keyboard: ${view.roles.operator}`}
+        {envoys === '' ? '' : ` · Envoy: ${envoys}`}
+      </p>
+    </>
   );
 }

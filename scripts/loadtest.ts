@@ -345,11 +345,6 @@ async function main(): Promise<void> {
             return;
           }
           terminal.sent.set(year, tenths);
-          const guess = await terminal.client.send('submitPrediction', {
-            othersTenths: [383, 383],
-            trust: 3,
-          });
-          if (!guess.ok) problems.push(`${terminal.teamId} could not guess: ${guess.message}`);
         }),
       );
 
@@ -364,16 +359,26 @@ async function main(): Promise<void> {
         await settle();
       }
 
-      // A chat window or a summit, if the schedule has one after this year.
+      // A summit, or a messaging window, if the schedule has one after this
+      // year. A messaging window is a switch the teacher throws rather than a
+      // phase the room moves into (SPEC 8.4), so the two are driven differently.
       const activity = SCHEDULE.find((row) => row.afterYear === year);
-      if (activity) {
+      if (activity?.kind === 'summit') {
         await timed('startBetween', () =>
-          instructor.act('startBetween', { kind: activity.kind, seconds: 600 }),
+          instructor.act('startBetween', { kind: 'summit', seconds: 600 }),
+        );
+        await settle();
+        await timed('endBetween', () => instructor.act('endBetween'));
+        await settle();
+      }
+      if (activity?.kind === 'chat') {
+        await timed('setMessaging on', () =>
+          instructor.act('setMessaging', { on: true, seconds: 600 }),
         );
         await settle();
         for (const terminal of terminals) {
           // One message per three seconds per team (SPEC section 6). A real
-          // chat window is four minutes long, so a group never meets the limit;
+          // messaging window is minutes long, so a group never meets the limit;
           // this game is played in a few seconds, so the test has to wait it
           // out rather than count a correct refusal as a lost message.
           await waitForMessageGap(terminal);
@@ -389,7 +394,7 @@ async function main(): Promise<void> {
             problems.push(`${terminal.teamId} lost a message: ${ack.code} ${ack.message}`);
           }
         }
-        await timed('endBetween', () => instructor.act('endBetween'));
+        await timed('setMessaging off', () => instructor.act('setMessaging', { on: false }));
         await settle();
       }
     }
@@ -498,7 +503,7 @@ function checkNoDecisionLost(state: SessionState, terminals: Terminal[]): void {
 
 /** Every message a terminal sent is in the session, once, in its own world. */
 function checkNoMessageLost(state: SessionState, terminals: Terminal[], expected: number): void {
-  const chat = state.messages.filter((message) => message.kind === 'chat');
+  const chat = state.messages;
   if (chat.length !== expected) {
     problems.push(`${String(expected)} messages were sent and ${String(chat.length)} were stored`);
   }

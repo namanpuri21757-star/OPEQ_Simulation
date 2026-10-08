@@ -18,14 +18,11 @@ export function briefingDoc(settings: Settings): MaterialDoc {
   const examplePrice = priceCents(exampleTotal, u.aCents, u.bHundredths);
   const exampleProfit = profitK(examplePrice, u.costCents, exampleEach);
 
-  const chats = settings.schedule.filter((item) => item.kind === 'chat').length;
   const summits = settings.schedule.filter((item) => item.kind === 'summit').length;
   const when =
-    settings.chatMode === 'off'
-      ? 'There is no messaging in this game, so your only clue is what the others produce.'
-      : settings.chatMode === 'always'
-        ? 'You can write to the other two countries in your world at any time.'
-        : `There ${chats === 1 ? 'is' : 'are'} ${String(chats)} chat ${chats === 1 ? 'window' : 'windows'} and ${String(summits)} face-to-face ${summits === 1 ? 'summit' : 'summits'}. Outside those, you cannot send messages.`;
+    summits === 0
+      ? 'Your teacher turns messaging on and off. Your screen always says which it is.'
+      : `Your teacher turns messaging on and off, and your screen always says which it is. There ${summits === 1 ? 'is' : 'are'} also ${String(summits)} face-to-face ${summits === 1 ? 'summit' : 'summits'}, where the Envoys meet in the room.`;
 
   const priceRow = (totalTenths: number): string[] => [
     formatQuantity(totalTenths),
@@ -86,12 +83,11 @@ export function briefingDoc(settings: Settings): MaterialDoc {
         text: `Your capacity is ${formatQuantity(u.capacityTenths)} million barrels a year. You can produce any amount from 0 up to that, with one decimal place, like ${formatQuantity(383)}.`,
       },
 
-      { kind: 'heading', text: 'Your three jobs' },
+      { kind: 'heading', text: 'Your two jobs' },
       {
         kind: 'bullets',
         items: [
           'Operator: sits at the keyboard and types the number in. Nobody else touches it.',
-          'Analyst: runs the What-if calculator and works out what the others are likely to do.',
           'Envoy: writes the messages and goes to the summit.',
         ],
       },
@@ -105,9 +101,8 @@ export function briefingDoc(settings: Settings): MaterialDoc {
         kind: 'steps',
         items: [
           'Your teacher opens the year and a timer starts.',
-          'Talk it over as a group. You can write down what each person suggested, and why.',
+          'Talk it over as a group and agree on a number.',
           'The Operator types your number and presses Submit. You can change it until the timer ends.',
-          'While you wait, guess what the other two countries will produce, and say how much you trust any agreement.',
           'The year closes. Everyone sees the price, and you see your own profit and your total so far.',
         ],
       },
@@ -126,7 +121,7 @@ export function briefingDoc(settings: Settings): MaterialDoc {
         items: [
           when,
           'Your messages go to the other two countries in your world only, and they show your country name, never your own name.',
-          `You can make a promise: "We will produce ${formatQuantity(exampleEach)} million barrels." Everyone sees afterwards whether you kept it.`,
+          `You can promise anything you like in a message, for example "We will produce ${formatQuantity(exampleEach)} million barrels". The others can see what you really produced afterwards.`,
         ],
       },
       {

@@ -588,3 +588,8 @@ Reason: flat config is the supported format in current ESLint. Keeping the two t
 
 Decision: `GET /api/health` returns `{ "ok": true, "name": "crude-accord", "version": "<package version>" }`.
 Reason: the spec says "returning ok, name and version" but not the shape. A flat JSON object is the simplest thing both the integration test and the `/check` page can read.
+
+## 2026-10-11 - Optional hosting on Render's free plan
+
+Decision: `render.yaml` deploys the server as one Render web service on the free plan, built with `npm ci && npm run build` and started with `npm start`. No code changes: the server already listens on `PORT` and `0.0.0.0`.
+Reason: the owner wanted a link that works while their own computer is off, and SPEC section 13 calls cloud hosting an optional separate step. The free plan needs no card. It has no disk and sleeps after 15 idle minutes, so a session only lasts as long as the server stays up - enough for one lesson. The server still assumes one class at a time: a terminal joins the newest session, so two teachers using the same hosted link at the same moment would get mixed up.

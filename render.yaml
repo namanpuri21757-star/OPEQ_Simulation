@@ -1,0 +1,18 @@
+﻿# Optional cloud hosting on Render (SPEC section 13: "Cloud hosting is an optional
+# separate step"). The classroom install in the README does not use this file.
+#
+# The free plan has no disk, so saved sessions are lost whenever the service
+# restarts or sleeps after 15 idle minutes. That is fine for a lesson that runs
+# start to finish; see docs/DECISIONS.md (2026-10-11).
+services:
+  - type: web
+    name: crude-accord
+    runtime: node
+    plan: free
+    # Dev dependencies (Vite, tsc) are needed to build, so no NODE_ENV=production here.
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'

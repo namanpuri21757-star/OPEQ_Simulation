@@ -114,10 +114,16 @@ describe('the command table', () => {
     }
   });
 
-  it('lets only the system join the instructor on the automatic closes', () => {
+  it('lets only the system join the instructor on the automatic steps', () => {
     expect(COMMAND_META.closeYear.actors).toContain('system');
     expect(COMMAND_META.endBetween.actors).toContain('system');
-    expect(COMMAND_META.openYear.actors).not.toContain('system');
+    // autoAdvance: the tick opens the next year and gives the final-year warning.
+    expect(COMMAND_META.openYear.actors).toContain('system');
+    expect(COMMAND_META.announceFinalYear.actors).toContain('system');
+    // Everything else that moves the lesson still needs the teacher.
+    for (const type of ['startPractice', 'startBetween', 'endGame', 'resetSession'] as const) {
+      expect(COMMAND_META[type].actors, type).not.toContain('system');
+    }
   });
 
   it('guards every command where a late click would do harm', () => {

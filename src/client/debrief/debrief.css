@@ -175,3 +175,14 @@
 .projector .debrief-questions > li {
   margin-bottom: var(--s4);
 }
+
+/* --- two charts side by side, stacked on a narrow screen ----------------- */
+.debrief-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: var(--s5);
+}
+
+.debrief-charts .chart {
+  max-width: none;
+}

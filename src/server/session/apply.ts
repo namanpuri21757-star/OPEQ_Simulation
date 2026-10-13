@@ -12,7 +12,7 @@
  * (CLAUDE.md rule 5).
  */
 
-import { COUNTRY_LETTERS, type CountryLetter } from '../../shared/constants.js';
+import { AUTO_ADVANCE_SECONDS, COUNTRY_LETTERS, type CountryLetter } from '../../shared/constants.js';
 import {
   newProducerTenths,
   resolveWorldYear,
@@ -27,6 +27,7 @@ import {
   economicUnits,
   parseSettings,
   PRESETS,
+  roundFor,
   secondsForYear,
   validateSettings,
   type Settings,
@@ -111,6 +112,15 @@ function startTimer(state: SessionState, seconds: number, at: number): void {
 
 function clearTimer(state: SessionState): void {
   state.timer = { deadline: null, paused: false, remainingMs: null, seconds: null };
+}
+
+/**
+ * Starts the short wait before the next year opens by itself. The time comes
+ * from the event, so a replay sets exactly the same moment.
+ */
+function scheduleAdvance(state: SessionState, at: number): void {
+  const more = state.year < state.settings.years;
+  state.advanceAt = state.settings.autoAdvance && more ? at + AUTO_ADVANCE_SECONDS * 1000 : null;
 }
 
 function worldOf(state: SessionState, worldId: string): WorldState | undefined {
@@ -208,6 +218,7 @@ function clearPlay(state: SessionState): void {
   state.finalYearAnnounced = false;
   state.resultsRevealedToTeams = false;
   state.between = null;
+  state.advanceAt = null;
   state.briefingSlide = 0;
   state.year = 0;
   state.projectorScreen = 'auto';
@@ -436,6 +447,7 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
         seconds: command.payload.seconds,
       };
       state.activitiesDone.push(`${String(state.year)}:${command.payload.kind}`);
+      state.advanceAt = null;
       startTimer(state, command.payload.seconds, at);
       return { ok: true, state };
     }
@@ -444,6 +456,7 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
       state.phase = 'YEAR_REVEAL';
       state.between = null;
       clearTimer(state);
+      scheduleAdvance(state, at);
       return { ok: true, state };
     }
 
@@ -574,6 +587,7 @@ function dispatch(state: SessionState, event: SessionEvent): ApplyResult {
     case 'endGame': {
       state.phase = 'ENDED';
       state.between = null;
+      state.advanceAt = null;
       for (const world of state.worlds) world.open = null;
       clearTimer(state);
       return { ok: true, state };
@@ -719,6 +733,9 @@ function closeYear(state: SessionState, at: number): ApplyResult {
 
   state.phase = isPractice ? 'PRACTICE_REVEAL' : 'YEAR_REVEAL';
   clearTimer(state);
+  // A round that had messaging on ends it with the round (the teacher's plan).
+  if (roundFor(state.year, state.settings)?.messaging) state.messaging = {};
+  scheduleAdvance(state, at);
   return { ok: true, state };
 }
 
@@ -741,8 +758,21 @@ function openYear(state: SessionState, event: SessionEvent, year: number): Apply
   state.phase = 'YEAR_OPEN';
   state.year = year;
   state.between = null;
+  state.advanceAt = null;
   for (const world of state.worlds) world.open = { year, isPractice: false, decisions: {} };
   startTimer(state, secondsForYear(year, settings), event.at);
+
+  // The teacher's round plan decides whether this round has messaging. It runs
+  // until the round closes rather than on a clock, so a pause cannot cut it short.
+  const round = roundFor(year, settings);
+  if (round) {
+    state.messaging = {};
+    if (round.messaging) {
+      for (const world of state.worlds) {
+        state.messaging[world.worldId] = { until: null, startedAt: event.at };
+      }
+    }
+  }
 
   return { ok: true, state };
 }

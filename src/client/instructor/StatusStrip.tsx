@@ -88,6 +88,13 @@ export function StatusStrip({
         </span>
       )}
 
+      {view.round?.faceToFace === true && open && (
+        <span className="strip-item">
+          <span className="strip-key">Face to face</span>
+          <span className="strip-value switch-on">ON</span>
+        </span>
+      )}
+
       <span className="strip-item strip-spacer">
         <span className="strip-key">Messaging</span>
         <span className={`strip-value ${messagingOn > 0 ? 'switch-on' : ''}`}>

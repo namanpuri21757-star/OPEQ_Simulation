@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { CommandType } from '@shared/protocol';
+import { roundFor, secondsForYear } from '@shared/settings';
 import type { InstructorView, SuggestedAction } from '@shared/views';
 import type { PayloadInputOf, SendCommand, SendOptions } from '../net';
-import { Button, Confirm, type Say } from '../ui';
+import { Button, Confirm, StartsIn, type Say } from '../ui';
 import { guardsFor, looseSend } from './commands';
 
 /**
@@ -23,6 +24,16 @@ const EXTEND_SECONDS = 30;
 
 type Pending = { kind: 'closeNow' } | { kind: 'endGame' } | { kind: 'newProducer' } | { kind: 'finalYear' };
 
+/** What the round plan turns on for a year, as the end of a sentence. */
+function roundNote(year: number, view: InstructorView): string {
+  const round = roundFor(year, view.settings);
+  if (!round) return '';
+  const on = [round.messaging && 'messaging', round.faceToFace && 'face to face'].filter(
+    (item): item is string => typeof item === 'string',
+  );
+  return on.length === 0 ? ' No talking this round.' : ` This round has ${on.join(' and ')}.`;
+}
+
 /** One line under the button saying what pressing it does. */
 export function explainStep(action: SuggestedAction, view: InstructorView): string {
   switch (action.command) {
@@ -34,10 +45,8 @@ export function explainStep(action: SuggestedAction, view: InstructorView): stri
       return 'Fills in any country that did not submit, then scores every world at once.';
     case 'openYear': {
       const year = Number(action.payload['year'] ?? view.year + 1);
-      const seconds = year <= view.settings.timers.earlyYearsThrough
-        ? view.settings.timers.earlyYearSeconds
-        : view.settings.timers.laterYearSeconds;
-      return `Opens Year ${String(year)} with a ${String(seconds)}-second timer.`;
+      const seconds = secondsForYear(year, view.settings);
+      return `Opens Year ${String(year)} with a ${String(seconds)}-second timer.${roundNote(year, view)}`;
     }
     case 'setMessaging':
       return action.payload['on'] === true
@@ -71,6 +80,8 @@ export interface NextStepProps {
   asking: SuggestedAction | null;
   onAskSuggested(): void;
   onCancelSuggested(): void;
+  /** The server's clock, for the pause before the next year opens by itself. */
+  serverNow?: (() => number) | undefined;
 }
 
 export function NextStep({
@@ -80,6 +91,7 @@ export function NextStep({
   asking,
   onAskSuggested,
   onCancelSuggested,
+  serverNow,
 }: NextStepProps) {
   const [pending, setPending] = useState<Pending | null>(null);
   const [more, setMore] = useState(false);
@@ -140,6 +152,11 @@ export function NextStep({
             </Button>
           )}
           <p className="next-step-what">{explainStep(suggested, view)}</p>
+          <StartsIn
+            at={view.advanceAt}
+            what={`Year ${String(view.year + 1)}`}
+            serverNow={serverNow}
+          />
         </div>
 
         <div className="btn-row" role="group" aria-label="Controls you can use now">

@@ -95,7 +95,9 @@ function CreateSession({ onCreated }: { onCreated(result: CreateSessionResult): 
     setProblem(null);
     const ack = await send('createSession', {
       preset: 'standard-75',
-      settings: { worlds: DEFAULT_WORLDS },
+      // A new class moves on by itself once everyone has submitted; the
+      // teacher can turn that off under Set worlds and rounds.
+      settings: { worlds: DEFAULT_WORLDS, autoClose: true, autoAdvance: true },
     });
     setBusy(false);
     if (ack.ok) onCreated(ack.result as CreateSessionResult);

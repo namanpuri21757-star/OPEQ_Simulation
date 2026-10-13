@@ -50,6 +50,22 @@ const activitySchema = z.strictObject({
   seconds,
 });
 
+/**
+ * One round (scored year) as the teacher planned it on the setup screen: how
+ * long it lasts and which of the three communication options it has.
+ */
+export const roundSchema = z.strictObject({
+  seconds,
+  /** Messaging is on for every world while this round is open. */
+  messaging: z.boolean().default(false),
+  /** Envoys may meet face to face while this round is open. */
+  faceToFace: z.boolean().default(false),
+  /** The projector shows every world's price and world total during this round. */
+  seeAllTotals: z.boolean().default(true),
+});
+
+export type RoundPlan = z.output<typeof roundSchema>;
+
 const timerOverrideSchema = z.strictObject({
   /** Year 0 is the practice year everywhere in this project. */
   year: z.number().int().min(0).max(MAX_YEARS),
@@ -123,6 +139,16 @@ export const settingsShape = z.strictObject({
   /** Roles rotate every this many years (SPEC section 5). */
   rotateEvery: z.number().int().min(1).max(MAX_YEARS).default(4),
   autoClose: z.boolean().default(false),
+  /**
+   * After a year closes, the next one opens by itself once the results have
+   * been on screen for AUTO_ADVANCE_SECONDS, so the teacher never has to press.
+   */
+  autoAdvance: z.boolean().default(false),
+  /**
+   * The per-round plan from the setup screen, one entry per scored year. Empty
+   * means "no plan": timers and the schedule above apply, as before.
+   */
+  rounds: z.array(roundSchema).max(MAX_YEARS).default([]),
   projectorShowsPrices: z.boolean().default(true),
 });
 
@@ -204,6 +230,13 @@ export const settingsSchema = settingsShape.superRefine((s, ctx) => {
     }
   });
 
+  if (s.rounds.length > 0 && s.rounds.length !== s.years) {
+    add(
+      ['rounds'],
+      `The round plan has ${String(s.rounds.length)} rounds but the game has ${String(s.years)}. Give every round a row.`,
+    );
+  }
+
   if (s.timers.earlyYearsThrough > s.years) {
     add(
       ['timers', 'earlyYearsThrough'],
@@ -268,12 +301,20 @@ export function economicUnits(settings: Settings): EconomicUnits {
 
 /** How long a year gets: a per-year override first, then early or later. */
 export function secondsForYear(year: number, settings: Settings): number {
+  const round = roundFor(year, settings);
+  if (round) return round.seconds;
   const override = settings.timers.perYear.find((item) => item.year === year);
   if (override) return override.seconds;
   if (year === 0) return settings.timers.practiceSeconds;
   return year <= settings.timers.earlyYearsThrough
     ? settings.timers.earlyYearSeconds
     : settings.timers.laterYearSeconds;
+}
+
+/** The teacher's plan for one scored year, or null when there is no plan. */
+export function roundFor(year: number, settings: Settings): RoundPlan | null {
+  if (year < 1) return null;
+  return settings.rounds[year - 1] ?? null;
 }
 
 /** The activities that follow a given year, in the order they were listed. */

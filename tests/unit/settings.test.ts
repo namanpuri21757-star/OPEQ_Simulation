@@ -385,3 +385,40 @@ describe('settingsPatchShape', () => {
     expect(merged.schedule).toEqual(PRESETS['test-fast'].schedule);
   });
 });
+
+describe('the round plan', () => {
+  const round = { seconds: 90, messaging: true, faceToFace: false, seeAllTotals: true };
+  const short = { schedule: [], newProducer: { enabled: false }, timers: { earlyYearsThrough: 0 } };
+
+  it('is empty by default, and the game moves on only when asked', () => {
+    expect(DEFAULT_SETTINGS.rounds).toEqual([]);
+    expect(DEFAULT_SETTINGS.autoAdvance).toBe(false);
+  });
+
+  it('needs exactly one row per year', () => {
+    expect(validateSettings({ ...short, years: 2, rounds: [round, round] }).ok).toBe(true);
+    const result = validateSettings({ ...short, years: 3, rounds: [round, round] });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors[0]?.path).toBe('rounds');
+  });
+
+  it('gives each planned round its own timer, and leaves practice alone', () => {
+    const settings = parseSettings({
+      ...short,
+      years: 2,
+      rounds: [round, { ...round, seconds: 45 }],
+    });
+    expect(secondsForYear(0, settings)).toBe(settings.timers.practiceSeconds);
+    expect(secondsForYear(1, settings)).toBe(90);
+    expect(secondsForYear(2, settings)).toBe(45);
+  });
+
+  it('keeps round timers inside the usual limits', () => {
+    expect(validateSettings({ ...short, years: 1, rounds: [{ ...round, seconds: 4 }] }).ok).toBe(
+      false,
+    );
+    expect(
+      validateSettings({ ...short, years: 1, rounds: [{ ...round, seconds: 3601 }] }).ok,
+    ).toBe(false);
+  });
+});

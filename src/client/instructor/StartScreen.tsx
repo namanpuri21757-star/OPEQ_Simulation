@@ -182,9 +182,17 @@ export function StartScreen({ view, send, onSaid, onStart }: StartScreenProps) {
         </section>
 
         <section className="box" aria-labelledby="step-4">
-          <h2 className="step-title" id="step-4">
-            <span className="step-no">Step 4</span> How the class runs
-          </h2>
+          <div className="box-head">
+            <h2 className="step-title" id="step-4">
+              <span className="step-no">Step 4</span> How the class runs
+            </h2>
+            <Link className="btn" to="/instructor/settings">
+              Set worlds and rounds
+            </Link>
+          </div>
+          <p className="note">
+            {`${String(view.worlds.length)} worlds, ${String(view.settings.years)} rounds${view.settings.autoAdvance ? ', moving on by itself when everyone has submitted' : ''}.`}
+          </p>
           <ol className="plan">
             {plan.map((row) => (
               <li key={row.stage}>

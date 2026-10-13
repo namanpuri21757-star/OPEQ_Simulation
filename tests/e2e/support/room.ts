@@ -152,6 +152,11 @@ export async function createLesson(
     activitySeconds?: number;
     /** Put the new producer in the news, so the room can see it arrive. */
     announceNewProducer?: boolean;
+    /**
+     * Whether the game moves on by itself. New sessions have it on; the suites
+     * that drive every step with the big button turn it off, as a teacher can.
+     */
+    autoAdvance?: boolean;
   } = {},
 ): Promise<Lesson> {
   const worlds = options.worlds ?? 3;
@@ -174,6 +179,7 @@ export async function createLesson(
   // The preset, then the worlds.
   await page.locator(`#preset-${preset}`).check();
   await page.locator('#setting-worlds').fill(String(worlds));
+  await page.locator('#setting-auto-advance').setChecked(options.autoAdvance ?? false);
 
   // Advanced settings: the timers, and whether the new producer is announced.
   await page.locator('details.advanced summary').click();

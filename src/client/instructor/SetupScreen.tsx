@@ -6,6 +6,7 @@ import type { InstructorView } from '@shared/views';
 import type { SendCommand } from '../net';
 import { Banner, Button, type Say } from '../ui';
 import { AdvancedSettings } from './AdvancedSettings';
+import { RoundsPlanner, resizeRounds, roundsOf, withRounds } from './RoundsPlanner';
 import { SettingsPreview } from './SettingsPreview';
 import { ALL_FIELDS, NOT_A_NUMBER, checkDraft, setAt } from './settingsForm';
 
@@ -28,9 +29,17 @@ const PRESET_BLURB: Record<PresetName, string> = {
   'test-fast': 'Five-second years. For trying the software out, not for a class.',
 };
 
-/** What a preset looks like as something the form can edit. */
-function draftFor(name: PresetName, worlds: number): SettingsInput {
-  return { ...PRESETS[name], worlds };
+/**
+ * What a preset looks like as something the form can edit. The number of worlds
+ * and whether the game moves on by itself are the teacher's, not the preset's.
+ */
+function draftFor(name: PresetName, current: SettingsInput): SettingsInput {
+  return {
+    ...PRESETS[name],
+    worlds: current.worlds ?? MIN_WORLDS,
+    autoClose: current.autoClose ?? false,
+    autoAdvance: current.autoAdvance ?? false,
+  };
 }
 
 /** The whole-number fields. Everything else may have a decimal point. */
@@ -65,6 +74,9 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
     setTyped({});
   };
 
+  /** The round planner keeps its own half-typed text, so only the draft moves. */
+  const replaceKeepingTexts = (next: SettingsInput) => setDraft(next);
+
   /**
    * One box changed. The text is kept exactly as typed, and the draft only moves
    * when the text reads as a number, so "0." is not silently turned into 0.
@@ -87,7 +99,12 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
       delete next[path];
       return next;
     });
-    setDraft((current) => setAt(current, path, Number(trimmed)));
+    setDraft((current) => {
+      const next = setAt(current, path, Number(trimmed));
+      // A planned lesson keeps one row per year, whichever box changed the count.
+      if (path !== 'years' || (current.rounds?.length ?? 0) === 0) return next;
+      return withRounds(next, resizeRounds(roundsOf(current), Number(trimmed)));
+    });
   };
 
   const save = async () => {
@@ -160,7 +177,7 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
                   checked={preset === name}
                   onChange={() => {
                     setPreset(name);
-                    replace(draftFor(name, worlds));
+                    replace(draftFor(name, draft));
                   }}
                 />
                 <span>
@@ -204,9 +221,19 @@ export function SetupScreen({ view, send, onSaid }: SetupScreenProps) {
           )}
         </section>
 
+        <section className="box" aria-labelledby="rounds-heading">
+          <h2 className="step-title" id="rounds-heading">
+            <span className="step-no">3</span> Rounds
+          </h2>
+          <p className="note" style={{ marginBottom: 'var(--s4)' }}>
+            How many rounds, how long each one lasts, and what each round allows.
+          </p>
+          <RoundsPlanner draft={draft} problems={problems.byPath} onDraft={replaceKeepingTexts} />
+        </section>
+
         <section className="box" aria-labelledby="preview-heading">
           <h2 className="step-title" id="preview-heading">
-            <span className="step-no">3</span> What these numbers pay
+            <span className="step-no">4</span> What these numbers pay
           </h2>
           {problems.settings !== null ? (
             <SettingsPreview settings={problems.settings} />

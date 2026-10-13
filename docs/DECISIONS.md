@@ -593,3 +593,28 @@ Reason: the spec says "returning ok, name and version" but not the shape. A flat
 
 Decision: `render.yaml` deploys the server as one Render web service on the free plan, built with `npm ci && npm run build` and started with `npm start`. No code changes: the server already listens on `PORT` and `0.0.0.0`.
 Reason: the owner wanted a link that works while their own computer is off, and SPEC section 13 calls cloud hosting an optional separate step. The free plan needs no card. It has no disk and sleeps after 15 idle minutes, so a session only lasts as long as the server stays up - enough for one lesson. The server still assumes one class at a time: a terminal joins the newest session, so two teachers using the same hosted link at the same moment would get mixed up.
+
+## 2026-10-13 - A round plan, set per round on the lesson settings page
+
+Decision: `settings.rounds` holds one row per scored year: its timer in seconds and three checkboxes - messaging, face to face, and "see all world totals". The settings page asks for the number of rounds, a time for each (with one box to set them all), and shows the total simulation time. An empty list keeps the old behaviour (timers plus the schedule), so presets, saved sessions and v1 sessions are unchanged.
+Reason: the owner asked to set every round's options and time by hand. Writing a plan clears the between-years schedule, because the plan now says when talking happens, and keeps the new-producer year and the early-year timer inside the new number of years so a plan can never be refused for a field the teacher did not touch.
+
+## 2026-10-13 - What each round option does
+
+Decision: messaging in a round turns every world's messaging on when the round opens and off when it closes (no clock, so a pause cannot cut it short). Face to face shows "Envoys may meet the other countries" on every terminal, the projector and the teacher's strip while the round is open. "See all world totals" decides, round by round, whether the projector shows every world's price and world total - the existing projectorShowsPrices, made per round. The teacher's messaging switch still works as an override.
+Reason: "every world's totals" already exists as the projector's public table, and it is the reading that keeps CLAUDE.md rule 8: a team terminal still never receives another world's data during play.
+
+## 2026-10-13 - The game moves on by itself (autoAdvance)
+
+Decision: with `autoAdvance` and `autoClose` on, a year closes the moment every country in every world has submitted (or its timer runs out), the results stay up for AUTO_ADVANCE_SECONDS (10 s), and the tick then opens the next year as the system actor, giving the final-year warning first when it is on. It stops before a summit or messaging window from an old schedule, and after the last year, so ending the game stays with the teacher. New sessions made from the dashboard have it on; the schema default stays off so every existing test and saved session behaves as before. After a restart the pending step is dropped and the teacher presses the button.
+Reason: the owner asked for no waiting on the teacher or the timer. `openYear` and `announceFinalYear` are now allowed from the system actor; both are guarded by expectedPhase and expectedYear, so a year is opened exactly once however many ticks fire. The unit test that said the system may never open a year was updated to the new rule rather than removed.
+
+## 2026-10-13 - Worlds stay 1 to 6
+
+Decision: the number of worlds is chosen on the same settings page, from 1 to 6, and the start screen links to it ("Set worlds and rounds").
+Reason: SPEC sections 2 and 9 fix the range at 1 to 6 (the load target is 6 worlds), and a unit test holds it. Choosing within that range was already possible; it is now next to the rounds.
+
+## 2026-10-13 - Debrief layout
+
+Decision: World comparison puts the whole-game table first and the two charts side by side under "Round by round". World detail puts the country totals first, then the chart, then a round-by-round table that now shows what each country produced (with "auto"), then the messages. No new numbers: every figure was already in the debrief data. A CSS rule that filled the 4th to 6th chart lines into solid shapes was fixed.
+Reason: the owner found the debrief messy; the answer to "how did each world do" now comes before the detail behind it.

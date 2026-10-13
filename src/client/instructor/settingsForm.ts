@@ -265,6 +265,7 @@ function fieldPathFor(error: SettingsError): string | null {
   if (ALL_FIELDS.some((field) => field.path === error.path)) return error.path;
   if (error.path === 'worlds') return 'worlds';
   if (error.path.startsWith('schedule')) return 'schedule';
+  if (error.path.startsWith('rounds')) return 'rounds';
   if (error.path.startsWith('timers.perYear')) return 'timers.perYear';
   // A nested path such as "newProducer.year" that is already a field is caught
   // above; anything left is a rule about the whole form.

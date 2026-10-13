@@ -30,6 +30,11 @@ export function YearScreen({ view, send, onSaid, serverNow }: YearScreenProps) {
           Your teacher says this is the final year.
         </Banner>
       )}
+      {view.faceToFace && (
+        <Banner title="Face to face">
+          Talking face to face is allowed this round. Envoys may go and meet the other countries.
+        </Banner>
+      )}
       {view.isPractice && (
         <Banner title="Practice">
           This year does not count towards your score. Everything else works the same.

@@ -32,3 +32,10 @@ export const JOIN_CODE_LENGTH = 6;
  */
 export const NETWORK_CHECK_PINGS = 20;
 export const NETWORK_CHECK_OK_MS = 300;
+
+/**
+ * How long the results of a year stay on screen before the next year opens by
+ * itself when autoAdvance is on: long enough to read the price, short enough
+ * that nobody waits for the teacher.
+ */
+export const AUTO_ADVANCE_SECONDS = 10;

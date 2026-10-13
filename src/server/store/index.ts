@@ -31,6 +31,7 @@ import {
   type Issued,
   type SessionEvent,
 } from '../session/apply.js';
+import { nextSuggestedAction } from '../session/suggest.js';
 import {
   newId,
   newInstructorKey,
@@ -182,6 +183,9 @@ export class SessionStore {
         restarted: true,
       };
     }
+
+    // Likewise a pending automatic step waits for the teacher after a restart.
+    if (state.advanceAt !== undefined) state.advanceAt = null;
 
     this.sessions.set(sessionId, {
       state,
@@ -398,6 +402,7 @@ export class SessionStore {
       try {
         await this.closeOverdueMessaging(sessionId, session, now);
         await this.closeOverduePhase(sessionId, session, now);
+        await this.advanceWhenDue(sessionId, session, now);
       } catch (err) {
         this.logger(`The clock could not move ${sessionId} on: ${String(err)}`);
       }
@@ -449,6 +454,42 @@ export class SessionStore {
           expectedPhase: session.state.phase,
           expectedYear: session.state.year,
         },
+        { actor: 'system' },
+      ),
+    );
+  }
+
+  /**
+   * autoAdvance: once a year's results have been on screen long enough, take
+   * the next step of the plan by itself - announce the final year if due, then
+   * open the next year. Anything that needs the teacher (a summit, a messaging
+   * window, the end of the game) is left for the teacher. openYear is guarded by
+   * expectedPhase and expectedYear, so a year can only ever be opened once.
+   */
+  private async advanceWhenDue(
+    sessionId: string,
+    session: LiveSession,
+    now: number,
+  ): Promise<void> {
+    const state = session.state;
+    if (!state.settings.autoAdvance) return;
+    if (state.phase !== 'PRACTICE_REVEAL' && state.phase !== 'YEAR_REVEAL') return;
+    if (state.advanceAt === undefined || state.advanceAt === null || now < state.advanceAt) return;
+
+    const step = nextSuggestedAction(state);
+    if (step.command !== 'openYear' && step.command !== 'announceFinalYear') return;
+    const type = step.command;
+    await this.enqueue(session, () =>
+      this.applyOne(
+        sessionId,
+        session,
+        {
+          commandId: newId(),
+          type,
+          payload: step.payload,
+          expectedPhase: step.expectedPhase,
+          expectedYear: step.expectedYear,
+        } as Command,
         { actor: 'system' },
       ),
     );

@@ -1,7 +1,7 @@
 import { formatPrice, formatProfitK, formatQuantity } from '@shared/units';
 import type { RevealView, TeamView } from '@shared/views';
 import type { SendCommand } from '../net';
-import { DataTable, type Say } from '../ui';
+import { DataTable, StartsIn, type Say } from '../ui';
 import { HistoryPanel } from './HistoryPanel';
 import { MessagesPanel } from './MessagesPanel';
 
@@ -70,6 +70,7 @@ export function RevealScreen({ view, send, onSaid, serverNow }: RevealScreenProp
             {`${reveal.label} results`}
           </h2>
           <PriceHeadline reveal={reveal} />
+          <StartsIn at={view.advanceAt} what={`Year ${String(view.year + 1)}`} serverNow={serverNow} />
           <p className="lede" role="status" style={{ marginTop: 'var(--s4)' }}>
             {reveal.sentence}
           </p>

@@ -23,7 +23,9 @@ import { teamIdFor, teamLabel, yearLabel } from './labels.js';
 import { rolesForYear, type RoleAssignment } from './roles.js';
 import {
   economicUnits,
+  roundFor,
   type ActivityKind,
+  type RoundPlan,
   type DisclosureMode,
   type Settings,
 } from './settings.js';
@@ -178,6 +180,23 @@ export function timingView(state: SessionState, now: number): TimingView {
     seconds,
     resumedAfterRestart: state.timer.restarted === true,
   };
+}
+
+/** The teacher's plan for the round being played, or null outside a scored round. */
+function currentRound(state: SessionState): RoundPlan | null {
+  const inRound =
+    state.phase === 'YEAR_OPEN' || state.phase === 'YEAR_REVEAL' || state.phase === 'BETWEEN';
+  return inRound ? roundFor(state.year, state.settings) : null;
+}
+
+/** True while an open round allows Envoys to meet face to face. */
+function faceToFaceNow(state: SessionState): boolean {
+  return state.phase === 'YEAR_OPEN' && currentRound(state)?.faceToFace === true;
+}
+
+/** When the next year opens by itself, or null when the teacher moves it on. */
+function advanceAtOf(state: SessionState): number | null {
+  return state.advanceAt ?? null;
 }
 
 function publicSettings(settings: Settings): PublicSettingsView {
@@ -428,6 +447,10 @@ export interface TeamView {
   messaging: MessagingView;
   reflection: { answers: string[] } | null;
   finalYearAnnounced: boolean;
+  /** True while this round's plan lets Envoys meet face to face. */
+  faceToFace: boolean;
+  /** When the next year opens by itself (autoAdvance), or null. */
+  advanceAt: number | null;
   resultsRevealed: boolean;
   /** Only once the instructor has released results (SPEC section 7). */
   leaderboard: LeaderboardView | null;
@@ -491,6 +514,8 @@ export function viewForTeam(state: SessionState, teamId: string, now: number): T
     messaging,
     reflection: team.reflection ? { answers: team.reflection.answers } : null,
     finalYearAnnounced: state.finalYearAnnounced,
+    faceToFace: faceToFaceNow(state),
+    advanceAt: advanceAtOf(state),
     resultsRevealed: state.resultsRevealedToTeams,
     leaderboard: state.resultsRevealedToTeams ? leaderboardView(state) : null,
   };
@@ -542,6 +567,10 @@ export interface ProjectorView {
   /** Shown as "MESSAGING ON - 3:12". Never the messages themselves (SPEC 7). */
   messaging: MessagingView;
   finalYearAnnounced: boolean;
+  /** True while this round's plan lets Envoys meet face to face. */
+  faceToFace: boolean;
+  /** When the next year opens by itself (autoAdvance), or null. */
+  advanceAt: number | null;
   worlds: ProjectorWorldView[];
   /** The "Find your table" card in the lobby. */
   tables: ProjectorTableRow[];
@@ -561,7 +590,9 @@ export interface ProjectorView {
 }
 
 export function viewForProjector(state: SessionState, now: number): ProjectorView {
-  const showsPrices = state.settings.projectorShowsPrices;
+  // A round plan decides, round by round, whether the room sees every world's
+  // totals; outside a planned round the lesson-wide setting does.
+  const showsPrices = currentRound(state)?.seeAllTotals ?? state.settings.projectorShowsPrices;
   const atReveal = state.phase === 'PRACTICE_REVEAL' || state.phase === 'YEAR_REVEAL';
   const windows = state.worlds.map((world) => messagingFor(state, world.worldId, now));
   const anyOn = windows.some((window) => window.on);
@@ -584,6 +615,8 @@ export function viewForProjector(state: SessionState, now: number): ProjectorVie
     between: betweenView(state.between),
     messaging: { on: anyOn, until: anyOn && Number.isFinite(until) ? until : null },
     finalYearAnnounced: state.finalYearAnnounced,
+    faceToFace: faceToFaceNow(state),
+    advanceAt: advanceAtOf(state),
     worlds: state.worlds.map((world, index) => {
       const records = allRecords(world);
       const last = records[records.length - 1];
@@ -714,6 +747,10 @@ export interface InstructorView {
   between: BetweenView | null;
   finalYearAnnounced: boolean;
   resultsRevealedToTeams: boolean;
+  /** The plan for the round being played, or null without one. */
+  round: RoundPlan | null;
+  /** When the next year opens by itself (autoAdvance), or null. */
+  advanceAt: number | null;
   projectorScreen: ProjectorScreen;
   projectorWorldNumber: number | null;
   suggested: SuggestedAction;
@@ -818,6 +855,8 @@ export function viewForInstructor(
     between: betweenView(state.between),
     finalYearAnnounced: state.finalYearAnnounced,
     resultsRevealedToTeams: state.resultsRevealedToTeams,
+    round: currentRound(state),
+    advanceAt: advanceAtOf(state),
     projectorScreen: state.projectorScreen,
     projectorWorldNumber: state.projectorWorldNumber ?? null,
     suggested: extras.suggested,

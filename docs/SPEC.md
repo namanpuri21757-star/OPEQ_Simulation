@@ -179,5 +179,10 @@ Added:
 
 A session saved by v1 still opens: the loader drops every removed field on the way in, and an event-log line for a removed command is skipped without a warning.
 
+### v2.1 - round plan and automatic progression
+- Lesson settings ask for the number of rounds, a time for each round (with the total simulation time shown) and, per round, checkboxes for messaging, face-to-face talks and every world's totals on the projector. The number of worlds (1 to 6) is on the same page.
+- The game can move on by itself: a round closes as soon as every country has submitted, the results stay up for 10 seconds, then the next round opens. New sessions have this on.
+- The debrief shows each summary before its detail, and the round-by-round table shows each country's output.
+
 ## 13. Out of scope for v2
 Student accounts, LMS integration, grading, other languages. Cloud hosting is an optional separate step.

@@ -169,6 +169,8 @@ export function teamView(over: Partial<TeamView> = {}): TeamView {
     messaging: messaging(),
     reflection: null,
     finalYearAnnounced: false,
+    faceToFace: false,
+    advanceAt: null,
     resultsRevealed: false,
     leaderboard: null,
     ...over,

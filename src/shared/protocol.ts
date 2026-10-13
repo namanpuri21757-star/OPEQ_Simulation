@@ -241,7 +241,8 @@ export const COMMAND_META: Record<CommandType, CommandMeta> = {
   startPractice: instructorOnly(true),
   // The tick closes an overdue year, so "system" may send it too.
   closeYear: { actors: ['instructor', 'system'], guarded: true, persisted: true },
-  openYear: instructorOnly(true),
+  // With autoAdvance the tick opens the next year, so "system" may send it too.
+  openYear: { actors: ['instructor', 'system'], guarded: true, persisted: true },
   startBetween: instructorOnly(true),
   endBetween: { actors: ['instructor', 'system'], guarded: true, persisted: true },
   pause: instructorOnly(false),
@@ -252,7 +253,7 @@ export const COMMAND_META: Record<CommandType, CommandMeta> = {
   // may send it too.
   setMessaging: { actors: ['instructor', 'system'], guarded: false, persisted: true },
   fireEvent: instructorOnly(true),
-  announceFinalYear: instructorOnly(true),
+  announceFinalYear: { actors: ['instructor', 'system'], guarded: true, persisted: true },
 
   overrideDecision: instructorOnly(true),
   muteTeam: instructorOnly(false),

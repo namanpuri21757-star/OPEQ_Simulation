@@ -13,4 +13,5 @@ export {
   type ChartSeries,
 } from './LineChart';
 export { QrCode, type QrCodeProps } from './QrCode';
+export { StartsIn, type StartsInProps } from './StartsIn';
 export { Toast, useToast, type Say, type ToastMessage } from './Toast';

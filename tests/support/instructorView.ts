@@ -134,6 +134,8 @@ export function instructorView(over: InstructorViewOptions = {}): InstructorView
     between: null,
     finalYearAnnounced: false,
     resultsRevealedToTeams: false,
+    round: null,
+    advanceAt: null,
     projectorScreen: 'auto',
     projectorWorldNumber: null,
     suggested: suggested(),
@@ -193,6 +195,8 @@ export function projectorView(
     between: null,
     messaging: { on: false, until: null },
     finalYearAnnounced: false,
+    faceToFace: false,
+    advanceAt: null,
     worlds: numbers.map((worldNumber) => ({
       worldNumber,
       priceCents: null,

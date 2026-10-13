@@ -65,6 +65,32 @@ describe('World Detail', () => {
     );
   });
 
+  it('shows what every country produced in every round', () => {
+    render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={1} />);
+    const years = screen.getByRole('table', { name: /Every year in this world/ });
+    const header = within(years).getAllByRole('columnheader').map((cell) => cell.textContent);
+    expect(header).toEqual(
+      expect.arrayContaining(['Ardonia produced', 'Borvia produced', 'Cendra produced']),
+    );
+    const world = debrief.worlds[0];
+    const year3 = world?.years.find((year) => year.year === 3);
+    const ardonia = year3?.countries.find((country) => country.letter === 'A');
+    const row = within(years).getByRole('row', { name: /Year 3/ });
+    expect(row.textContent).toContain(((ardonia?.actualTenths ?? 0) / 10).toFixed(1));
+  });
+
+  it('puts the summary of the whole game before the charts', () => {
+    render(<DebriefScreenView screen="worldComparison" debrief={debrief} worldNumber={null} />);
+    const summary = tableNamed(/Each world over the whole game/);
+    const firstChart = screen.getAllByRole('img')[0];
+    expect(firstChart).toBeDefined();
+    if (firstChart) {
+      expect(
+        summary.compareDocumentPosition(firstChart) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
   it('labels the moments that matter on the chart', () => {
     render(<DebriefScreenView screen="worldDetail" debrief={debrief} worldNumber={1} />);
     expect(screen.getByText(/Messaging on after Year 2/)).toBeInTheDocument();

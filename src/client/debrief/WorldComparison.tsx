@@ -38,29 +38,15 @@ export function WorldComparison({ debrief }: WorldComparisonProps) {
     ...styleFor(index),
   }));
 
+  // The summary first, so the answer to "how did each world do?" is the first
+  // thing read; the charts below show how each world got there, round by round.
   return (
     <section className="debrief-screen" aria-labelledby="comparison-heading">
       <h2 id="comparison-heading">{debrief.titles.comparison}</h2>
       <p className="debrief-lead">
         100% would mean the three countries in a world made every dollar they possibly could have
-        made together that year. Anything less went to the people buying the oil.
+        made together. Anything less went to the people buying the oil.
       </p>
-
-      <LineChart
-        title="Share of the cooperative maximum, year by year"
-        series={perYear}
-        xLabel="Year"
-        leftLabel="percent"
-        formatLeft={(y) => `${String(y)}%`}
-      />
-
-      <LineChart
-        title="Share of the cooperative maximum, counting from Year 1"
-        series={cumulative}
-        xLabel="Year"
-        leftLabel="percent"
-        formatLeft={(y) => `${String(y)}%`}
-      />
 
       <DataTable
         caption="Each world over the whole game"
@@ -79,6 +65,25 @@ export function WorldComparison({ debrief }: WorldComparisonProps) {
           world.break.year === null ? 'it did not' : `Year ${String(world.break.year)}`,
         ])}
       />
+
+      <h3>Round by round</h3>
+      <div className="debrief-charts">
+        <LineChart
+          title="Share of the cooperative maximum, each year"
+          series={perYear}
+          xLabel="Year"
+          leftLabel="percent"
+          formatLeft={(y) => `${String(y)}%`}
+        />
+
+        <LineChart
+          title="Share of the cooperative maximum, running total"
+          series={cumulative}
+          xLabel="Year"
+          leftLabel="percent"
+          formatLeft={(y) => `${String(y)}%`}
+        />
+      </div>
     </section>
   );
 }

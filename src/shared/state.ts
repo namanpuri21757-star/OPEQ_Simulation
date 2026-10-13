@@ -245,6 +245,11 @@ export interface SessionState {
   briefingSlide: number;
   timer: TimerState;
   between: BetweenState | null;
+  /**
+   * When the next year opens by itself (settings.autoAdvance). Only set on a
+   * reveal; absent in sessions saved before it existed, which reads as null.
+   */
+  advanceAt?: number | null;
   finalYearAnnounced: boolean;
   resultsRevealedToTeams: boolean;
   projectorScreen: ProjectorScreen;

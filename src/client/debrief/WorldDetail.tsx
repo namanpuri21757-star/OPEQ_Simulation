@@ -69,10 +69,24 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
     );
   }
 
+  const letters = world.years[0]?.countries ?? [];
+
+  // Read top to bottom: how each country finished, how the world moved, every
+  // round in numbers, and what was said along the way.
   return (
     <section className="debrief-screen" aria-labelledby="detail-heading">
       <h2 id="detail-heading">{world.title}</h2>
       <p className="debrief-lead">{world.break.note}</p>
+
+      <DataTable
+        caption="Each country in this world"
+        columns={['Country', 'Total profit ($M)', 'Messages sent']}
+        rows={world.countries.map((country) => [
+          `${country.countryName} (${country.letter})`,
+          formatProfitK(country.cumulativeProfitK),
+          String(country.messagesSent),
+        ])}
+      />
 
       <LineChart
         title="What each country produced, and what the price did"
@@ -86,10 +100,12 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
         height={300}
       />
 
+      <h3>Round by round</h3>
       <DataTable
         caption="Every year in this world"
         columns={[
           'Year',
+          ...letters.map((country) => `${country.countryName} produced`),
           'World supply',
           'Price',
           'Profit for all three',
@@ -98,6 +114,11 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
         ]}
         rows={world.years.map((year) => [
           year.label,
+          ...letters.map((country) => {
+            const row = year.countries.find((item) => item.letter === country.letter);
+            if (!row) return '-';
+            return `${formatQuantity(row.actualTenths)}${row.auto ? ' auto' : ''}`;
+          }),
           formatQuantity(year.totalTenths),
           formatPrice(year.priceCents),
           formatProfitK(year.jointProfitK),
@@ -105,6 +126,10 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
           furthestAbove(year),
         ])}
       />
+      <p className="chart-source">
+        Output and supply in million barrels. Price in $ per barrel. Auto means the country did not
+        submit and repeated its last number.
+      </p>
 
       <h3>What they said, and what they did</h3>
       {world.messages.length === 0 ? (
@@ -127,17 +152,6 @@ export function WorldDetail({ debrief, worldNumber }: WorldDetailProps) {
           ))}
         </ol>
       )}
-
-      <DataTable
-        caption="Each country in this world"
-        columns={['Country', 'Messages sent', 'Total profit ($M)']}
-        rows={world.countries.map((country) => [
-          `${country.countryName} (${country.letter})`,
-          String(country.messagesSent),
-          formatProfitK(country.cumulativeProfitK),
-        ])}
-      />
-
     </section>
   );
 }

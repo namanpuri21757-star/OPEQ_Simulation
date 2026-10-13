@@ -136,7 +136,7 @@ describe('Join', () => {
     await user.click(screen.getByRole('button', { name: 'Save and start' }));
 
     expect(send).toHaveBeenLastCalledWith('setMembers', { names: ['Maya', 'Leo'] });
-    expect(screen.getByText('the team screen')).toBeInTheDocument();
+    expect(await screen.findByText('the team screen')).toBeInTheDocument();
   });
 
   it('lets a group skip the names', async () => {
@@ -149,7 +149,7 @@ describe('Join', () => {
     await user.click(screen.getByRole('button', { name: 'Skip' }));
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('the team screen')).toBeInTheDocument();
+    expect(await screen.findByText('the team screen')).toBeInTheDocument();
   });
 
   it('keeps the token, so a reload comes back as the same country', async () => {
@@ -277,7 +277,7 @@ describe('a join link for a different country', () => {
     show([], { needsClaim: false, teamId: 'world-2-B' }, '/join/CRMFQP');
 
     await user.click(screen.getByRole('button', { name: 'Go back to our screen' }));
-    expect(screen.getByText('the team screen')).toBeInTheDocument();
+    expect(await screen.findByText('the team screen')).toBeInTheDocument();
   });
 
   it('forgets the old country and claims the new one', async () => {

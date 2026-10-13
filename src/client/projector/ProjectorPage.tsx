@@ -4,7 +4,7 @@ import { APP_NAME, APP_TAGLINE } from '@shared/constants';
 import { formatPrice, formatQuantity } from '@shared/units';
 import type { ProjectorView } from '@shared/views';
 import { RoleConnection, useView } from '../net';
-import { Countdown, DataTable, QrCode } from '../ui';
+import { Countdown, DataTable, QrCode, StartsIn } from '../ui';
 import { DebriefScreenView, debriefTitleOf, isDebriefScreenName } from '../debrief';
 import { joinLink } from '../instructor/links';
 
@@ -161,6 +161,19 @@ export function ProjectorScreen({ view, serverNow }: ProjectorScreenProps) {
 
       {view.between !== null && (
         <p className="projector-lead">Envoys: go to the meeting point.</p>
+      )}
+
+      {view.faceToFace && (
+        <p className="projector-lead">Face to face this round: Envoys may meet the other countries.</p>
+      )}
+
+      {atReveal && (
+        <StartsIn
+          at={view.advanceAt}
+          what={`Year ${String(view.year + 1)}`}
+          serverNow={serverNow}
+          className="projector-lead"
+        />
       )}
 
       {showTables && (

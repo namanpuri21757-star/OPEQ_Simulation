@@ -57,14 +57,14 @@ dollars.
 | `setBriefingSlide`                 | instructor         |         | Shows a briefing screen on every terminal.                       |
 | `startPractice`                    | instructor         | yes     | Opens the practice year (year 0).                                |
 | `closeYear`                        | instructor, system | yes     | Locks the year, fills missing decisions, resolves every world.   |
-| `openYear`                         | instructor         | yes     | Opens the next scored year.                                      |
+| `openYear`                         | instructor, system | yes     | Opens the next scored year. The system sends it when autoAdvance is on. |
 | `startBetween`                     | instructor         | yes     | Opens a face-to-face summit on a timer.                          |
 | `endBetween`                       | instructor, system | yes     | Ends it.                                                         |
 | `pause` / `resume`                 | instructor         |         | Keeps and restores the remaining time.                           |
 | `extend`                           | instructor         |         | Adds 1 to 600 seconds.                                           |
 | `setMessaging`                     | instructor, system | | Turns messaging on or off, for every world or for some. `seconds` left out means until it is turned off. |
 | `fireEvent`                        | instructor         | yes     | Brings the new producer into the next year.                      |
-| `announceFinalYear`                | instructor         | yes     | Only when the next year is the last one.                         |
+| `announceFinalYear`                | instructor, system | yes     | Only when the next year is the last one.                         |
 | `overrideDecision`                 | instructor         | yes     | Replaces a team's number. A reason is required and is logged.    |
 | `muteTeam` / `unmuteTeam`          | instructor         |         | Stops or restarts that team's messages.                          |
 | `releaseTerminal`                  | instructor         |         | Frees a country so another computer can claim it.                |
@@ -158,6 +158,10 @@ The one-second tick closes an overdue year or activity by sending `closeYear` or
 `endBetween` with the actor `system`. Those are validated, saved and broadcast
 exactly like a click, so the event log is a complete record of the lesson whether
 a human or the clock moved it on.
+
+With `autoAdvance` on, the tick also moves the lesson forward once a year's
+results have been up for 10 seconds: it sends `announceFinalYear` when that is
+due, then `openYear`, both guarded so a year is never opened twice.
 
 ## 7. HTTP
 

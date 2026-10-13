@@ -102,23 +102,34 @@ figure.figure {
 /* Series past the first are told apart by their dash and marker, which are set
  * on the series itself, so no extra colour is needed. The later ones are
  * lightened only so the first line still reads as the main one. */
-.chart-series-2 path,
+/* A line is never filled: only the markers are. A fill on the path itself
+ * closed every line into a solid shape on the chart. */
+.chart-series-2 path {
+  stroke: var(--text);
+}
+
 .chart-series-2 .chart-marker {
   stroke: var(--text);
   fill: var(--text);
 }
 
-.chart-series-3 path,
+.chart-series-3 path {
+  stroke: var(--muted);
+}
+
 .chart-series-3 .chart-marker {
   stroke: var(--muted);
   fill: var(--muted);
 }
 
 .chart-series-4 path,
-.chart-series-4 .chart-marker,
 .chart-series-5 path,
+.chart-series-6 path {
+  stroke: var(--ink);
+}
+
+.chart-series-4 .chart-marker,
 .chart-series-5 .chart-marker,
-.chart-series-6 path,
 .chart-series-6 .chart-marker {
   stroke: var(--ink);
   fill: var(--ink);

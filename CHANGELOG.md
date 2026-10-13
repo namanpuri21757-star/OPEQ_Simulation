@@ -6,6 +6,19 @@ This project follows [semantic versioning](https://semver.org): the version
 before 1.0.0 was never released to anyone, so the entries below describe how the
 app was built rather than how it changed for a user.
 
+## 2.1.0 — 2026-10-13
+
+- **Rounds you plan yourself.** Lesson settings ask for the number of worlds and
+  rounds, a time for each round (with the total simulation time), and per-round
+  checkboxes for messaging, face-to-face talks and every world's totals on the
+  projector.
+- **Moves on by itself.** A round closes as soon as every country has
+  submitted; after 10 seconds of results the next round opens. On for new
+  sessions; one checkbox turns it off.
+- **A tidier debrief.** Summaries come before the detail, the two comparison
+  charts sit side by side, and the round-by-round table shows each country's
+  output. A chart line that drew as a solid shape is fixed.
+
 ## 2.0.0 — 2026-10-08
 
 The clarity release. Nine features were removed and every screen was redesigned

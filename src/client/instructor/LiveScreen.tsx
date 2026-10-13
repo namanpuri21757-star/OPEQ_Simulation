@@ -105,6 +105,7 @@ export function LiveScreen({ view, send, status, serverNow, onDeleted }: LiveScr
           asking={asking}
           onAskSuggested={() => setAsking(suggested)}
           onCancelSuggested={() => setAsking(null)}
+          serverNow={serverNow}
         />
 
         {briefing && (
